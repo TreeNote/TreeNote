@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="filenew.png">images/filenew.png</file>
+        <file alias="editedit.png">images/editedit.png</file>
+    </qresource>
+</RCC>
