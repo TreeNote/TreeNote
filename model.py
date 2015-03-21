@@ -117,12 +117,14 @@ class Updater(QThread):
                             self.tree_model.beginRemoveRows(index, position, position + count - 1)
                             item.childItems[position:position + count] = []
                             self.tree_model.endRemoveRows()
-                            # select the item below, if existing
-                            if position == len(item.childItems):
+                            # select the item below
+                            if position == len(item.childItems):  # there is no item below, so select the one above
                                 position -= 1
-                            if len(item.childItems) != 0:
+                            if len(item.childItems) > 0:  # everythin is ok
                                 index_next_child = self.tree_model.index(position, 0, index)
                                 self.tree_model.update_selection_signal.emit(index_next_child, index_next_child, self.tree_model.seq)
+                            else: # all childs deleted, select parent
+                                self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
 
                         def moved_vertical():
                             self.tree_model.seq = line['seq']
