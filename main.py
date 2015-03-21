@@ -62,6 +62,8 @@ class MainWindow(QMainWindow):
         self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
+        self.viewMenu.addAction(self.expandAllChildrenAction)
+        self.viewMenu.addAction(self.collapseAllChildrenAction)
         self.viewMenu.addAction(self.splitWindowAct)
         self.viewMenu.addAction(self.unsplitWindowAct)
 

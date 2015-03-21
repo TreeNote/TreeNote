@@ -49,8 +49,7 @@ class Updater(QThread):
                         index = self.tree_model.id_index_dict[item_id]
                         item = self.tree_model.getItem(index)
                         change_dict = db_item['change']
-                        my_edit = db_item['user'] == socket.gethostname()
-
+                        my_edit = change_dict['user'] == socket.gethostname()
                         def updated():
                             item.text = db_item['text']
                             self.tree_model.seq = line['seq']
@@ -171,7 +170,7 @@ class TreeModel(QAbstractItemModel):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db['0'] = ({'text': 'root', 'children': '', 'user': ''})
+                new_db['0'] = ({'text': 'root', 'children': ''})
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -287,7 +286,7 @@ class TreeModel(QAbstractItemModel):
         id_list = list()
         if indexes is None:  # used from view, create a single new row / self.db item
             set_edit_focus = True
-            child_id, _ = self.db.save({'text': '', 'children': '', 'user': ''})
+            child_id, _ = self.db.save({'text': '', 'children': ''})
             id_list.append(child_id)
         else:  # used from move methods, add existing db items to the parent
             set_edit_focus = False
