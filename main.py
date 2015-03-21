@@ -45,6 +45,8 @@ class MainWindow(QMainWindow):
         add_action('moveDownAction', QAction(QIcon(':/filenew.png'), self.tr('&Down'), self, shortcut='S', triggered=self.move_down))
         add_action('moveLeftAction', QAction(QIcon(':/filenew.png'), self.tr('&Left'), self, shortcut='A', triggered=self.move_left))
         add_action('moveRightAction', QAction(QIcon(':/filenew.png'), self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
+        add_action('expandAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Expand all children'), self, shortcut='Shift+Right', triggered=self.expand_all_children))
+        add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertChildAction)
@@ -102,7 +104,20 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
+    def expand_node(self, parent_index, bool_expand):
+        self.view.setExpanded(parent_index, bool_expand)
+        for row_num in range(self.model.rowCount(parent_index)):
+            child_index = self.model.index(row_num, 0, parent_index)
+            self.view.setExpanded(parent_index, bool_expand)
+            self.expand_node(child_index, bool_expand)
+
     # structure menu actions
+
+    def expand_all_children(self):
+        self.expand_node(self.view.selectionModel().currentIndex(), True)
+
+    def collapse_all_children(self):
+        self.expand_node(self.view.selectionModel().currentIndex(), False)
 
     def move_up(self):
         indexes = self.view.selectionModel().selectedIndexes()
@@ -141,7 +156,7 @@ class MainWindow(QMainWindow):
 
     # view menu actions
 
-    def split_window(self):
+    def split_window(self): # creates the view, too
         view = QTreeView()
         view.header().hide()
         view.setSelectionMode(QAbstractItemView.ExtendedSelection)

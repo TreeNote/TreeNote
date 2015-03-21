@@ -167,7 +167,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                del server[new_db_name]
+                #del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -249,8 +249,7 @@ class TreeModel(QAbstractItemModel):
 
         return self.createIndex(parentItem.child_number(), 0, parentItem)
 
-    # also deserialises children from the db
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent=QModelIndex()): # deserialises children from the db, too
         parentItem = self.getItem(parent)
         if parentItem.childItems is None:  # child_count get's called often. Improve performance by deserialising only once
             parentItem.childItems = []
