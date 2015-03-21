@@ -4,7 +4,7 @@ import time
 import sys
 import subprocess
 import threading
-
+import socket
 
 if sys.platform == "darwin":
     subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
@@ -16,11 +16,11 @@ def get_create_db(new_db_name, db_url=None):
     else:
         server = couchdb.Server()
     try:
-        #del server[new_db_name]
+        del server[new_db_name]
         return server, server[new_db_name]
     except couchdb.http.ResourceNotFound:
         new_db = server.create(new_db_name)
-        new_db['0'] = ({'text': 'root', 'children': ''})
+        new_db['0'] = ({'text': 'root', 'children': '', 'user': ''})
         print("Database does not exist. Created the database.")
         return server, new_db
     except couchdb.http.Unauthorized as err:
@@ -54,12 +54,15 @@ def synchronized(lock_name):
     But meanwhile an incoming, foreign database change may have deleted an affected Tree_item.
     Therefore we use a lock variable, which is used by the TreeModel methods and by the Updater-Thread.
     """
+
     def decorator(method):
         def synced_method(self, *args, **kws):
             lock = getattr(self, lock_name)
             with lock:
                 return method(self, *args, **kws)
+
         return synced_method
+
     return decorator
 
 
@@ -67,6 +70,7 @@ class Updater(QThread):
     """
     This Thread watches the db for own and foreign changes and updates the view.
     """
+
     def __init__(self, tree_model):
         super(QThread, self).__init__()
         self.tree_model = tree_model
@@ -85,11 +89,13 @@ class Updater(QThread):
                         index = id_index_dict[item_id]
                         item = self.tree_model.getItem(index)
                         change_dict = db_item['change']
+                        my_edit = db_item['user'] == socket.gethostname()
 
                         def updated():
                             item.text = db_item['text']
                             self.tree_model.seq = line['seq']
-                            self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
+                            if my_edit:
+                                self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
 
                         def added():
                             position = change_dict['position']
@@ -101,14 +107,15 @@ class Updater(QThread):
                                 parentItem.childItems[position + i].id = added_item_id
                                 parentItem.childItems[position + i].text = db[added_item_id]['text']
                             self.tree_model.endInsertRows()
-                            index_first_added = self.tree_model.index(position, 0, index)
-                            index_last_added = self.tree_model.index(position + len(id_list) - 1, 0, index)
-                            if change_dict['set_edit_focus']:
-                                self.tree_model.update_selection_and_edit_signal.emit(index_first_added)
-                            else:
-                                self.tree_model.seq = line['seq']
-                                self.tree_model.update_selection_signal.emit(index_first_added, index_last_added, self.tree_model.seq)
-                                self.last_selected_index = index_first_added
+                            if my_edit:
+                                index_first_added = self.tree_model.index(position, 0, index)
+                                index_last_added = self.tree_model.index(position + len(id_list) - 1, 0, index)
+                                if change_dict['set_edit_focus']:
+                                    self.tree_model.update_selection_and_edit_signal.emit(index_first_added)
+                                else:
+                                    self.tree_model.seq = line['seq']
+                                    self.tree_model.update_selection_signal.emit(index_first_added, index_last_added, self.tree_model.seq)
+                                    self.last_selected_index = index_first_added
 
                         def removed():
                             self.tree_model.seq = line['seq']
@@ -117,14 +124,15 @@ class Updater(QThread):
                             self.tree_model.beginRemoveRows(index, position, position + count - 1)
                             item.childItems[position:position + count] = []
                             self.tree_model.endRemoveRows()
-                            # select the item below
-                            if position == len(item.childItems):  # there is no item below, so select the one above
-                                position -= 1
-                            if len(item.childItems) > 0:  # everythin is ok
-                                index_next_child = self.tree_model.index(position, 0, index)
-                                self.tree_model.update_selection_signal.emit(index_next_child, index_next_child, self.tree_model.seq)
-                            else: # all childs deleted, select parent
-                                self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
+                            if my_edit:
+                                # select the item below
+                                if position == len(item.childItems):  # there is no item below, so select the one above
+                                    position -= 1
+                                if len(item.childItems) > 0:  # everythin is ok
+                                    index_next_child = self.tree_model.index(position, 0, index)
+                                    self.tree_model.update_selection_signal.emit(index_next_child, index_next_child, self.tree_model.seq)
+                                else:  # all childs deleted, select parent
+                                    self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
 
                         def moved_vertical():
                             self.tree_model.seq = line['seq']
@@ -143,7 +151,8 @@ class Updater(QThread):
                                 if i == 0:
                                     index_first_moved_item = index_moved_item
                             self.tree_model.layout_changed_signal.emit()
-                            self.tree_model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.tree_model.seq)
+                            if my_edit:
+                                self.tree_model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.tree_model.seq)
 
                         eval(change_dict['method'] + '()')
 
@@ -154,6 +163,7 @@ class Tree_item(object):
     http://trevorius.com/scrapbook/uncategorized/pyqt-custom-abstractitemmodel/
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
+
     def __init__(self, text, parent=None):
         self.parentItem = parent
         self.text = text
@@ -271,7 +281,8 @@ class TreeModel(QAbstractItemModel):
         item = self.getItem(index)
         db_item = db[item.id]
         db_item['text'] = value
-        db_item['change'] = dict(method='updated')
+
+        db_item['change'] = dict(method='updated', user=socket.gethostname())
         db[item.id] = db_item
         return True
 
@@ -280,7 +291,7 @@ class TreeModel(QAbstractItemModel):
         id_list = list()
         if indexes is None:  # used from view, create a single new row / db item
             set_edit_focus = True
-            child_id, _ = db.save({'text': '', 'children': ''})
+            child_id, _ = db.save({'text': '', 'children': '', 'user': ''})
             id_list.append(child_id)
         else:  # used from move methods, add existing db items to the parent
             set_edit_focus = False
@@ -291,7 +302,7 @@ class TreeModel(QAbstractItemModel):
         children_list = db_item['children'].split()
         children_list_new = children_list[:position] + id_list + children_list[position:]
         db_item['children'] = ' '.join(children_list_new)
-        db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus)
+        db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
         db[parent_item_id] = db_item
         return True
 
@@ -315,7 +326,7 @@ class TreeModel(QAbstractItemModel):
                 parent_item_id = child_item.parentItem.id
                 parent_db_item = db[parent_item_id]
                 children_list = parent_db_item['children'].split()
-                parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1)
+                parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
                 children_list.remove(child_item.id)
                 parent_db_item['children'] = ' '.join(children_list)
                 db[parent_item_id] = parent_db_item
@@ -340,7 +351,7 @@ class TreeModel(QAbstractItemModel):
             swapped_item_new_position = old_position
         children_list.insert(swapped_item_new_position, swapped_item)
         db_item['children'] = ' '.join(children_list)
-        db_item['change'] = dict(method='moved_vertical', position=old_position, count=len(indexes), up_or_down=up_or_down)
+        db_item['change'] = dict(method='moved_vertical', position=old_position, count=len(indexes), up_or_down=up_or_down, user=socket.gethostname())
         db[parent_item_id] = db_item
 
     @synchronized("lock")
@@ -373,7 +384,7 @@ class TreeModel(QAbstractItemModel):
         parent_db_item = db[parent_item_id]
         children_list = parent_db_item['children'].split()
         position = children_list.index(child_item.id)
-        parent_db_item['change'] = dict(method='removed', position=position, count=len(indexes))
+        parent_db_item['change'] = dict(method='removed', position=position, count=len(indexes), user=socket.gethostname())
         children_list[position:position + len(indexes)] = []
         parent_db_item['children'] = ' '.join(children_list)
         db[parent_item_id] = parent_db_item
