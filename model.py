@@ -40,7 +40,6 @@ class Updater(QThread):
         last_seq = all_changes['results'][0]['seq']
         changes_list = self.tree_model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
-            print(line)
             if 'doc' in line and 'deleted' not in line:
                 db_item = line['doc']
                 item_id = db_item['_id']
