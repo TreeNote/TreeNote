@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QThread, QObject, pyqtSignal
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QThread, QObject, pyqtSignal, QSortFilterProxyModel
 import couchdb
 import time
 import sys
@@ -391,3 +391,22 @@ class TreeModel(QAbstractItemModel):
         children_list[position:position + len(indexes)] = []
         parent_db_item['children'] = ' '.join(children_list)
         self.db[parent_item_id] = parent_db_item
+
+
+class FilterProxyModel(QSortFilterProxyModel):
+    # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
+    # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
+    def filterAcceptsRow(self, row, parent):
+        index = self.sourceModel().index(row, 0, parent)
+        if not index.isValid():
+            return False
+
+        print(self.filter, index.data())
+        if self.filter in index.data():
+            return True
+
+        for row in range(self.sourceModel().rowCount(index)):
+            if self.filterAcceptsRow(row, index):
+                return True;
+
+        return False

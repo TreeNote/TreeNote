@@ -111,6 +111,11 @@ class MainWindow(QMainWindow):
         if not view.hasFocus():
             view.setFocus()
 
+    def search(self, str):
+        # if search lags: increase keyboardInputInterval
+        self.grid_holder().proxy.filter = str
+        self.grid_holder().proxy.invalidateFilter()
+
     def expand_node(self, parent_index, bool_expand):
         self.grid_holder().view.setExpanded(parent_index, bool_expand)
         for row_num in range(self.model.rowCount(parent_index)):
@@ -156,15 +161,12 @@ class MainWindow(QMainWindow):
         self.model.insertRows(0, index)
 
     def insert_row_or_search(self):
+        index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.hasFocus():
-            index = self.grid_holder().view.selectionModel().currentIndex()
             self.model.insertRows(index.row() + 1, index.parent())
         elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
-            index = self.grid_holder().view.selectionModel().currentIndex()
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
-        elif self.grid_holder().search_bar.hasFocus():
-            print()
 
     def removeSelection(self):
         self.grid_holder().view.model().removeRows(self.grid_holder().view.selectionModel().selectedIndexes())
@@ -178,11 +180,17 @@ class MainWindow(QMainWindow):
         grid_holder = QWidget()
 
         grid_holder.search_bar = QLineEdit()
+        grid_holder.search_bar.textChanged[str].connect(self.search)
 
         grid_holder.view = QTreeView()
         grid_holder.view.header().hide()
         grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        grid_holder.view.setModel(self.model)
+
+        grid_holder.proxy = model.FilterProxyModel()
+        grid_holder.proxy.setSourceModel(self.model)
+        grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
+        grid_holder.proxy.filter = ''
+        grid_holder.view.setModel(grid_holder.proxy)
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
 
         grid = QGridLayout()
