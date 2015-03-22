@@ -70,17 +70,16 @@ class MainWindow(QMainWindow):
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
 
-        # single key menu shortcuts don't work on mac, so I use this workaround: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
-        if sys.platform == "darwin":
-            self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
-            self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-            for action in self.actions:
-                keySequence = action.shortcut()
-                if keySequence.count() == 1:
-                    shortcut = QShortcut(keySequence, self)
-                    shortcut.activated.connect(self.signalMapper.map)
-                    self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
-                    action.shortcut = QKeySequence()  # disable the old shortcut
+        # make single key menu shortcuts work on all operating systems http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
+        self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
+        self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
+        for action in self.actions:
+            keySequence = action.shortcut()
+            if keySequence.count() == 1:
+                shortcut = QShortcut(keySequence, self)
+                shortcut.activated.connect(self.signalMapper.map)
+                self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
+                action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
         self.updateActions()
@@ -197,7 +196,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'Todo App'))
+    app.setApplicationName(QApplication.translate('main', 'NoteTree'))
     app.setWindowIcon(QIcon(':/icon.png'))
     form = MainWindow()
     form.show()

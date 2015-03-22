@@ -41,6 +41,7 @@ class Updater(QThread):
         changes_list = self.tree_model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
             if 'doc' in line and 'deleted' not in line:
+                print(line)
                 db_item = line['doc']
                 item_id = db_item['_id']
                 if item_id in self.tree_model.id_index_dict:  # update the view only if the item is already loaded
@@ -191,9 +192,9 @@ class TreeModel(QAbstractItemModel):
             except:
                 pass
 
-        # get_create_db(db_name, server_url)
-        # local_server.replicate(db_name, server_url + db_name, continuous=True)
-        # local_server.replicate(server_url + db_name, db_name, continuous=True)
+        get_create_db(db_name, server_url)
+        local_server.replicate(db_name, server_url + db_name, continuous=True)
+        local_server.replicate(server_url + db_name, db_name, continuous=True)
 
         self.rootItem = Tree_item('root item')
         self.rootItem.id = '0'
@@ -247,6 +248,7 @@ class TreeModel(QAbstractItemModel):
 
         return self.createIndex(parentItem.child_number(), 0, parentItem)
 
+    @synchronized("lock")
     def rowCount(self, parent=QModelIndex()): # deserialises children from the db, too
         parentItem = self.getItem(parent)
         if parentItem.childItems is None:  # child_count get's called often. Improve performance by deserialising only once
