@@ -50,6 +50,7 @@ class Updater(QThread):
                         item = self.tree_model.getItem(index)
                         change_dict = db_item['change']
                         my_edit = change_dict['user'] == socket.gethostname()
+
                         def updated():
                             item.text = db_item['text']
                             self.tree_model.seq = line['seq']
@@ -122,6 +123,7 @@ class Tree_item(object):
     http://trevorius.com/scrapbook/uncategorized/pyqt-custom-abstractitemmodel/
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
+
     def _getChildItems(self):
         if self._childItems is None:  # deserialise children from the db
             self._childItems = []
@@ -178,7 +180,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                del server[new_db_name]
+                # del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -204,9 +206,9 @@ class TreeModel(QAbstractItemModel):
             except:
                 pass
 
-        get_create_db(db_name, server_url)
-        local_server.replicate(db_name, server_url + db_name, continuous=True)
-        local_server.replicate(server_url + db_name, db_name, continuous=True)
+        # get_create_db(db_name, server_url)
+        # local_server.replicate(db_name, server_url + db_name, continuous=True)
+        # local_server.replicate(server_url + db_name, db_name, continuous=True)
 
         self.rootItem = Tree_item('root item', self)
         self.rootItem.id = '0'
