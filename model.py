@@ -122,11 +122,23 @@ class Tree_item(object):
     http://trevorius.com/scrapbook/uncategorized/pyqt-custom-abstractitemmodel/
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
+    def _getChildItems(self):
+        if self._childItems is None:  # deserialise children from the db
+            self._childItems = []
+            children_id_list = self.model.db[self.id]['children'].split()
+            self.insert_children(0, len(children_id_list))
+            for i in range(len(children_id_list)):
+                self._childItems[i].text = self.model.db[children_id_list[i]]['text']
+                self._childItems[i].id = children_id_list[i]
+        return self._childItems
 
-    def __init__(self, text, parent=None):
+    childItems = property(fget=_getChildItems)
+
+    def __init__(self, text, model, parent=None):
+        self.model = model
         self.parentItem = parent
         self.text = text
-        self.childItems = None
+        self._childItems = None
         self.id = None
 
     def child_number(self):
@@ -136,7 +148,7 @@ class Tree_item(object):
 
     def insert_children(self, position, count):
         for row in range(count):
-            item = Tree_item('', self)
+            item = Tree_item('', self.model, self)
             self.childItems.insert(position, item)
 
     def remove_children(self, position, count):
@@ -166,7 +178,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                #del server[new_db_name]
+                del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -196,7 +208,7 @@ class TreeModel(QAbstractItemModel):
         local_server.replicate(db_name, server_url + db_name, continuous=True)
         local_server.replicate(server_url + db_name, db_name, continuous=True)
 
-        self.rootItem = Tree_item('root item')
+        self.rootItem = Tree_item('root item', self)
         self.rootItem.id = '0'
         self.id_index_dict['0'] = QModelIndex()
 
@@ -249,15 +261,8 @@ class TreeModel(QAbstractItemModel):
         return self.createIndex(parentItem.child_number(), 0, parentItem)
 
     @synchronized("lock")
-    def rowCount(self, parent=QModelIndex()): # deserialises children from the db, too
+    def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
-        if parentItem.childItems is None:  # child_count get's called often. Improve performance by deserialising only once
-            parentItem.childItems = []
-            children_id_list = self.db[parentItem.id]['children'].split()
-            parentItem.insert_children(0, len(children_id_list))
-            for i in range(len(children_id_list)):
-                parentItem.childItems[i].text = self.db[children_id_list[i]]['text']
-                parentItem.childItems[i].id = children_id_list[i]
         return len(parentItem.childItems)
 
     def data(self, index, role):
