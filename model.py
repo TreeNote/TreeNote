@@ -276,28 +276,29 @@ class TreeModel(QAbstractItemModel):
         return True
 
     @synchronized("lock")
-    def removeRow(self, index, delete=True, restore_selection=False):
-        child_item = self.getItem(index)
-        child_db_item = self.db.get(child_item.id)
-        if child_db_item is not None:
-            self.db.delete(child_db_item)
+    def removeRows(self, indexes, delete=True, restore_selection=False):
+        for index in reversed(indexes):
+            child_item = self.getItem(index)
+            child_db_item = self.db.get(child_item.id)
+            if child_db_item is not None:
+                self.db.delete(child_db_item)
 
-            def delete_childs(item):
-                for ch_item in item.childItems:
-                    delete_childs(ch_item)
-                    ch_db_item = self.db.get(ch_item.id)
-                    if ch_db_item is not None:
-                        self.db.delete(ch_db_item)
+                def delete_childs(item):
+                    for ch_item in item.childItems:
+                        delete_childs(ch_item)
+                        ch_db_item = self.db.get(ch_item.id)
+                        if ch_db_item is not None:
+                            self.db.delete(ch_db_item)
 
-            delete_childs(child_item)
+                delete_childs(child_item)
 
-            parent_item_id = child_item.parentItem.id
-            parent_db_item = self.db[parent_item_id]
-            children_list = parent_db_item['children'].split()
-            parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
-            children_list.remove(child_item.id)
-            parent_db_item['children'] = ' '.join(children_list)
-            self.db[parent_item_id] = parent_db_item
+                parent_item_id = child_item.parentItem.id
+                parent_db_item = self.db[parent_item_id]
+                children_list = parent_db_item['children'].split()
+                parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
+                children_list.remove(child_item.id)
+                parent_db_item['children'] = ' '.join(children_list)
+                self.db[parent_item_id] = parent_db_item
 
     @synchronized("lock")
     def move_vertical(self, indexes, up_or_down):
@@ -343,7 +344,7 @@ class TreeModel(QAbstractItemModel):
 
             sibling_index = self.index(childNumber - 1, 0, self.parent(indexes[0]))
             last_childnr_of_sibling = len(item.parentItem.childItems[childNumber - 1].childItems)
-            self.insertRows(last_childnr_of_sibling, sibling_index, indexes)  # the solution 'delete and then insert the moving item' produces a flickering, so we insert first
+            self.insertRows(last_childnr_of_sibling, sibling_index, indexes)  # todo the solution 'delete and then insert the moving item' produces a flickering, so we insert first
 
     def remove_consecutive_rows_from_parent(self, indexes):  # just for moving
         child_item = self.getItem(indexes[0])
@@ -375,12 +376,23 @@ class FilterProxyModel(QSortFilterProxyModel):
 
         return False
 
-    def move_right(self, indexes):
-        self.sourceModel().move_right([self.mapToSource(indexes[0])])
+    def map_indexes_to_source(self, indexes):
+        indexes_source = []
+        for index in indexes:
+            indexes_source.append(self.mapToSource(index))
+        return indexes_source
 
-    def insertRows(self, position, parent):
+    def move_right(self, indexes):
+        self.sourceModel().move_right(self.map_indexes_to_source(indexes))
+
+    def move_left(self, indexes):
+        self.sourceModel().move_left(self.map_indexes_to_source(indexes))
+
+    def move_vertical(self, indexes, up_or_down):
+        self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
+
+    def insertRow(self, position, parent):
         self.sourceModel().insertRows(position, self.mapToSource(parent))
 
     def removeRows(self, indexes):
-        for index in reversed(indexes):
-            self.sourceModel().removeRow(self.mapToSource(index))
+        self.sourceModel().removeRows(self.map_indexes_to_source(indexes))

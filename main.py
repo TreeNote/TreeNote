@@ -123,7 +123,7 @@ class MainWindow(QMainWindow):
             if set_edit_focus:
                 self.update_selection_and_edit(index_first_added)
             else:
-                self.update_selection(index, index)
+                self.update_selection(index_first_added, index_last_added)
 
     def removed(self, index, position, count, my_edit):
         item = self.model.getItem(index)
@@ -190,12 +190,12 @@ class MainWindow(QMainWindow):
         if self.grid_holder().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
-        self.grid_holder().proxy.insertRows(0, index)
+        self.grid_holder().proxy.insertRow(0, index)
 
     def insert_row(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.insertRows(index.row() + 1, index.parent())
+            self.grid_holder().proxy.insertRow(index.row() + 1, index.parent())
         elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
@@ -250,9 +250,9 @@ class MainWindow(QMainWindow):
         self.grid_holder().proxy.layoutChanged.emit()
 
     def update_selection(self, index_from, index_to):
+        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
         selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
         self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
-        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)
 
     def update_selection_and_edit(self, index):
         proxy_index = self.grid_holder().proxy.mapFromSource(index)
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'NoteTree'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon.png'))
     form = MainWindow()
     form.show()
