@@ -1,5 +1,6 @@
 # NoteTree
-An intuitive outliner for personal knowledge and task management. Supports collaborative, simultaneous editing.
+An intuitive outliner for personal knowledge and task management. Supports collaborative, simultaneous editing.<br>
+This software is part of a bachelor thesis and currently developed.
 
 
 ## Install

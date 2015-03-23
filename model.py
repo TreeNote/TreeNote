@@ -33,52 +33,35 @@ class Updater(QThread):
 
     def __init__(self, tree_model):
         super(QThread, self).__init__()
-        self.tree_model = tree_model
+        self.model = tree_model
 
     def run(self):  # this updates the view
-        all_changes = self.tree_model.db.changes(descending=True)
+        all_changes = self.model.db.changes(descending=True)
         last_seq = all_changes['results'][0]['seq']
-        changes_list = self.tree_model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
+        changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
             if 'doc' in line and 'deleted' not in line:
                 print(line)
                 db_item = line['doc']
                 item_id = db_item['_id']
-                if item_id in self.tree_model.id_index_dict:  # update the view only if the item is already loaded
-                    with self.tree_model.lock:
-                        index = self.tree_model.id_index_dict[item_id]
-                        item = self.tree_model.getItem(index)
+                if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
+                    with self.model.lock:
+                        index = self.model.id_index_dict[item_id]
+                        item = self.model.getItem(index)
                         change_dict = db_item['change']
                         my_edit = change_dict['user'] == socket.gethostname()
 
                         def updated():
                             item.text = db_item['text']
-                            self.tree_model.seq = line['seq']
+                            self.model.seq = line['seq']
                             if my_edit:
-                                self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
+                                self.model.update_selection_signal.emit(index, index, self.model.seq)
 
                         def added():
-                            position = change_dict['position']
-                            parentItem = self.tree_model.getItem(index)
-                            id_list = change_dict['id_list']
-                            self.tree_model.beginInsertRows(index, position, position + len(id_list) - 1)
-                            parentItem.insert_children(position, len(id_list))
-                            for i, added_item_id in enumerate(id_list):
-                                parentItem.childItems[position + i].id = added_item_id
-                                parentItem.childItems[position + i].text = self.tree_model.db[added_item_id]['text']
-                            self.tree_model.endInsertRows()
-                            if my_edit:
-                                index_first_added = self.tree_model.index(position, 0, index)
-                                index_last_added = self.tree_model.index(position + len(id_list) - 1, 0, index)
-                                if change_dict['set_edit_focus']:
-                                    self.tree_model.update_selection_and_edit_signal.emit(index_first_added)
-                                else:
-                                    self.tree_model.seq = line['seq']
-                                    self.tree_model.update_selection_signal.emit(index_first_added, index_last_added, self.tree_model.seq)
-                                    self.last_selected_index = index_first_added
+                            self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'])
 
                         def removed():
-                            self.tree_model.seq = line['seq']
+                            self.model.seq = line['seq']
                             position = change_dict['position']
                             count = change_dict['count']
                             self.tree_model.beginRemoveRows(index, position, position + count - 1)
@@ -89,30 +72,30 @@ class Updater(QThread):
                                 if position == len(item.childItems):  # there is no item below, so select the one above
                                     position -= 1
                                 if len(item.childItems) > 0:  # everythin is ok
-                                    index_next_child = self.tree_model.index(position, 0, index)
-                                    self.tree_model.update_selection_signal.emit(index_next_child, index_next_child, self.tree_model.seq)
+                                    index_next_child = self.model.index(position, 0, index)
+                                    self.model.update_selection_signal.emit(index_next_child, index_next_child, self.model.seq)
                                 else:  # all childs deleted, select parent
-                                    self.tree_model.update_selection_signal.emit(index, index, self.tree_model.seq)
+                                    self.model.update_selection_signal.emit(index, index, self.model.seq)
 
                         def moved_vertical():
-                            self.tree_model.seq = line['seq']
+                            self.model.seq = line['seq']
                             up_or_down = change_dict['up_or_down']
                             position = change_dict['position']
                             count = change_dict['count']
                             if up_or_down == -1:
                                 # if we want to move several items up, we can move the item-above below the selection instead:
                                 item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-                                self.tree_model.index(position + count - 1, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                                self.model.index(position + count - 1, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                             elif up_or_down == +1:
                                 item.childItems.insert(position, item.childItems.pop(position + count))
-                                self.tree_model.index(position, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                                self.model.index(position, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                             for i in range(count):
-                                index_moved_item = self.tree_model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                                index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                                 if i == 0:
                                     index_first_moved_item = index_moved_item
-                            self.tree_model.layout_changed_signal.emit()
+                            self.model.layout_changed_signal.emit()
                             if my_edit:
-                                self.tree_model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.tree_model.seq)
+                                self.model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.model.seq)
 
                         eval(change_dict['method'] + '()')
 
@@ -165,6 +148,7 @@ class TreeModel(QAbstractItemModel):
     update_selection_signal = pyqtSignal(QModelIndex, QModelIndex, int)
     update_selection_and_edit_signal = pyqtSignal(QModelIndex)
     layout_changed_signal = pyqtSignal()
+    added_signal = pyqtSignal(QModelIndex, int, list)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -241,13 +225,9 @@ class TreeModel(QAbstractItemModel):
 
         parentItem = self.getItem(parent)
         childItem = parentItem.childItems[row]
-
-        if childItem:
-            index = self.createIndex(row, column, childItem)
-            self.id_index_dict[childItem.id] = index
-            return index
-        else:
-            return QModelIndex()
+        index = self.createIndex(row, column, childItem)
+        self.id_index_dict[childItem.id] = index
+        return index
 
     @synchronized("lock")
     def parent(self, index):
@@ -310,30 +290,28 @@ class TreeModel(QAbstractItemModel):
         return True
 
     @synchronized("lock")
-    def removeRows(self, indexes, delete=True, restore_selection=False):
-        for index in reversed(indexes):
-            child_item = self.getItem(index)
-            child_db_item = self.db.get(child_item.id)
-            if child_db_item is not None:
-                self.db.delete(child_db_item)
+    def removeRow(self, index, delete=True, restore_selection=False):
+        child_item = self.getItem(index)
+        child_db_item = self.db.get(child_item.id)
+        if child_db_item is not None:
+            self.db.delete(child_db_item)
 
-                def delete_childs(item):
-                    for ch_item in item.childItems:
-                        delete_childs(ch_item)
-                        ch_db_item = self.db.get(ch_item.id)
-                        if ch_db_item is not None:
-                            self.db.delete(ch_db_item)
+            def delete_childs(item):
+                for ch_item in item.childItems:
+                    delete_childs(ch_item)
+                    ch_db_item = self.db.get(ch_item.id)
+                    if ch_db_item is not None:
+                        self.db.delete(ch_db_item)
 
-                delete_childs(child_item)
+            delete_childs(child_item)
 
-                parent_item_id = child_item.parentItem.id
-                parent_db_item = self.db[parent_item_id]
-                children_list = parent_db_item['children'].split()
-                parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
-                children_list.remove(child_item.id)
-                parent_db_item['children'] = ' '.join(children_list)
-                self.db[parent_item_id] = parent_db_item
-        return True
+            parent_item_id = child_item.parentItem.id
+            parent_db_item = self.db[parent_item_id]
+            children_list = parent_db_item['children'].split()
+            parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
+            children_list.remove(child_item.id)
+            parent_db_item['children'] = ' '.join(children_list)
+            self.db[parent_item_id] = parent_db_item
 
     @synchronized("lock")
     def move_vertical(self, indexes, up_or_down):
@@ -396,12 +374,12 @@ class TreeModel(QAbstractItemModel):
 class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
+    # The QSortFilterProxyModel acts as a wrapper for the original model. If you need to convert source QModelIndexes to sorted/filtered model indexes or vice versa, use mapToSource(), mapFromSource(), mapSelectionToSource(), and mapSelectionFromSource().
     def filterAcceptsRow(self, row, parent):
         index = self.sourceModel().index(row, 0, parent)
         if not index.isValid():
             return False
 
-        print(self.filter, index.data())
         if self.filter in index.data():
             return True
 
@@ -410,3 +388,13 @@ class FilterProxyModel(QSortFilterProxyModel):
                 return True;
 
         return False
+
+    def move_right(self, indexes):
+        self.sourceModel().move_right([self.mapToSource(indexes[0])])
+
+    def insertRows(self, position, parent):
+        self.sourceModel().insertRows(position, self.mapToSource(parent))
+
+    def removeRows(self, indexes):
+        for index in reversed(indexes):
+            self.sourceModel().removeRow(self.mapToSource(index))

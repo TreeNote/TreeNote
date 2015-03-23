@@ -16,6 +16,8 @@ class MainWindow(QMainWindow):
         self.model.update_selection_signal[QModelIndex, QModelIndex, int].connect(self.update_selection)
         self.model.update_selection_and_edit_signal[QModelIndex].connect(self.update_selection_and_edit)
         self.model.layout_changed_signal.connect(self.layout_changed)
+        self.model.added_signal[QModelIndex, int, list].connect(self.added)
+
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
 
@@ -31,8 +33,8 @@ class MainWindow(QMainWindow):
         add_action('splitWindowAct', QAction(QIcon(':/filenew.png'), self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
         add_action('editRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Edit row'), self, shortcut='Tab', triggered=self.editRow))
         add_action('deleteSelectedRowsAction', QAction(QIcon(':/filenew.png'), self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection))
-        add_action('insertRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row_or_search))
-        add_action('insertChildAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insertChild))
+        add_action('insertRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row))
+        add_action('insertChildAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child))
         add_action('moveUpAction', QAction(QIcon(':/filenew.png'), self.tr('&Up'), self, shortcut='W', triggered=self.move_up))
         add_action('moveDownAction', QAction(QIcon(':/filenew.png'), self.tr('&Down'), self, shortcut='S', triggered=self.move_down))
         add_action('moveLeftAction', QAction(QIcon(':/filenew.png'), self.tr('&Left'), self, shortcut='A', triggered=self.move_left))
@@ -106,10 +108,26 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
+    def added(self, index, position, id_list):
+        parentItem = self.model.getItem(index)
+        self.model.beginInsertRows(index, position, position + len(id_list) - 1)
+        parentItem.insert_children(position, len(id_list))
+        for i, added_item_id in enumerate(id_list):
+            parentItem.childItems[position + i].id = added_item_id
+            parentItem.childItems[position + i].text = self.model.db[added_item_id]['text']
+        self.model.endInsertRows()
+        # if my_edit:
+        #     index_first_added = self.model.index(position, 0, index)
+        #     index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
+        #     if change_dict['set_edit_focus']:
+        #         self.model.update_selection_and_edit_signal.emit(index_first_added)
+        #     else:
+        #         self.model.seq = line['seq']
+        #         self.model.update_selection_signal.emit(index, index, 0)
+        #         self.last_selected_index = index_first_added
+
     def escape(self):
-        view = self.grid_holder().view
-        if not view.hasFocus():
-            view.setFocus()
+        self.grid_holder().search_bar.setText('')
 
     def search(self, str):
         # if search lags: increase keyboardInputInterval
@@ -118,8 +136,8 @@ class MainWindow(QMainWindow):
 
     def expand_node(self, parent_index, bool_expand):
         self.grid_holder().view.setExpanded(parent_index, bool_expand)
-        for row_num in range(self.model.rowCount(parent_index)):
-            child_index = self.model.index(row_num, 0, parent_index)
+        for row_num in range(self.grid_holder().proxy.rowCount(parent_index)):
+            child_index = self.grid_holder().proxy.index(row_num, 0, parent_index)
             self.grid_holder().view.setExpanded(parent_index, bool_expand)
             self.expand_node(child_index, bool_expand)
 
@@ -133,17 +151,17 @@ class MainWindow(QMainWindow):
 
     def move_up(self):
         indexes = self.grid_holder().view.selectionModel().selectedIndexes()
-        self.model.move_vertical(indexes, -1)
+        self.grid_holder().proxy.move_vertical(indexes, -1)
 
     def move_down(self):
         indexes = self.grid_holder().view.selectionModel().selectedIndexes()
-        self.model.move_vertical(indexes, +1)
+        self.grid_holder().proxy.move_vertical(indexes, +1)
 
     def move_left(self):
-        self.model.move_left(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.move_left(self.grid_holder().view.selectionModel().selectedIndexes())
 
     def move_right(self):
-        self.model.move_right(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.move_right(self.grid_holder().view.selectionModel().selectedIndexes())
 
     def editRow(self):
         if self.grid_holder().view.hasFocus():
@@ -153,23 +171,23 @@ class MainWindow(QMainWindow):
         else:
             self.focusNextChild()
 
-    def insertChild(self):
+    def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
-        self.model.insertRows(0, index)
+        self.grid_holder().proxy.insertRows(0, index)
 
-    def insert_row_or_search(self):
+    def insert_row(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.hasFocus():
-            self.model.insertRows(index.row() + 1, index.parent())
+            self.grid_holder().proxy.insertRows(index.row() + 1, index.parent())
         elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
 
     def removeSelection(self):
-        self.grid_holder().view.model().removeRows(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.removeRows(self.grid_holder().view.selectionModel().selectedIndexes())
 
     # view menu actions
 
@@ -215,18 +233,19 @@ class MainWindow(QMainWindow):
     # signals from model thread
 
     def layout_changed(self):
-        self.model.layoutChanged.emit()
+        self.grid_holder().proxy.layoutChanged.emit()
 
     def update_selection(self, index_from, index_to, seq):
         # Events are queued, so it may happen that the model was changed meanwhile. Then ignore the event and process the next event with the right sequence number.
         if seq == self.model.seq:
-            selection = QItemSelection(index_from, index_to)
+            selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
             self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
-            self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)
+            self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)
 
     def update_selection_and_edit(self, index):
-        self.grid_holder().view.selectionModel().setCurrentIndex(index, QItemSelectionModel.ClearAndSelect)
-        self.grid_holder().view.edit(index)
+        proxy_index = self.grid_holder().proxy.mapFromSource(index)
+        self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
+        self.grid_holder().view.edit(proxy_index)
 
 
 if __name__ == '__main__':
