@@ -16,7 +16,8 @@ class MainWindow(QMainWindow):
         self.model.update_selection_signal[QModelIndex, QModelIndex, int].connect(self.update_selection)
         self.model.update_selection_and_edit_signal[QModelIndex].connect(self.update_selection_and_edit)
         self.model.layout_changed_signal.connect(self.layout_changed)
-        self.model.added_signal[QModelIndex, int, list].connect(self.added)
+        self.model.added_signal[QModelIndex, int, list, bool, bool].connect(self.added)
+        self.model.removed_signal[QModelIndex, int, int, bool].connect(self.removed)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -108,7 +109,7 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
-    def added(self, index, position, id_list):
+    def added(self, index, position, id_list, my_edit, set_edit_focus):
         parentItem = self.model.getItem(index)
         self.model.beginInsertRows(index, position, position + len(id_list) - 1)
         parentItem.insert_children(position, len(id_list))
@@ -116,15 +117,28 @@ class MainWindow(QMainWindow):
             parentItem.childItems[position + i].id = added_item_id
             parentItem.childItems[position + i].text = self.model.db[added_item_id]['text']
         self.model.endInsertRows()
-        # if my_edit:
-        #     index_first_added = self.model.index(position, 0, index)
-        #     index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
-        #     if change_dict['set_edit_focus']:
-        #         self.model.update_selection_and_edit_signal.emit(index_first_added)
-        #     else:
-        #         self.model.seq = line['seq']
-        #         self.model.update_selection_signal.emit(index, index, 0)
-        #         self.last_selected_index = index_first_added
+        if my_edit:
+            index_first_added = self.model.index(position, 0, index)
+            index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
+            if set_edit_focus:
+                self.update_selection_and_edit(index_first_added)
+            else:
+                self.update_selection(index, index)
+
+    def removed(self, index, position, count, my_edit):
+        item = self.model.getItem(index)
+        self.model.beginRemoveRows(index, position, position + count - 1)
+        item.childItems[position:position + count] = []
+        self.model.endRemoveRows()
+        if my_edit:
+            # select the item below
+            if position == len(item.childItems):  # there is no item below, so select the one above
+                position -= 1
+            if len(item.childItems) > 0:
+                index_next_child = self.model.index(position, 0, index)
+                self.update_selection(index_next_child, index_next_child)
+            else:  # all childs deleted, select parent
+                self.update_selection(index, index)
 
     def escape(self):
         self.grid_holder().search_bar.setText('')
@@ -235,12 +249,10 @@ class MainWindow(QMainWindow):
     def layout_changed(self):
         self.grid_holder().proxy.layoutChanged.emit()
 
-    def update_selection(self, index_from, index_to, seq):
-        # Events are queued, so it may happen that the model was changed meanwhile. Then ignore the event and process the next event with the right sequence number.
-        if seq == self.model.seq:
-            selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
-            self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
-            self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)
+    def update_selection(self, index_from, index_to):
+        selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
+        self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
+        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)
 
     def update_selection_and_edit(self, index):
         proxy_index = self.grid_holder().proxy.mapFromSource(index)

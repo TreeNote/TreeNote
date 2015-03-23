@@ -33,7 +33,7 @@ class Updater(QThread):
 
     def __init__(self, tree_model):
         super(QThread, self).__init__()
-        self.model = tree_model
+        self.model = tree_model  # todo remove
 
     def run(self):  # this updates the view
         all_changes = self.model.db.changes(descending=True)
@@ -50,34 +50,21 @@ class Updater(QThread):
                         item = self.model.getItem(index)
                         change_dict = db_item['change']
                         my_edit = change_dict['user'] == socket.gethostname()
+                        method = change_dict['method']
 
-                        def updated():
+                        if method == 'updated':
                             item.text = db_item['text']
                             self.model.seq = line['seq']
                             if my_edit:
                                 self.model.update_selection_signal.emit(index, index, self.model.seq)
 
-                        def added():
-                            self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'])
+                        elif method == 'added':
+                            self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
 
-                        def removed():
-                            self.model.seq = line['seq']
-                            position = change_dict['position']
-                            count = change_dict['count']
-                            self.tree_model.beginRemoveRows(index, position, position + count - 1)
-                            item.childItems[position:position + count] = []
-                            self.tree_model.endRemoveRows()
-                            if my_edit:
-                                # select the item below
-                                if position == len(item.childItems):  # there is no item below, so select the one above
-                                    position -= 1
-                                if len(item.childItems) > 0:  # everythin is ok
-                                    index_next_child = self.model.index(position, 0, index)
-                                    self.model.update_selection_signal.emit(index_next_child, index_next_child, self.model.seq)
-                                else:  # all childs deleted, select parent
-                                    self.model.update_selection_signal.emit(index, index, self.model.seq)
+                        elif method == 'removed':
+                            self.model.removed_signal.emit(index, change_dict['position'], change_dict['count'], my_edit)
 
-                        def moved_vertical():
+                        elif method == 'moved_vertical':
                             self.model.seq = line['seq']
                             up_or_down = change_dict['up_or_down']
                             position = change_dict['position']
@@ -96,8 +83,6 @@ class Updater(QThread):
                             self.model.layout_changed_signal.emit()
                             if my_edit:
                                 self.model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.model.seq)
-
-                        eval(change_dict['method'] + '()')
 
 
 class Tree_item(object):
@@ -148,7 +133,8 @@ class TreeModel(QAbstractItemModel):
     update_selection_signal = pyqtSignal(QModelIndex, QModelIndex, int)
     update_selection_and_edit_signal = pyqtSignal(QModelIndex)
     layout_changed_signal = pyqtSignal()
-    added_signal = pyqtSignal(QModelIndex, int, list)
+    added_signal = pyqtSignal(QModelIndex, int, list, bool, bool)
+    removed_signal = pyqtSignal(QModelIndex, int, int, bool)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
