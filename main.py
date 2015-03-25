@@ -100,6 +100,8 @@ class MainWindow(QMainWindow):
         if sys.platform == "darwin":
             subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
+        print(len(self.model.internal_id_set)) # for debugging: is the len == #rows + root?
+
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
             if action.text() == action_name and action.isEnabled():
@@ -119,11 +121,11 @@ class MainWindow(QMainWindow):
         index = QModelIndex(self.model.id_index_dict[item_id])
         parentItem = self.model.getItem(index)
         self.model.beginInsertRows(index, position, position + len(id_list) - 1)
-        parentItem.insert_children(position, len(id_list))
         for i, added_item_id in enumerate(id_list):
-            parentItem.childItems[position + i].id = added_item_id
-            parentItem.childItems[position + i].text = self.model.db[added_item_id]['text']
-            self.model.id_index_dict[added_item_id] = QPersistentModelIndex(self.model.index(position + i, 0, index))
+            parentItem.add_child(position + i, self.model.db[added_item_id]['text'], added_item_id)
+            new_index = self.model.index(position + i, 0, index)
+            self.model.id_index_dict[added_item_id] = QPersistentModelIndex(new_index)
+            self.model.internal_id_set.add(new_index.internalId())
         self.model.endInsertRows()
         if my_edit:
             index_first_added = self.model.index(position, 0, index)
@@ -133,12 +135,7 @@ class MainWindow(QMainWindow):
             else:
                 self.update_selection(index_first_added, index_last_added)
 
-        self.model.internal_id_set.add(index_first_added.internalId()) # todo move several
-
-
     def removed(self, item_id, position, count, my_edit):
-
-
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.internal_id_set.remove(self.model.index(position, 0, index).internalId())
 

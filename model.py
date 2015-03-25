@@ -47,23 +47,11 @@ class Tree_item(object):
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
-    def _getChildItems(self):
-        if self._childItems is None:  # deserialise children from the db
-            self._childItems = []
-            children_id_list = self.model.db[self.id]['children'].split()
-            self.insert_children(0, len(children_id_list))
-            for i in range(len(children_id_list)):
-                self._childItems[i].text = self.model.db[children_id_list[i]]['text']
-                self._childItems[i].id = children_id_list[i]
-        return self._childItems
-
-    childItems = property(fget=_getChildItems)
-
     def __init__(self, text, model, parent=None):
         self.model = model
         self.parentItem = parent
         self.text = text
-        self._childItems = None
+        self.childItems = None
         self.id = None
 
     def child_number(self):
@@ -71,10 +59,22 @@ class Tree_item(object):
             return self.parentItem.childItems.index(self)
         return 0
 
-    def insert_children(self, position, count):
-        for row in range(count):
-            item = Tree_item('', self.model, self)
-            self.childItems.insert(position, item)
+    def init_childs(self, parent_index):
+        if self.childItems is None:  # deserialise children from the db
+            self.childItems = []
+            children_id_list = self.model.db[self.id]['children'].split()
+            for position in range(len(children_id_list)):
+                id = children_id_list[position]
+                self.add_child(position, self.model.db[children_id_list[position]]['text'], id)
+                new_index = self.model.index(position, 0, parent_index)
+                self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
+                self.model.internal_id_set.add(new_index.internalId())
+
+    def add_child(self, position, text, id):
+        item = Tree_item('', self.model, self)
+        self.childItems.insert(position, item)
+        self.childItems[position].text = text
+        self.childItems[position].id = id
 
     def remove_children(self, position, count):
         for row in range(count):
@@ -102,7 +102,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                del server[new_db_name]
+                #del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -166,40 +166,29 @@ class TreeModel(QAbstractItemModel):
             return QModelIndex()
 
         if parent.internalId() not in self.internal_id_set:
-            print("index nooo")
             return QModelIndex()
-
 
         parentItem = self.getItem(parent)
         childItem = parentItem.childItems[row]
-
-        r = self.createIndex(row, column, childItem)
-        print(str(self.internal_id_set), "index", r.internalId())
-
-
-        return r
+        return self.createIndex(row, column, childItem)
 
     def parent(self, index):
         if not index.isValid():
             return QModelIndex()
 
         if index.internalId() not in self.internal_id_set:
-            print("parent nooo")
             return QModelIndex()
-
 
         childItem = self.getItem(index)
         parentItem = childItem.parentItem
 
         if parentItem == self.rootItem:
             return QModelIndex()
-        r = self.createIndex(parentItem.child_number(), 0, parentItem)
-        print(str(self.internal_id_set), "parent",  r.internalId())
-
-        return r
+        return self.createIndex(parentItem.child_number(), 0, parentItem)
 
     def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
+        parentItem.init_childs(parent)
         return len(parentItem.childItems)
 
     def data(self, index, role):
