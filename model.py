@@ -7,33 +7,14 @@ import threading
 import socket
 
 
-def synchronized(lock_name):
-    """
-    Synchronization decorator
-    When the user changes the TreeModel with the view, the called method (like move_left) reads some Tree_items.
-    But meanwhile an incoming, foreign database change may have deleted an affected Tree_item.
-    Therefore we use a lock variable, which is used by the TreeModel methods and by the Updater-Thread.
-    """
-
-    def decorator(method):
-        def synced_method(self, *args, **kws):
-            lock = getattr(self, lock_name)
-            with lock:
-                return method(self, *args, **kws)
-
-        return synced_method
-
-    return decorator
-
-
 class Updater(QThread):
     """
     This Thread watches the db for own and foreign changes and updates the view.
     """
 
-    def __init__(self, tree_model):
+    def __init__(self, model):
         super(QThread, self).__init__()
-        self.model = tree_model  # todo remove
+        self.model = model
 
     def run(self):  # this updates the view
         all_changes = self.model.db.changes(descending=True)
@@ -45,44 +26,18 @@ class Updater(QThread):
                 db_item = line['doc']
                 item_id = db_item['_id']
                 if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
-                    with self.model.lock:
-                        index = self.model.id_index_dict[item_id]
-                        item = self.model.getItem(index)
-                        change_dict = db_item['change']
-                        my_edit = change_dict['user'] == socket.gethostname()
-                        method = change_dict['method']
-
-                        if method == 'updated':
-                            item.text = db_item['text']
-                            self.model.seq = line['seq']
-                            if my_edit:
-                                self.model.update_selection_signal.emit(index, index, self.model.seq)
-
-                        elif method == 'added':
-                            self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
-
-                        elif method == 'removed':
-                            self.model.removed_signal.emit(index, change_dict['position'], change_dict['count'], my_edit)
-
-                        elif method == 'moved_vertical':
-                            self.model.seq = line['seq']
-                            up_or_down = change_dict['up_or_down']
-                            position = change_dict['position']
-                            count = change_dict['count']
-                            if up_or_down == -1:
-                                # if we want to move several items up, we can move the item-above below the selection instead:
-                                item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-                                self.model.index(position + count - 1, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
-                            elif up_or_down == +1:
-                                item.childItems.insert(position, item.childItems.pop(position + count))
-                                self.model.index(position, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
-                            for i in range(count):
-                                index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
-                                if i == 0:
-                                    index_first_moved_item = index_moved_item
-                            self.model.layout_changed_signal.emit()
-                            if my_edit:
-                                self.model.update_selection_signal.emit(index_first_moved_item, index_moved_item, self.model.seq)
+                    index = self.model.id_index_dict[item_id]
+                    change_dict = db_item['change']
+                    my_edit = change_dict['user'] == socket.gethostname()
+                    method = change_dict['method']
+                    if method == 'updated':
+                        self.model.updated_signal.emit(index, db_item['text'], my_edit)
+                    elif method == 'added':
+                        self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
+                    elif method == 'removed':
+                        self.model.removed_signal.emit(index, change_dict['position'], change_dict['count'], my_edit)
+                    elif method == 'moved_vertical':
+                        self.model.moved_vertical_signal.emit(index, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
 
 
 class Tree_item(object):
@@ -130,16 +85,13 @@ class TreeModel(QAbstractItemModel):
     """
     The methods of this model changes the database only. The view gets updated by the Updater-Thread.
     """
-    update_selection_signal = pyqtSignal(QModelIndex, QModelIndex, int)
-    update_selection_and_edit_signal = pyqtSignal(QModelIndex)
-    layout_changed_signal = pyqtSignal()
+    updated_signal = pyqtSignal(QModelIndex, str, bool)
     added_signal = pyqtSignal(QModelIndex, int, list, bool, bool)
     removed_signal = pyqtSignal(QModelIndex, int, int, bool)
+    moved_vertical_signal = pyqtSignal(QModelIndex, int, int, int, bool)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
-
-        self.lock = threading.RLock()
 
         if sys.platform == "darwin":
             subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
@@ -204,7 +156,6 @@ class TreeModel(QAbstractItemModel):
 
         return self.rootItem
 
-    @synchronized("lock")
     def index(self, row, column, parent=QModelIndex()):
         if parent.isValid() and parent.column() != 0:
             return QModelIndex()
@@ -215,7 +166,6 @@ class TreeModel(QAbstractItemModel):
         self.id_index_dict[childItem.id] = index
         return index
 
-    @synchronized("lock")
     def parent(self, index):
         if not index.isValid():
             return QModelIndex()
@@ -226,9 +176,10 @@ class TreeModel(QAbstractItemModel):
         if parentItem == self.rootItem:
             return QModelIndex()
 
-        return self.createIndex(parentItem.child_number(), 0, parentItem)
+        index = self.createIndex(parentItem.child_number(), 0, parentItem)
+        self.id_index_dict[childItem.id] = index
+        return index
 
-    @synchronized("lock")
     def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
         return len(parentItem.childItems)
@@ -255,7 +206,6 @@ class TreeModel(QAbstractItemModel):
         self.db[item.id] = db_item
         return True
 
-    @synchronized("lock")
     def insertRows(self, position, parent, indexes=None):
         id_list = list()
         if indexes is None:  # used from view, create a single new row / self.db item
@@ -275,7 +225,6 @@ class TreeModel(QAbstractItemModel):
         self.db[parent_item_id] = db_item
         return True
 
-    @synchronized("lock")
     def removeRows(self, indexes, delete=True, restore_selection=False):
         for index in reversed(indexes):
             child_item = self.getItem(index)
@@ -300,7 +249,6 @@ class TreeModel(QAbstractItemModel):
                 parent_db_item['children'] = ' '.join(children_list)
                 self.db[parent_item_id] = parent_db_item
 
-    @synchronized("lock")
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
         item = self.getItem(indexes[0])
@@ -322,7 +270,6 @@ class TreeModel(QAbstractItemModel):
         db_item['change'] = dict(method='moved_vertical', position=old_position, count=len(indexes), up_or_down=up_or_down, user=socket.gethostname())
         self.db[parent_item_id] = db_item
 
-    @synchronized("lock")
     def move_left(self, indexes):
         item = self.getItem(indexes[0])
         parent_parent_item = item.parentItem.parentItem
@@ -334,7 +281,6 @@ class TreeModel(QAbstractItemModel):
             position = item.parentItem.child_number() + 1
             self.insertRows(position, parent_parent_item_index, indexes)
 
-    @synchronized("lock")
     def move_right(self, indexes):
         # insert as a child of the sibling above
         item = self.getItem(indexes[0])

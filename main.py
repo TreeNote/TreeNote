@@ -13,11 +13,10 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.model = model.TreeModel()
-        self.model.update_selection_signal[QModelIndex, QModelIndex, int].connect(self.update_selection)
-        self.model.update_selection_and_edit_signal[QModelIndex].connect(self.update_selection_and_edit)
-        self.model.layout_changed_signal.connect(self.layout_changed)
+        self.model.updated_signal[QModelIndex, str, bool].connect(self.updated)
         self.model.added_signal[QModelIndex, int, list, bool, bool].connect(self.added)
         self.model.removed_signal[QModelIndex, int, int, bool].connect(self.removed)
+        self.model.moved_vertical_signal[QModelIndex, int, int, int, bool].connect(self.moved_vertical)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -109,6 +108,11 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
+    def updated(self, index, new_text, my_edit):
+        self.model.getItem(index).text = new_text
+        if my_edit:
+            self.update_selection(index, index)
+
     def added(self, index, position, id_list, my_edit, set_edit_focus):
         parentItem = self.model.getItem(index)
         self.model.beginInsertRows(index, position, position + len(id_list) - 1)
@@ -139,6 +143,33 @@ class MainWindow(QMainWindow):
                 self.update_selection(index_next_child, index_next_child)
             else:  # all childs deleted, select parent
                 self.update_selection(index, index)
+
+    def moved_vertical(self, index, position, count, up_or_down, my_edit):
+        item = self.model.getItem(index)
+        if up_or_down == -1:
+            # if we want to move several items up, we can move the item-above below the selection instead:
+            item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
+            self.model.index(position + count - 1, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+        elif up_or_down == +1:
+            item.childItems.insert(position, item.childItems.pop(position + count))
+            self.model.index(position, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+        for i in range(count):
+            index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+            if i == 0:
+                index_first_moved_item = index_moved_item
+        self.grid_holder().proxy.layoutChanged.emit()
+        if my_edit:
+            self.update_selection(index_first_moved_item, index_moved_item)
+
+    def update_selection(self, index_from, index_to):
+        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+        selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
+        self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
+
+    def update_selection_and_edit(self, index):
+        proxy_index = self.grid_holder().proxy.mapFromSource(index)
+        self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
+        self.grid_holder().view.edit(proxy_index)
 
     def escape(self):
         self.grid_holder().search_bar.setText('')
@@ -243,22 +274,6 @@ class MainWindow(QMainWindow):
 
     def about(self):
         QMessageBox.about(self, self.tr('About'), self.tr('teeeext'))
-
-    # signals from model thread
-
-    def layout_changed(self):
-        self.grid_holder().proxy.layoutChanged.emit()
-
-    def update_selection(self, index_from, index_to):
-        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
-        selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
-        self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
-
-    def update_selection_and_edit(self, index):
-        proxy_index = self.grid_holder().proxy.mapFromSource(index)
-        self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
-        self.grid_holder().view.edit(proxy_index)
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
