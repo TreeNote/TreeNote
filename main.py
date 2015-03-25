@@ -13,10 +13,10 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.model = model.TreeModel()
-        self.model.updated_signal[QModelIndex, str, bool].connect(self.updated)
-        self.model.added_signal[QModelIndex, int, list, bool, bool].connect(self.added)
-        self.model.removed_signal[QModelIndex, int, int, bool].connect(self.removed)
-        self.model.moved_vertical_signal[QModelIndex, int, int, int, bool].connect(self.moved_vertical)
+        self.model.updated_signal[str, str, bool].connect(self.updated)
+        self.model.added_signal[str, int, list, bool, bool].connect(self.added)
+        self.model.removed_signal[str, int, int, bool].connect(self.removed)
+        self.model.moved_vertical_signal[str, int, int, int, bool].connect(self.moved_vertical)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -79,6 +79,7 @@ class MainWindow(QMainWindow):
                 action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
+        self.grid_holder().view.setFocus();
         self.updateActions()
 
         settings = QSettings()
@@ -108,18 +109,21 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
-    def updated(self, index, new_text, my_edit):
+    def updated(self, item_id, new_text, my_edit):
+        index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.getItem(index).text = new_text
         if my_edit:
             self.update_selection(index, index)
 
-    def added(self, index, position, id_list, my_edit, set_edit_focus):
+    def added(self, item_id, position, id_list, my_edit, set_edit_focus):
+        index = QModelIndex(self.model.id_index_dict[item_id])
         parentItem = self.model.getItem(index)
         self.model.beginInsertRows(index, position, position + len(id_list) - 1)
         parentItem.insert_children(position, len(id_list))
         for i, added_item_id in enumerate(id_list):
             parentItem.childItems[position + i].id = added_item_id
             parentItem.childItems[position + i].text = self.model.db[added_item_id]['text']
+            self.model.id_index_dict[added_item_id] = QPersistentModelIndex(self.model.index(position + i, 0, index))
         self.model.endInsertRows()
         if my_edit:
             index_first_added = self.model.index(position, 0, index)
@@ -129,7 +133,15 @@ class MainWindow(QMainWindow):
             else:
                 self.update_selection(index_first_added, index_last_added)
 
-    def removed(self, index, position, count, my_edit):
+        self.model.internal_id_set.add(index_first_added.internalId()) # todo move several
+
+
+    def removed(self, item_id, position, count, my_edit):
+
+
+        index = QModelIndex(self.model.id_index_dict[item_id])
+        self.model.internal_id_set.remove(self.model.index(position, 0, index).internalId())
+
         item = self.model.getItem(index)
         self.model.beginRemoveRows(index, position, position + count - 1)
         item.childItems[position:position + count] = []
@@ -144,15 +156,17 @@ class MainWindow(QMainWindow):
             else:  # all childs deleted, select parent
                 self.update_selection(index, index)
 
-    def moved_vertical(self, index, position, count, up_or_down, my_edit):
+    def moved_vertical(self, item_id, position, count, up_or_down, my_edit):
+        index = QModelIndex(self.model.id_index_dict[item_id])
+
         item = self.model.getItem(index)
         if up_or_down == -1:
             # if we want to move several items up, we can move the item-above below the selection instead:
             item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-            self.model.index(position + count - 1, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+            self.model.index(position + count - 1, 0, index)  # todo calling index() refreshes the self.tree_model.id_index_dict of that item
         elif up_or_down == +1:
             item.childItems.insert(position, item.childItems.pop(position + count))
-            self.model.index(position, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+            self.model.index(position, 0, index)  # todo calling index() refreshes the self.tree_model.id_index_dict of that item
         for i in range(count):
             index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
             if i == 0:

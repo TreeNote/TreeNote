@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QThread, QObject, pyqtSignal, QSortFilterProxyModel
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QThread, QObject, pyqtSignal, QSortFilterProxyModel, QPersistentModelIndex
 import couchdb
 import time
 import sys
@@ -25,19 +25,19 @@ class Updater(QThread):
                 print(line)
                 db_item = line['doc']
                 item_id = db_item['_id']
-                if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
-                    index = self.model.id_index_dict[item_id]
+                # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
+                if 'change' in db_item:
                     change_dict = db_item['change']
                     my_edit = change_dict['user'] == socket.gethostname()
                     method = change_dict['method']
                     if method == 'updated':
-                        self.model.updated_signal.emit(index, db_item['text'], my_edit)
+                        self.model.updated_signal.emit(item_id, db_item['text'], my_edit)
                     elif method == 'added':
-                        self.model.added_signal.emit(index, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
+                        self.model.added_signal.emit(item_id, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
                     elif method == 'removed':
-                        self.model.removed_signal.emit(index, change_dict['position'], change_dict['count'], my_edit)
+                        self.model.removed_signal.emit(item_id, change_dict['position'], change_dict['count'], my_edit)
                     elif method == 'moved_vertical':
-                        self.model.moved_vertical_signal.emit(index, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
+                        self.model.moved_vertical_signal.emit(item_id, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
 
 
 class Tree_item(object):
@@ -85,10 +85,10 @@ class TreeModel(QAbstractItemModel):
     """
     The methods of this model changes the database only. The view gets updated by the Updater-Thread.
     """
-    updated_signal = pyqtSignal(QModelIndex, str, bool)
-    added_signal = pyqtSignal(QModelIndex, int, list, bool, bool)
-    removed_signal = pyqtSignal(QModelIndex, int, int, bool)
-    moved_vertical_signal = pyqtSignal(QModelIndex, int, int, int, bool)
+    updated_signal = pyqtSignal(str, str, bool)
+    added_signal = pyqtSignal(str, int, list, bool, bool)
+    removed_signal = pyqtSignal(str, int, int, bool)
+    moved_vertical_signal = pyqtSignal(str, int, int, int, bool)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -102,7 +102,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                # del server[new_db_name]
+                del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -117,6 +117,8 @@ class TreeModel(QAbstractItemModel):
 
         # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:
         self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict.
+        self.internal_id_set = set()
+
         db_name = 'tree'
         server_url = 'http://192.168.178.42:5984/'
         local_server = None
@@ -134,7 +136,10 @@ class TreeModel(QAbstractItemModel):
 
         self.rootItem = Tree_item('root item', self)
         self.rootItem.id = '0'
-        self.id_index_dict['0'] = QModelIndex()
+        index = QModelIndex()
+        self.id_index_dict['0'] = index
+        self.internal_id_set.add(QModelIndex().internalId())
+
 
         self.updater = Updater(self)
         self.updater.start()
@@ -160,25 +165,38 @@ class TreeModel(QAbstractItemModel):
         if parent.isValid() and parent.column() != 0:
             return QModelIndex()
 
+        if parent.internalId() not in self.internal_id_set:
+            print("index nooo")
+            return QModelIndex()
+
+
         parentItem = self.getItem(parent)
         childItem = parentItem.childItems[row]
-        index = self.createIndex(row, column, childItem)
-        self.id_index_dict[childItem.id] = index
-        return index
+
+        r = self.createIndex(row, column, childItem)
+        print(str(self.internal_id_set), "index", r.internalId())
+
+
+        return r
 
     def parent(self, index):
         if not index.isValid():
             return QModelIndex()
+
+        if index.internalId() not in self.internal_id_set:
+            print("parent nooo")
+            return QModelIndex()
+
 
         childItem = self.getItem(index)
         parentItem = childItem.parentItem
 
         if parentItem == self.rootItem:
             return QModelIndex()
+        r = self.createIndex(parentItem.child_number(), 0, parentItem)
+        print(str(self.internal_id_set), "parent",  r.internalId())
 
-        index = self.createIndex(parentItem.child_number(), 0, parentItem)
-        self.id_index_dict[childItem.id] = index
-        return index
+        return r
 
     def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
@@ -277,7 +295,7 @@ class TreeModel(QAbstractItemModel):
             self.remove_consecutive_rows_from_parent(indexes)
 
             # insert as a child of the parent's parent
-            parent_parent_item_index = self.id_index_dict[parent_parent_item.id]
+            parent_parent_item_index = QModelIndex(self.id_index_dict[parent_parent_item.id])
             position = item.parentItem.child_number() + 1
             self.insertRows(position, parent_parent_item_index, indexes)
 
