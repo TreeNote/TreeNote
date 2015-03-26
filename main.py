@@ -175,9 +175,11 @@ class MainWindow(QMainWindow):
             self.update_selection(index_first_moved_item, index_moved_item)
 
     def update_selection(self, index_from, index_to):
-        self.grid_holder().view.selectionModel().setCurrentIndex(self.grid_holder().proxy.mapFromSource(index_from), QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
-        selection = self.grid_holder().proxy.mapSelectionFromSource(QItemSelection(index_from, index_to))
-        self.grid_holder().view.selectionModel().select(selection, QItemSelectionModel.ClearAndSelect)
+        if isinstance(index_from.model(), model.TreeModel):
+            index_to = self.grid_holder().proxy.mapFromSource(index_to)
+            index_from = self.grid_holder().proxy.mapFromSource(index_from)
+        self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+        self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
     def update_selection_and_edit(self, index):
         proxy_index = self.grid_holder().proxy.mapFromSource(index)
@@ -255,7 +257,7 @@ class MainWindow(QMainWindow):
     def split_window(self):  # creates the view, too
         grid_holder = QWidget()
 
-        grid_holder.search_bar = QLineEdit()
+        grid_holder.search_bar = MyQLineEdit(self)
         grid_holder.search_bar.textChanged[str].connect(self.search)
 
         grid_holder.view = QTreeView()
@@ -287,6 +289,19 @@ class MainWindow(QMainWindow):
 
     def about(self):
         QMessageBox.about(self, self.tr('About'), self.tr('teeeext'))
+
+class MyQLineEdit(QLineEdit):
+    def __init__(self, main):
+        super(QLineEdit, self).__init__()
+        self.main = main
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Down:
+            index = self.main.grid_holder().proxy.index(0, 0, QModelIndex())
+            self.main.update_selection(index, index)
+            self.main.focusNextChild()
+        else:
+            QLineEdit.keyPressEvent(self, event)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
