@@ -269,6 +269,7 @@ class MainWindow(QMainWindow):
         grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
         grid_holder.proxy.filter = ''
         grid_holder.view.setModel(grid_holder.proxy)
+        grid_holder.view.setItemDelegate(model.Delegate(self))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
 
         grid = QGridLayout()

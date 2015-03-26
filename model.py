@@ -1,4 +1,6 @@
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QThread, QObject, pyqtSignal, QSortFilterProxyModel, QPersistentModelIndex
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 import couchdb
 import time
 import sys
@@ -40,7 +42,6 @@ class Updater(QThread):
                         self.model.moved_vertical_signal.emit(item_id, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
                 elif '_deleted' in db_item:
                     self.model.deleted_signal.emit(item_id)
-
 
 
 class Tree_item(object):
@@ -106,7 +107,7 @@ class TreeModel(QAbstractItemModel):
             else:
                 server = couchdb.Server()
             try:
-                #del server[new_db_name]
+                # del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -143,7 +144,6 @@ class TreeModel(QAbstractItemModel):
         index = QModelIndex()
         self.id_index_dict['0'] = index
         self.pointer_set.add(QModelIndex().internalId())
-
 
         self.updater = Updater(self)
         self.updater.start()
@@ -356,3 +356,28 @@ class FilterProxyModel(QSortFilterProxyModel):
 
     def removeRows(self, indexes):
         self.sourceModel().removeRows(self.map_indexes_to_source(indexes))
+
+
+class Delegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        word_list = index.data().split()
+        for idx, word in enumerate(word_list):
+            if word[0] == ':':
+                word_list[idx] = "<b><font color={}>{}</font></b>".format(QColor(Qt.darkMagenta).name(), word)
+        document = QTextDocument()
+        document.setHtml(' '.join(word_list))
+        color = option.palette.highlight().color() if option.state & QStyle.State_Selected else QColor(Qt.white)
+        painter.save()
+        painter.fillRect(option.rect, color)
+        painter.translate(option.rect.x(), option.rect.y() - 4)  # -4: put the text in the middle of the line
+        document.drawContents(painter)
+        painter.restore()
+
+    def createEditor(self, parent, option, index):
+        return QStyledItemDelegate.createEditor(self, parent, option, index)
+
+    def setEditorData(self, editor, index):
+        QStyledItemDelegate.setEditorData(self, editor, index)
+
+    def setModelData(self, editor, model, index):
+        QStyledItemDelegate.setModelData(self, editor, model, index)
