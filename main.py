@@ -160,10 +160,8 @@ class MainWindow(QMainWindow):
         if up_or_down == -1:
             # if we want to move several items up, we can move the item-above below the selection instead:
             item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-            self.model.index(position + count - 1, 0, index)  # todo calling index() refreshes the self.tree_model.id_index_dict of that item
         elif up_or_down == +1:
             item.childItems.insert(position, item.childItems.pop(position + count))
-            self.model.index(position, 0, index)  # todo calling index() refreshes the self.tree_model.id_index_dict of that item
         for i in range(count):
             index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
             if i == 0:

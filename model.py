@@ -297,7 +297,7 @@ class TreeModel(QAbstractItemModel):
 
             sibling_index = self.index(childNumber - 1, 0, self.parent(indexes[0]))
             last_childnr_of_sibling = len(item.parentItem.childItems[childNumber - 1].childItems)
-            self.insertRows(last_childnr_of_sibling, sibling_index, indexes)  # todo the solution 'delete and then insert the moving item' produces a flickering, so we insert first
+            self.insertRows(last_childnr_of_sibling, sibling_index, indexes)
 
     def remove_consecutive_rows_from_parent(self, indexes):  # just for moving
         child_item = self.getItem(indexes[0])
@@ -336,13 +336,16 @@ class FilterProxyModel(QSortFilterProxyModel):
         return indexes_source
 
     def move_right(self, indexes):
-        self.sourceModel().move_right(self.map_indexes_to_source(indexes))
+        if len(indexes) > 0:
+            self.sourceModel().move_right(self.map_indexes_to_source(indexes))
 
     def move_left(self, indexes):
-        self.sourceModel().move_left(self.map_indexes_to_source(indexes))
+        if len(indexes) > 0:
+            self.sourceModel().move_left(self.map_indexes_to_source(indexes))
 
     def move_vertical(self, indexes, up_or_down):
-        self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
+        if len(indexes) > 0:
+            self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
 
     def insertRow(self, position, parent):
         self.sourceModel().insertRows(position, self.mapToSource(parent))
