@@ -21,7 +21,7 @@ class Updater(QThread):
         last_seq = all_changes['results'][0]['seq']
         changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
-            if 'doc' in line and 'deleted' not in line:
+            if 'doc' in line:
                 print(line)
                 db_item = line['doc']
                 item_id = db_item['_id']
@@ -38,6 +38,9 @@ class Updater(QThread):
                         self.model.removed_signal.emit(item_id, change_dict['position'], change_dict['count'], my_edit)
                     elif method == 'moved_vertical':
                         self.model.moved_vertical_signal.emit(item_id, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
+                elif '_deleted' in db_item:
+                    self.model.deleted_signal.emit(item_id)
+
 
 
 class Tree_item(object):
@@ -68,7 +71,7 @@ class Tree_item(object):
                 self.add_child(position, self.model.db[children_id_list[position]]['text'], id)
                 new_index = self.model.index(position, 0, parent_index)
                 self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
-                self.model.internal_id_set.add(new_index.internalId())
+                self.model.pointer_set.add(new_index.internalId())
 
     def add_child(self, position, text, id):
         item = Tree_item('', self.model, self)
@@ -89,6 +92,7 @@ class TreeModel(QAbstractItemModel):
     added_signal = pyqtSignal(str, int, list, bool, bool)
     removed_signal = pyqtSignal(str, int, int, bool)
     moved_vertical_signal = pyqtSignal(str, int, int, int, bool)
+    deleted_signal = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -117,7 +121,7 @@ class TreeModel(QAbstractItemModel):
 
         # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:
         self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict.
-        self.internal_id_set = set()
+        self.pointer_set = set()
 
         db_name = 'tree'
         server_url = 'http://192.168.178.42:5984/'
@@ -138,7 +142,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.id = '0'
         index = QModelIndex()
         self.id_index_dict['0'] = index
-        self.internal_id_set.add(QModelIndex().internalId())
+        self.pointer_set.add(QModelIndex().internalId())
 
 
         self.updater = Updater(self)
@@ -165,7 +169,7 @@ class TreeModel(QAbstractItemModel):
         if parent.isValid() and parent.column() != 0:
             return QModelIndex()
 
-        if parent.internalId() not in self.internal_id_set:
+        if parent.internalId() not in self.pointer_set:
             return QModelIndex()
 
         parentItem = self.getItem(parent)
@@ -176,7 +180,7 @@ class TreeModel(QAbstractItemModel):
         if not index.isValid():
             return QModelIndex()
 
-        if index.internalId() not in self.internal_id_set:
+        if index.internalId() not in self.pointer_set:
             return QModelIndex()
 
         childItem = self.getItem(index)
@@ -233,7 +237,7 @@ class TreeModel(QAbstractItemModel):
         return True
 
     def removeRows(self, indexes, delete=True, restore_selection=False):
-        for index in reversed(indexes):
+        for index in indexes:
             child_item = self.getItem(index)
             child_db_item = self.db.get(child_item.id)
             if child_db_item is not None:

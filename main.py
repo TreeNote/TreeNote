@@ -17,6 +17,7 @@ class MainWindow(QMainWindow):
         self.model.added_signal[str, int, list, bool, bool].connect(self.added)
         self.model.removed_signal[str, int, int, bool].connect(self.removed)
         self.model.moved_vertical_signal[str, int, int, int, bool].connect(self.moved_vertical)
+        self.model.deleted_signal[str].connect(self.deleted)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         if sys.platform == "darwin":
             subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
-        print(len(self.model.internal_id_set)) # for debugging: is the len == #rows + root?
+        print(len(self.model.pointer_set)) # for debugging: is the len == #rows + root?
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
@@ -125,7 +126,7 @@ class MainWindow(QMainWindow):
             parentItem.add_child(position + i, self.model.db[added_item_id]['text'], added_item_id)
             new_index = self.model.index(position + i, 0, index)
             self.model.id_index_dict[added_item_id] = QPersistentModelIndex(new_index)
-            self.model.internal_id_set.add(new_index.internalId())
+            self.model.pointer_set.add(new_index.internalId())
         self.model.endInsertRows()
         if my_edit:
             index_first_added = self.model.index(position, 0, index)
@@ -135,9 +136,12 @@ class MainWindow(QMainWindow):
             else:
                 self.update_selection(index_first_added, index_last_added)
 
+    def deleted(self, item_id):
+        index = QModelIndex(self.model.id_index_dict[item_id])
+        self.model.pointer_set.remove(index.internalId())
+
     def removed(self, item_id, position, count, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
-        self.model.internal_id_set.remove(self.model.index(position, 0, index).internalId())
 
         item = self.model.getItem(index)
         self.model.beginRemoveRows(index, position, position + count - 1)
