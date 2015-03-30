@@ -5,6 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
 import model
+import tag_model
 import subprocess
 
 
@@ -112,11 +113,17 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
+    def tag_clicked(self):
+        current_tag = self.grid_holder().tag_view.selectionModel().currentIndex().data()
+        self.grid_holder().search_bar.setText(current_tag)
+        self.grid_holder().search_bar.setFocus()
+
     def updated(self, item_id, new_text, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.getItem(index).text = new_text
         if my_edit:
             self.update_selection(index, index)
+        self.grid_holder().tag_view.model().setupModelData(self.model)
 
     def added(self, item_id, position, id_list, my_edit, set_edit_focus):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -139,6 +146,7 @@ class MainWindow(QMainWindow):
     def deleted(self, item_id):
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.pointer_set.remove(index.internalId())
+        self.grid_holder().tag_view.model().setupModelData(self.model)
 
     def removed(self, item_id, position, count, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -261,6 +269,10 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar.textChanged[str].connect(self.search)
 
         grid_holder.view = QTreeView()
+        size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        size_policy_view.setHorizontalStretch(2) # 2/3
+        grid_holder.view.setSizePolicy(size_policy_view)
+
         grid_holder.view.header().hide()
         grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
@@ -272,9 +284,19 @@ class MainWindow(QMainWindow):
         grid_holder.view.setItemDelegate(model.Delegate(self))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
 
+        grid_holder.tag_view = QTreeView()
+        size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        size_policy_tag_view.setHorizontalStretch(1) # 1/3
+        grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
+        grid_holder.tag_view.header().hide()
+        grid_holder.tag_view.setModel(tag_model.TagModel())
+        grid_holder.tag_view.model().setupModelData(self.model)
+        grid_holder.tag_view.selectionModel().selectionChanged.connect(self.tag_clicked)
+
         grid = QGridLayout()
-        grid.addWidget(grid_holder.search_bar, 0, 0)
+        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # fill entire first cell
         grid.addWidget(grid_holder.view, 1, 0)
+        grid.addWidget(grid_holder.tag_view, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.unsplitWindowAct.setEnabled(True)
