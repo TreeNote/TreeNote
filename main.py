@@ -7,6 +7,7 @@ import qrc_resources
 import model
 import tag_model
 import subprocess
+import socket
 
 
 class MainWindow(QMainWindow):
@@ -81,7 +82,7 @@ class MainWindow(QMainWindow):
                 action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
-        self.grid_holder().view.setFocus();
+        self.grid_holder().view.setFocus()
         self.updateActions()
 
         settings = QSettings()
@@ -109,18 +110,39 @@ class MainWindow(QMainWindow):
             if action.text() == action_name and action.isEnabled():
                 action.trigger()
                 break
-
     def updateActions(self):
         pass  # todo embed split action
 
+    def open_rename_tag_menu(self, position):
+        menu = QMenu()
+        renameTagAction = menu.addAction(self.tr("Rename tag"))
+        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(position))
+        if action == renameTagAction:
+            self.grid_holder().tag_view.model().layoutAboutToBeChanged.emit()
+            tag = self.grid_holder().tag_view.indexAt(position).data()
+            map = "function(doc) {{ \
+                    if (doc.text.indexOf('{}') != -1 ) \
+                        emit(doc, null); \
+                }}".format(tag)
+            res = self.model.db.query(map)
+            for row in res:
+                db_item = self.model.db[row.id]
+                db_item['text'] = db_item['text'] + "aaaaa"
+                db_item['change'] = dict(method='updated', user=socket.gethostname())
+                self.model.db[row.id] = db_item
+        self.grid_holder().tag_view.model().beginResetModel()
+        self.grid_holder().tag_view.model().endResetModel()
+
     def tag_clicked(self):
         current_tag = self.grid_holder().tag_view.selectionModel().currentIndex().data()
-        self.grid_holder().search_bar.setText(current_tag)
-        self.grid_holder().search_bar.setFocus()
+        if current_tag is not None:
+            self.grid_holder().search_bar.setText(current_tag)
 
     def updated(self, item_id, new_text, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.getItem(index).text = new_text
+        # self.model.dataChanged.emit(index, index) # todo nötig?
+        # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
         if my_edit:
             self.update_selection(index, index)
         self.grid_holder().tag_view.model().setupModelData(self.model)
@@ -196,11 +218,15 @@ class MainWindow(QMainWindow):
 
     def escape(self):
         self.grid_holder().search_bar.setText('')
+        self.grid_holder().view.setFocus()
 
     def search(self, str):
         # if search lags: increase keyboardInputInterval
-        self.grid_holder().proxy.filter = str
-        self.grid_holder().proxy.invalidateFilter()
+        pass
+        # self.grid_holder().proxy.filter = str
+        # self.grid_holder().proxy.invalidateFilter()
+        # if str != self.grid_holder().tag_view.selectionModel().currentIndex().data():
+        #     self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
 
     def expand_node(self, parent_index, bool_expand):
         self.grid_holder().view.setExpanded(parent_index, bool_expand)
@@ -237,7 +263,7 @@ class MainWindow(QMainWindow):
         elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
             pass
         else:
-            self.focusNextChild()
+            self.grid_holder().view.setFocus()
 
     def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
@@ -285,6 +311,8 @@ class MainWindow(QMainWindow):
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
 
         grid_holder.tag_view = QTreeView()
+        grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_menu)
         size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_tag_view.setHorizontalStretch(1) # 1/3
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)

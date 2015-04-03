@@ -5,12 +5,17 @@ This software is part of a bachelor thesis and currently developed.
 
 ## Install
 ### Ubuntu
-    sudo apt-get install python3-pyqt5
-    sudo apt-get install couchdb
+    sudo apt-get install python3-pyqt5 couchdb
     sudo pip3 install couchdb
     python3 main.py
     
-### OSX
+### Fedora 21
+    sudo yum install python3-qt5 couchdb python3-pip
+    sudo pip3 install couchdb
+    sudo systemctl start couchdb.service
+	python3 main.py
+    
+### OS X
 Install Python 3 from https://www.python.org/downloads/
 
 Install Qt from http://www.qt.io/download-open-source/

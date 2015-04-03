@@ -102,7 +102,7 @@ class TagModel(QAbstractItemModel):
         self.rootItem.childItems = []
         tags_set = set()
         map = "function(doc) { \
-                    if (doc.text && doc.text.indexOf(':') !== -1) \
+                    if (doc.text && doc.text.indexOf(':') != -1) \
                         emit(doc, null); \
                 }"
         res = tree_model.db.query(map)

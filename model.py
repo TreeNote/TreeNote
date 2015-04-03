@@ -102,9 +102,13 @@ class TreeModel(QAbstractItemModel):
             subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
         def get_create_db(new_db_name, db_url=None):
+
             if db_url:
+                # todo check if couchdb was started, else exit loop and print exc
+                # http://stackoverflow.com/questions/1378974/is-there-a-way-to-start-stop-linux-processes-with-python
                 server = couchdb.Server(db_url)
             else:
+                # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
                 # del server[new_db_name]
@@ -212,7 +216,6 @@ class TreeModel(QAbstractItemModel):
         item = self.getItem(index)
         db_item = self.db[item.id]
         db_item['text'] = value
-
         db_item['change'] = dict(method='updated', user=socket.gethostname())
         self.db[item.id] = db_item
         return True
