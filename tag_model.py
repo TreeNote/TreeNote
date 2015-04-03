@@ -99,6 +99,7 @@ class TagModel(QAbstractItemModel):
         return parentItem.childCount()
 
     def setupModelData(self, tree_model):
+        self.beginResetModel()
         self.rootItem.childItems = []
         tags_set = set()
         map = "function(doc) { \
@@ -114,7 +115,7 @@ class TagModel(QAbstractItemModel):
 
         for tag in tags_set:
             self.rootItem.appendChild(TreeItem(tag, self.rootItem))
-        self.layoutChanged.emit()
+        self.endResetModel()
 
 
 

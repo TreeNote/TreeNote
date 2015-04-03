@@ -85,6 +85,9 @@ class MainWindow(QMainWindow):
         self.grid_holder().view.setFocus()
         self.updateActions()
 
+        self.grid_holder().tag_view.model().modelReset.connect(self.select_tag)
+        self.point = None
+
         settings = QSettings()
         self.resize(settings.value('size', QSize(400, 400)))
         self.move(settings.value('pos', QPoint(200, 200)))
@@ -113,13 +116,13 @@ class MainWindow(QMainWindow):
     def updateActions(self):
         pass  # todo embed split action
 
-    def open_rename_tag_menu(self, position):
+    def open_rename_tag_menu(self, point):
         menu = QMenu()
         renameTagAction = menu.addAction(self.tr("Rename tag"))
-        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(position))
+        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
         if action == renameTagAction:
             self.grid_holder().tag_view.model().layoutAboutToBeChanged.emit()
-            tag = self.grid_holder().tag_view.indexAt(position).data()
+            tag = self.grid_holder().tag_view.indexAt(point).data()
             map = "function(doc) {{ \
                     if (doc.text.indexOf('{}') != -1 ) \
                         emit(doc, null); \
@@ -127,11 +130,16 @@ class MainWindow(QMainWindow):
             res = self.model.db.query(map)
             for row in res:
                 db_item = self.model.db[row.id]
-                db_item['text'] = db_item['text'] + "aaaaa"
+                db_item['text'] = db_item['text'] + "b"
                 db_item['change'] = dict(method='updated', user=socket.gethostname())
                 self.model.db[row.id] = db_item
-        self.grid_holder().tag_view.model().beginResetModel()
-        self.grid_holder().tag_view.model().endResetModel()
+            self.point = point # model reset deletes selection, so restore selection
+
+    def select_tag(self):
+        if self.point is not None:
+            index_new = self.grid_holder().tag_view.indexAt(self.point)
+            self.grid_holder().tag_view.selectionModel().select(index_new, QItemSelectionModel.ClearAndSelect)
+            self.point = None
 
     def tag_clicked(self):
         current_tag = self.grid_holder().tag_view.selectionModel().currentIndex().data()
@@ -222,11 +230,10 @@ class MainWindow(QMainWindow):
 
     def search(self, str):
         # if search lags: increase keyboardInputInterval
-        pass
-        # self.grid_holder().proxy.filter = str
-        # self.grid_holder().proxy.invalidateFilter()
-        # if str != self.grid_holder().tag_view.selectionModel().currentIndex().data():
-        #     self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
+        self.grid_holder().proxy.filter = str
+        self.grid_holder().proxy.invalidateFilter()
+        if str != self.grid_holder().tag_view.selectionModel().currentIndex().data():
+            self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
 
     def expand_node(self, parent_index, bool_expand):
         self.grid_holder().view.setExpanded(parent_index, bool_expand)
