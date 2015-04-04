@@ -106,13 +106,14 @@ class MainWindow(QMainWindow):
         if sys.platform == "darwin":
             subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
-        print(len(self.model.pointer_set)) # for debugging: is the len == #rows + root?
+        print(len(self.model.pointer_set))  # for debugging: is the len == #rows + root?
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
             if action.text() == action_name and action.isEnabled():
                 action.trigger()
                 break
+
     def updateActions(self):
         pass  # todo embed split action
 
@@ -121,19 +122,21 @@ class MainWindow(QMainWindow):
         renameTagAction = menu.addAction(self.tr("Rename tag"))
         action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
         if action == renameTagAction:
-            self.grid_holder().tag_view.model().layoutAboutToBeChanged.emit()
             tag = self.grid_holder().tag_view.indexAt(point).data()
-            map = "function(doc) {{ \
-                    if (doc.text.indexOf('{}') != -1 ) \
-                        emit(doc, null); \
-                }}".format(tag)
-            res = self.model.db.query(map)
-            for row in res:
-                db_item = self.model.db[row.id]
-                db_item['text'] = db_item['text'] + "b"
-                db_item['change'] = dict(method='updated', user=socket.gethostname())
-                self.model.db[row.id] = db_item
-            self.point = point # model reset deletes selection, so restore selection
+            RenameDialog(self, tag, point).exec_()
+
+    def rename_tag(self, tag, point, new_name):
+        map = "function(doc) {{ \
+                if (doc.text.indexOf('{}') != -1 ) \
+                    emit(doc, null); \
+            }}".format(tag)
+        res = self.model.db.query(map)
+        for row in res:
+            db_item = self.model.db[row.id]
+            db_item['text'] = db_item['text'].replace(tag, new_name)
+            db_item['change'] = dict(method='updated', user=socket.gethostname())
+            self.model.db[row.id] = db_item
+        self.point = point  # model reset deletes selection, so restore selection
 
     def select_tag(self):
         if self.point is not None:
@@ -303,7 +306,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size_policy_view.setHorizontalStretch(2) # 2/3
+        size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
 
         grid_holder.view.header().hide()
@@ -321,7 +324,7 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_menu)
         size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size_policy_tag_view.setHorizontalStretch(1) # 1/3
+        size_policy_tag_view.setHorizontalStretch(1)  # 1/3
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
         grid_holder.tag_view.header().hide()
         grid_holder.tag_view.setModel(tag_model.TagModel())
@@ -348,6 +351,7 @@ class MainWindow(QMainWindow):
     def about(self):
         QMessageBox.about(self, self.tr('About'), self.tr('teeeext'))
 
+
 class MyQLineEdit(QLineEdit):
     def __init__(self, main):
         super(QLineEdit, self).__init__()
@@ -360,6 +364,29 @@ class MyQLineEdit(QLineEdit):
             self.main.focusNextChild()
         else:
             QLineEdit.keyPressEvent(self, event)
+
+
+class RenameDialog(QDialog):
+    def __init__(self, parent, tag, point):
+        super(RenameDialog, self).__init__(parent)
+        self.parent = parent
+        self.tag = tag
+        self.point = point
+        self.line_edit = QLineEdit(tag)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(self.line_edit, 0, 0)
+        grid.addWidget(buttonBox, 1, 0)
+        self.setLayout(grid)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        self.setWindowTitle("Enter new name:")
+
+    def apply(self):
+        self.parent.rename_tag(self.tag, self.point, self.line_edit.text())
+        super(RenameDialog, self).accept()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
