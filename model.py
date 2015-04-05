@@ -404,7 +404,7 @@ class Delegate(QStyledItemDelegate):
         painter.save()
         painter.fillRect(option.rect, color)
         gap_for_checkbox = 17 if checked != 'None' else 0
-        painter.translate(option.rect.x() + gap_for_checkbox, option.rect.y() - 4) # -4: put the text in the middle of the line
+        painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3) # -3: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
 
@@ -425,7 +425,9 @@ class Delegate(QStyledItemDelegate):
         return QRect(check_box_point, check_box_rect.size())
 
     def createEditor(self, parent, option, index):
-        return QStyledItemDelegate.createEditor(self, parent, option, index)
+        model = QStringListModel()  # todo save and update
+        model.setStringList(["completion", "data", "goes", "here"])
+        return AutoCompleteEdit(parent, ["completion", "data", "goes", "here"])
 
     def editorEvent(self, event, model, option, index):
         '''
@@ -451,3 +453,61 @@ class Delegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         QStyledItemDelegate.setModelData(self, editor, model, index)
+
+
+class AutoCompleteEdit(QLineEdit): # credit to http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+    def __init__(self, parent, model, separator = ' ', addSpaceAfterCompleting = True):
+        super(AutoCompleteEdit, self).__init__(parent)
+        self._separator = separator
+        self._addSpaceAfterCompleting = addSpaceAfterCompleting
+        self._completer = QCompleter(model)
+        self._completer.setWidget(self)
+        self._completer.activated[str].connect(self._insertCompletion)
+        self._keysToIgnore = [Qt.Key_Enter,
+                              Qt.Key_Return,
+                              Qt.Key_Escape,
+                              Qt.Key_Tab]
+
+    def _insertCompletion(self, completion):
+        """
+        This is the event handler for the QCompleter.activated(QString) signal,
+        it is called when the user selects an item in the completer popup.
+        """
+        extra = len(completion) - len(self._completer.completionPrefix())
+        extra_text = completion[-extra:]
+        if self._addSpaceAfterCompleting:
+            extra_text += ' '
+        self.setText(self.text() + extra_text)
+
+    def textUnderCursor(self):
+        text = self.text()
+        textUnderCursor = ''
+        i = self.cursorPosition() - 1
+        while i >=0 and text[i] != self._separator:
+            textUnderCursor = text[i] + textUnderCursor
+            i -= 1
+        return textUnderCursor
+
+    def keyPressEvent(self, event):
+        if self._completer.popup().isVisible():
+            if event.key() in self._keysToIgnore:
+                event.ignore()
+                return
+        super(AutoCompleteEdit, self).keyPressEvent(event)
+        completionPrefix = self.textUnderCursor()
+        if completionPrefix != self._completer.completionPrefix():
+            self._updateCompleterPopupItems(completionPrefix)
+        if len(event.text()) > 0 and len(completionPrefix) > 0:
+            self._completer.complete()
+        if len(completionPrefix) == 0:
+            self._completer.popup().hide()
+
+
+    def _updateCompleterPopupItems(self, completionPrefix):
+        """
+        Filters the completer's popup items to only show items
+        with the given prefix.
+        """
+        self._completer.setCompletionPrefix(completionPrefix)
+        self._completer.popup().setCurrentIndex(
+                self._completer.completionModel().index(0,0))
