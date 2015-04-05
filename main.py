@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
         add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(QIcon(':/filenew.png'), self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
         add_action('escapeAction', QAction(QIcon(':/filenew.png'), self.tr('&Escape'), self, shortcut='Esc', triggered=self.escape))
+        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), self.tr('&Green'), self, shortcut='G', triggered=self.color_green))
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertChildAction)
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
         self.moveMenu.addAction(self.moveRightAction)
 
         self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
+        self.taskMenu.addAction(self.colorGreenAction)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.expandAllChildrenAction)
@@ -306,6 +308,12 @@ class MainWindow(QMainWindow):
     def removeSelection(self):
         self.grid_holder().proxy.removeRows(self.grid_holder().view.selectionModel().selectedIndexes())
 
+    # task menu actions
+
+    def color_green(self):
+        if self.grid_holder().view.hasFocus():
+            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), QColor(Qt.green).name(), field='color')
+
     # view menu actions
 
     def focus_search_bar(self):
@@ -330,7 +338,7 @@ class MainWindow(QMainWindow):
         grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
         grid_holder.proxy.filter = ''
         grid_holder.view.setModel(grid_holder.proxy)
-        grid_holder.view.setItemDelegate(model.Delegate(self))
+        grid_holder.view.setItemDelegate(model.Delegate(self, grid_holder.proxy))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
 
         grid_holder.tag_view = QTreeView()

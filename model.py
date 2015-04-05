@@ -111,7 +111,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                # del server[new_db_name]
+                #del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -209,13 +209,13 @@ class TreeModel(QAbstractItemModel):
         item = self.getItem(index)
         return item.text
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(self, index, value, role=Qt.EditRole, field='text'):
         if role != Qt.EditRole:
             return False
 
         item = self.getItem(index)
         db_item = self.db[item.id]
-        db_item['text'] = value
+        db_item[field] = value
         db_item['change'] = dict(method='updated', user=socket.gethostname())
         self.db[item.id] = db_item
         return True
@@ -360,8 +360,18 @@ class FilterProxyModel(QSortFilterProxyModel):
     def removeRows(self, indexes):
         self.sourceModel().removeRows(self.map_indexes_to_source(indexes))
 
+    def getItem(self, index):
+        return self.sourceModel().getItem(self.mapToSource(index))
+
+    def setData(self, index, value, role=Qt.EditRole, field='text'):
+        return self.sourceModel().setData(self.mapToSource(index), value, role=role, field=field)
+
 
 class Delegate(QStyledItemDelegate):
+    def __init__(self, parent, model):
+        super(Delegate, self).__init__(parent)
+        self.model = model
+
     def paint(self, painter, option, index):
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
@@ -369,7 +379,14 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<b><font color={}>{}</font></b>".format(QColor(Qt.darkMagenta).name(), word)
         document = QTextDocument()
         document.setHtml(' '.join(word_list))
-        color = option.palette.highlight().color() if option.state & QStyle.State_Selected else QColor(Qt.white)
+        if option.state & QStyle.State_Selected:
+            color = option.palette.highlight().color()
+        else:
+            db_item = self.model.sourceModel().db[self.model.getItem(index).id]
+            if 'color' in db_item:
+                color = QColor(db_item['color'])
+            else:
+                color = QColor(Qt.white)
         painter.save()
         painter.fillRect(option.rect, color)
         painter.translate(option.rect.x(), option.rect.y() - 4)  # -4: put the text in the middle of the line
