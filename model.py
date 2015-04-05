@@ -8,6 +8,7 @@ import subprocess
 import threading
 import socket
 
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked':'None'}
 
 class Updater(QThread):
     """
@@ -111,11 +112,11 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                del server[new_db_name]
+                # del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db['0'] = ({'text': 'root', 'children': ''})
+                new_db['0'] = (NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -224,7 +225,7 @@ class TreeModel(QAbstractItemModel):
         id_list = list()
         if indexes is None:  # used from view, create a single new row / self.db item
             set_edit_focus = True
-            child_id, _ = self.db.save({'text': '', 'children': ''})
+            child_id, _ = self.db.save(NEW_DB_ITEM.copy())
             id_list.append(child_id)
         else:  # used from move methods, add existing db items to the parent
             set_edit_focus = False
@@ -317,7 +318,6 @@ class TreeModel(QAbstractItemModel):
         parent_db_item['children'] = ' '.join(children_list)
         self.db[parent_item_id] = parent_db_item
 
-
 class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
@@ -366,13 +366,17 @@ class FilterProxyModel(QSortFilterProxyModel):
     def setData(self, index, value, role=Qt.EditRole, field='text'):
         return self.sourceModel().setData(self.mapToSource(index), value, role=role, field=field)
 
-    def set_unset_task(self, index):
-        item = self.getItem(index)
-        db_item = self.sourceModel().db[item.id]
-        if db_item['checked'] == None:
-            self.setData(index, False, field='checked')
-        else:
-            self.setData(index, False, field='checked')
+    def toggle_task(self, index_proxy):
+        index = self.mapToSource(index_proxy)
+        db_item = self.sourceModel().db[self.sourceModel().getItem(index).id]
+        checked = db_item['checked']
+        if checked == 'None':
+            self.sourceModel().setData(index, 'False', field='checked')
+        elif checked == 'False':
+            self.sourceModel().setData(index, 'True', field='checked')
+        elif checked == 'True':
+            self.sourceModel().setData(index, 'None', field='checked')
+
 
 class Delegate(QStyledItemDelegate):
     def __init__(self, parent, model):
@@ -381,29 +385,7 @@ class Delegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         db_item = self.model.sourceModel().db[self.model.getItem(index).id]
-        # if 'checked' in db_item:
-        #     checked = db_item['QColor']
-        #     check_box_style_option = QStyleOptionButton()
-        #
-        #     # if (index.flags() & Qt.ItemIsEditable) > 0:
-        #     check_box_style_option.state |= QStyle.State_Enabled
-        #     # else:
-        #     # check_box_style_option.state |= QStyle.State_ReadOnly
-        #     #
-        #     # if checked:
-        #     #     check_box_style_option.state |= QStyle.State_On
-        #     # else:
-        #     #     check_box_style_option.state |= QStyle.State_Off
-        #
-        #     check_box_style_option.rect = self.getCheckBoxRect(option)
-        #
-        #     # this will not run - hasFlag does not exist
-        #     #if not index.model().hasFlag(index, QtCore.Qt.ItemIsEditable):
-        #     #check_box_style_option.state |= QtGui.QStyle.State_ReadOnly
-        #
-        #     check_box_style_option.state |= QStyle.State_Enabled
-        #
-        #     QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
+        checked = db_item['checked']
 
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
@@ -421,11 +403,22 @@ class Delegate(QStyledItemDelegate):
                 color = QColor(Qt.white)
         painter.save()
         painter.fillRect(option.rect, color)
-        painter.translate(option.rect.x(), option.rect.y() - 4)  # -4: put the text in the middle of the line
+        gap_for_checkbox = 17 if checked != 'None' else 0
+        painter.translate(option.rect.x() + gap_for_checkbox, option.rect.y() - 4) # -4: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
 
-    def getCheckBoxRect(self, option):
+        if checked != 'None':
+            check_box_style_option = QStyleOptionButton()
+            if checked == 'True':
+                check_box_style_option.state |= QStyle.State_On
+            else:
+                check_box_style_option.state |= QStyle.State_Off
+            check_box_style_option.rect = self.getCheckBoxRect(option)
+            check_box_style_option.state |= QStyle.State_Enabled
+            QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
+
+    def getCheckBoxRect(self, option): # source: http://stackoverflow.com/questions/17748546/pyqt-column-of-checkboxes-in-a-qtableview
         check_box_style_option = QStyleOptionButton()
         check_box_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_box_style_option, None)
         check_box_point = QPoint(option.rect.x(), option.rect.y())
@@ -433,6 +426,25 @@ class Delegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         return QStyledItemDelegate.createEditor(self, parent, option, index)
+
+    def editorEvent(self, event, model, option, index):
+        '''
+        Change the data in the model and the state of the checkbox
+        if the user presses the left mousebutton or Key_Space
+        '''
+        if event.type() == QEvent.MouseButtonPress:
+          return False
+        if event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.MouseButtonDblClick:
+            if event.button() != Qt.LeftButton or not self.getCheckBoxRect(option).contains(event.pos()):
+                return False
+            if event.type() == QEvent.MouseButtonDblClick:
+                return True
+        elif event.type() == QEvent.KeyPress:
+            if event.key() != Qt.Key_Space and event.key() != Qt.Key_Select:
+                return False
+
+        model.toggle_task(index)
+        return True
 
     def setEditorData(self, editor, index):
         QStyledItemDelegate.setEditorData(self, editor, index)

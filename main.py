@@ -52,8 +52,8 @@ class MainWindow(QMainWindow):
         add_action('colorRedAction', QAction(QIcon(':/filenew.png'), self.tr('&Red'), self, shortcut='R', triggered=lambda: self.color_row(QColor(Qt.red).name())))
         add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), self.tr('&Orange'), self, shortcut='O', triggered=lambda: self.color_row(QColor("darkorange").name())))
         add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), self.tr('&No color'), self, shortcut='N', triggered=lambda: self.color_row(QColor(Qt.white).name())))
-        add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
-        add_action('setTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Set / Unset task'), self, shortcut='T', triggered=self.set_unset_task))
+        add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
+        add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
 
         self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
         self.taskMenu.addAction(self.editRowAction)
-        self.taskMenu.addAction(self.setTaskAction)
+        self.taskMenu.addAction(self.toggleTaskAction)
         self.colorMenu = self.taskMenu.addMenu(self.tr('&Color task'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
@@ -189,6 +189,7 @@ class MainWindow(QMainWindow):
         if my_edit:
             self.update_selection(index, index)
         self.setup_tag_model()
+        self.model.dataChanged.emit(index, index)
 
     def added(self, item_id, position, id_list, my_edit, set_edit_focus):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -327,9 +328,9 @@ class MainWindow(QMainWindow):
         else:
             self.grid_holder().view.setFocus()
 
-    def set_unset_task(self):
+    def toggle_task(self):
         if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.set_unset_task(self.grid_holder().view.selectionModel().currentIndex())
+            self.grid_holder().proxy.toggle_task(self.grid_holder().view.selectionModel().currentIndex())
 
     def color_row(self, color):
         if self.grid_holder().view.hasFocus():
