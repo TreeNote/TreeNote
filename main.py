@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         return self.mainSplitter.widget(0)
 
     def setup_tag_model(self):
-        self.grid_holder().tag_view.model().setupModelData(self.model)
+        self.grid_holder().tag_view.model().setupModelData(self.model.get_tags_set())
 
         def expand_node(parent_index, bool_expand):
             self.grid_holder().tag_view.setExpanded(parent_index, bool_expand)

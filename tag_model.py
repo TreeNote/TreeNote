@@ -113,20 +113,9 @@ class TagModel(QAbstractItemModel):
 
         return parentItem.childCount()
 
-    def setupModelData(self, tree_model):
+    def setupModelData(self, tags_set):
         self.beginResetModel()
         self.rootItem.childItems = []
-        tags_set = set()
-        map = "function(doc) { \
-                    if (doc.text && doc.text.indexOf(':') != -1) \
-                        emit(doc, null); \
-                }"
-        res = tree_model.db.query(map)
-        for row in res:
-            word_list = row.key['text'].split()
-            for word in word_list:
-                if word[0] == ':':
-                    tags_set.add(word.strip(':'))
         for whole_tag in sorted(tags_set, key=str.lower):
             splitted_tag = whole_tag.split(':')
             def add_below(parent, remaining_tags):

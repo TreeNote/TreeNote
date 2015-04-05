@@ -318,6 +318,21 @@ class TreeModel(QAbstractItemModel):
         parent_db_item['children'] = ' '.join(children_list)
         self.db[parent_item_id] = parent_db_item
 
+    def get_tags_set(self, cut_delimiter=True):
+        tags_set = set()
+        map = "function(doc) { \
+                    if (doc.text && doc.text.indexOf(':') != -1) \
+                        emit(doc, null); \
+                }"
+        res = self.db.query(map)
+        for row in res:
+            word_list = row.key['text'].split()
+            for word in word_list:
+                if word[0] == ':':
+                    delimiter = '' if cut_delimiter else ':'
+                    tags_set.add(delimiter + word.strip(':'))
+        return tags_set
+
 class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
@@ -424,11 +439,6 @@ class Delegate(QStyledItemDelegate):
         check_box_point = QPoint(option.rect.x(), option.rect.y())
         return QRect(check_box_point, check_box_rect.size())
 
-    def createEditor(self, parent, option, index):
-        model = QStringListModel()  # todo save and update
-        model.setStringList(["completion", "data", "goes", "here"])
-        return AutoCompleteEdit(parent, ["completion", "data", "goes", "here"])
-
     def editorEvent(self, event, model, option, index):
         '''
         Change the data in the model and the state of the checkbox
@@ -448,6 +458,10 @@ class Delegate(QStyledItemDelegate):
         model.toggle_task(index)
         return True
 
+    def createEditor(self, parent, option, index):
+        suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
+        return AutoCompleteEdit(parent, list(suggestions_model))
+
     def setEditorData(self, editor, index):
         QStyledItemDelegate.setEditorData(self, editor, index)
 
@@ -455,12 +469,13 @@ class Delegate(QStyledItemDelegate):
         QStyledItemDelegate.setModelData(self, editor, model, index)
 
 
-class AutoCompleteEdit(QLineEdit): # credit to http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
     def __init__(self, parent, model, separator = ' ', addSpaceAfterCompleting = True):
         super(AutoCompleteEdit, self).__init__(parent)
         self._separator = separator
         self._addSpaceAfterCompleting = addSpaceAfterCompleting
         self._completer = QCompleter(model)
+        self._completer.setFilterMode(Qt.MatchContains)
         self._completer.setWidget(self)
         self._completer.activated[str].connect(self._insertCompletion)
         self._keysToIgnore = [Qt.Key_Enter,
