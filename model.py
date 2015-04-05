@@ -8,8 +8,9 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked':'None'}
-DELIMITER = '@'
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None'}
+DELIMITER = ':'
+
 
 class Updater(QThread):
     """
@@ -334,6 +335,7 @@ class TreeModel(QAbstractItemModel):
                     tags_set.add(delimiter + word.strip(DELIMITER))
         return tags_set
 
+
 class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
@@ -420,7 +422,7 @@ class Delegate(QStyledItemDelegate):
         painter.save()
         painter.fillRect(option.rect, color)
         gap_for_checkbox = 17 if checked != 'None' else 0
-        painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3) # -3: put the text in the middle of the line
+        painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
 
@@ -434,7 +436,7 @@ class Delegate(QStyledItemDelegate):
             check_box_style_option.state |= QStyle.State_Enabled
             QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
 
-    def getCheckBoxRect(self, option): # source: http://stackoverflow.com/questions/17748546/pyqt-column-of-checkboxes-in-a-qtableview
+    def getCheckBoxRect(self, option):  # source: http://stackoverflow.com/questions/17748546/pyqt-column-of-checkboxes-in-a-qtableview
         check_box_style_option = QStyleOptionButton()
         check_box_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_box_style_option, None)
         check_box_point = QPoint(option.rect.x(), option.rect.y())
@@ -446,7 +448,7 @@ class Delegate(QStyledItemDelegate):
         if the user presses the left mousebutton or Key_Space
         '''
         if event.type() == QEvent.MouseButtonPress:
-          return False
+            return False
         if event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.MouseButtonDblClick:
             if event.button() != Qt.LeftButton or not self.getCheckBoxRect(option).contains(event.pos()):
                 return False
@@ -470,8 +472,8 @@ class Delegate(QStyledItemDelegate):
         QStyledItemDelegate.setModelData(self, editor, model, index)
 
 
-class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
-    def __init__(self, parent, model, separator = ' '):
+class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+    def __init__(self, parent, model, separator=' '):
         super(AutoCompleteEdit, self).__init__(parent)
         self._separator = separator
         self._completer = QCompleter(model)
@@ -490,12 +492,12 @@ class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/aut
         """
         old_text_minus_new_word = self.text()[:-len(self._completer.completionPrefix())]
         self.setText(old_text_minus_new_word + completion + ' ')
-        
+
     def textUnderCursor(self):
         text = self.text()
         textUnderCursor = ''
         i = self.cursorPosition() - 1
-        while i >=0 and text[i] != self._separator:
+        while i >= 0 and text[i] != self._separator:
             textUnderCursor = text[i] + textUnderCursor
             i -= 1
         return textUnderCursor
@@ -507,12 +509,14 @@ class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/aut
                 return
         super(AutoCompleteEdit, self).keyPressEvent(event)
         completionPrefix = self.textUnderCursor()
-        if completionPrefix != self._completer.completionPrefix():
-            self._updateCompleterPopupItems(completionPrefix)
-        if len(event.text()) > 0 and len(completionPrefix) > 0:
-            self._completer.complete()
         if len(completionPrefix) == 0:
             self._completer.popup().hide()
+            return
+        if completionPrefix[0] == DELIMITER:
+            if completionPrefix != self._completer.completionPrefix():
+                self._updateCompleterPopupItems(completionPrefix)
+            if len(event.text()) > 0 and len(completionPrefix) > 0:
+                self._completer.complete()
 
 
     def _updateCompleterPopupItems(self, completionPrefix):
@@ -522,4 +526,4 @@ class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/aut
         """
         self._completer.setCompletionPrefix(completionPrefix)
         self._completer.popup().setCurrentIndex(
-                self._completer.completionModel().index(0,0))
+            self._completer.completionModel().index(0, 0))
