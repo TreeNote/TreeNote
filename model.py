@@ -462,6 +462,10 @@ class Delegate(QStyledItemDelegate):
         return True
 
     def createEditor(self, parent, option, index):
+        e = OpenPopupDateEdit(parent, self)
+        e.setCalendarPopup(True)
+        return e
+
         suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
         return AutoCompleteEdit(parent, list(suggestions_model))
 
@@ -470,6 +474,24 @@ class Delegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         QStyledItemDelegate.setModelData(self, editor, model, index)
+
+
+class OpenPopupDateEdit(QDateEdit):
+    def __init__(self, parent, delegate):
+        super(OpenPopupDateEdit, self).__init__(parent)
+        self.delegate = delegate
+
+    def focusInEvent(self, event): # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
+        self.calendarWidget().activated.connect(self.commit)
+        opt = QStyleOptionSpinBox()
+        self.initStyleOption(opt)
+        rect = self.style().subControlRect(QStyle.CC_SpinBox, opt, QStyle.SC_SpinBoxDown)
+        e = QMouseEvent(QEvent.MouseButtonPress, rect.center(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+        QApplication.sendEvent(self, e)
+
+    def commit(self):
+        self.delegate.commitData.emit(self)
+        self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
 
 
 class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
