@@ -9,6 +9,7 @@ import threading
 import socket
 
 NEW_DB_ITEM = {'text': '', 'children': '', 'checked':'None'}
+DELIMITER = '@'
 
 class Updater(QThread):
     """
@@ -321,16 +322,16 @@ class TreeModel(QAbstractItemModel):
     def get_tags_set(self, cut_delimiter=True):
         tags_set = set()
         map = "function(doc) { \
-                    if (doc.text && doc.text.indexOf(':') != -1) \
+                    if (doc.text && doc.text.indexOf('" + DELIMITER + "') != -1) \
                         emit(doc, null); \
                 }"
         res = self.db.query(map)
         for row in res:
             word_list = row.key['text'].split()
             for word in word_list:
-                if word[0] == ':':
-                    delimiter = '' if cut_delimiter else ':'
-                    tags_set.add(delimiter + word.strip(':'))
+                if word[0] == DELIMITER:
+                    delimiter = '' if cut_delimiter else DELIMITER
+                    tags_set.add(delimiter + word.strip(DELIMITER))
         return tags_set
 
 class FilterProxyModel(QSortFilterProxyModel):
@@ -404,7 +405,7 @@ class Delegate(QStyledItemDelegate):
 
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
-            if word[0] == ':':
+            if word[0] == DELIMITER:
                 word_list[idx] = "<b><font color={}>{}</font></b>".format(QColor(Qt.darkMagenta).name(), word)
         document = QTextDocument()
         document.setHtml(' '.join(word_list))
@@ -470,10 +471,9 @@ class Delegate(QStyledItemDelegate):
 
 
 class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
-    def __init__(self, parent, model, separator = ' ', addSpaceAfterCompleting = True):
+    def __init__(self, parent, model, separator = ' '):
         super(AutoCompleteEdit, self).__init__(parent)
         self._separator = separator
-        self._addSpaceAfterCompleting = addSpaceAfterCompleting
         self._completer = QCompleter(model)
         self._completer.setFilterMode(Qt.MatchContains)
         self._completer.setWidget(self)
@@ -488,12 +488,9 @@ class AutoCompleteEdit(QLineEdit): # source: http://blog.elentok.com/2011/08/aut
         This is the event handler for the QCompleter.activated(QString) signal,
         it is called when the user selects an item in the completer popup.
         """
-        extra = len(completion) - len(self._completer.completionPrefix())
-        extra_text = completion[-extra:]
-        if self._addSpaceAfterCompleting:
-            extra_text += ' '
-        self.setText(self.text() + extra_text)
-
+        old_text_minus_new_word = self.text()[:-len(self._completer.completionPrefix())]
+        self.setText(old_text_minus_new_word + completion + ' ')
+        
     def textUnderCursor(self):
         text = self.text()
         textUnderCursor = ''
