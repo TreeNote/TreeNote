@@ -9,6 +9,7 @@ import threading
 import socket
 import model
 
+FULL_PATH = 'FULL_PATH'
 
 class TreeItem(object):
     def __init__(self, text, parent=None):
@@ -16,8 +17,12 @@ class TreeItem(object):
         self.text = text
         self.childItems = []
 
-    def appendChild(self, item):
+    def add_and_return_child(self, item):
+        for existing_item in self.childItems:
+            if existing_item.text == item.text:
+                return existing_item
         self.childItems.append(item)
+        return item
 
     def child(self, row):
         return self.childItems[row]
@@ -38,7 +43,7 @@ class TreeItem(object):
 class TagModel(QAbstractItemModel):
     def __init__(self):
         super(TagModel, self).__init__()
-        self.rootItem = TreeItem("root")
+        self.rootItem = TreeItem(None)
 
     def columnCount(self, parent):
         return 1
@@ -47,10 +52,20 @@ class TagModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
-        if role != Qt.DisplayRole:
+        if role != Qt.DisplayRole and role != FULL_PATH:
             return None
 
         item = index.internalPointer()
+
+        if role == FULL_PATH:
+            tag_list = list()
+            def append_items(item):
+                tag_list.append(item.text)
+                parent = item.parentItem
+                if parent.text is not None:
+                    append_items(parent)
+            append_items(item)
+            return ''.join(reversed(tag_list))
 
         return item.text
 
@@ -111,10 +126,15 @@ class TagModel(QAbstractItemModel):
             word_list = row.key['text'].split()
             for word in word_list:
                 if word[0] == ':':
-                    tags_set.add(word)
-
-        for tag in tags_set:
-            self.rootItem.appendChild(TreeItem(tag, self.rootItem))
+                    tags_set.add(word.strip(':'))
+        for whole_tag in sorted(tags_set, key=str.lower):
+            splitted_tag = whole_tag.split(':')
+            def add_below(parent, remaining_tags):
+                new_item = parent.add_and_return_child(TreeItem(':' + remaining_tags[0], parent))
+                del remaining_tags[0]
+                if len(remaining_tags) > 0:
+                    add_below(new_item, remaining_tags)
+            add_below(self.rootItem, splitted_tag)
         self.endResetModel()
 
 

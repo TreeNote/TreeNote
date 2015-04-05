@@ -98,6 +98,18 @@ class MainWindow(QMainWindow):
                 return self.mainSplitter.widget(i)
         return self.mainSplitter.widget(0)
 
+    def setup_tag_model(self):
+        self.grid_holder().tag_view.model().setupModelData(self.model)
+
+        def expand_node(parent_index, bool_expand):
+            self.grid_holder().tag_view.setExpanded(parent_index, bool_expand)
+            for row_num in range(self.grid_holder().tag_view.model().rowCount(parent_index)):
+                child_index = self.grid_holder().tag_view.model().index(row_num, 0, parent_index)
+                self.grid_holder().tag_view.setExpanded(parent_index, bool_expand)
+                expand_node(child_index, bool_expand)
+
+        expand_node(self.grid_holder().tag_view.selectionModel().currentIndex(), True)
+
     def closeEvent(self, event):
         settings = QSettings()
         settings.setValue('pos', self.pos())
@@ -145,7 +157,8 @@ class MainWindow(QMainWindow):
             self.point = None
 
     def tag_clicked(self):
-        current_tag = self.grid_holder().tag_view.selectionModel().currentIndex().data()
+        current_index = self.grid_holder().tag_view.selectionModel().currentIndex()
+        current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
             self.grid_holder().search_bar.setText(current_tag)
 
@@ -156,7 +169,7 @@ class MainWindow(QMainWindow):
         # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
         if my_edit:
             self.update_selection(index, index)
-        self.grid_holder().tag_view.model().setupModelData(self.model)
+        self.setup_tag_model()
 
     def added(self, item_id, position, id_list, my_edit, set_edit_focus):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -179,7 +192,7 @@ class MainWindow(QMainWindow):
     def deleted(self, item_id):
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.pointer_set.remove(index.internalId())
-        self.grid_holder().tag_view.model().setupModelData(self.model)
+        self.setup_tag_model()
 
     def removed(self, item_id, position, count, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -328,7 +341,6 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
         grid_holder.tag_view.header().hide()
         grid_holder.tag_view.setModel(tag_model.TagModel())
-        grid_holder.tag_view.model().setupModelData(self.model)
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.tag_clicked)
 
         grid = QGridLayout()
@@ -337,6 +349,7 @@ class MainWindow(QMainWindow):
         grid.addWidget(grid_holder.tag_view, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
+        self.setup_tag_model()
         self.unsplitWindowAct.setEnabled(True)
 
 
