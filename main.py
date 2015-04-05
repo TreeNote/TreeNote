@@ -46,11 +46,18 @@ class MainWindow(QMainWindow):
         add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(QIcon(':/filenew.png'), self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
         add_action('escapeAction', QAction(QIcon(':/filenew.png'), self.tr('&Escape'), self, shortcut='Esc', triggered=self.escape))
-        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), self.tr('&Green'), self, shortcut='G', triggered=self.color_green))
+        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), self.tr('&Green'), self, shortcut='G', triggered=lambda: self.color_row(QColor(Qt.green).name())))
+        add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), self.tr('&Yellow'), self, shortcut='Y', triggered=lambda: self.color_row(QColor(Qt.yellow).name())))
+        add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), self.tr('&Blue'), self, shortcut='B', triggered=lambda: self.color_row(QColor(Qt.blue).name())))
+        add_action('colorRedAction', QAction(QIcon(':/filenew.png'), self.tr('&Red'), self, shortcut='R', triggered=lambda: self.color_row(QColor(Qt.red).name())))
+        add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), self.tr('&Orange'), self, shortcut='O', triggered=lambda: self.color_row(QColor("darkorange").name())))
+        add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), self.tr('&No color'), self, shortcut='N', triggered=lambda: self.color_row(QColor(Qt.white).name())))
+        add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
+
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
-        self.structureMenu.addAction(self.insertChildAction)
         self.structureMenu.addAction(self.insertRowAction)
+        self.structureMenu.addAction(self.insertChildAction)
         self.structureMenu.addAction(self.deleteSelectedRowsAction)
 
         self.moveMenu = self.structureMenu.addMenu(self.tr('&Move task'))
@@ -60,7 +67,16 @@ class MainWindow(QMainWindow):
         self.moveMenu.addAction(self.moveRightAction)
 
         self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
-        self.taskMenu.addAction(self.colorGreenAction)
+        self.taskMenu.addAction(self.editRowAction)
+        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color task'))
+        self.colorMenu.addAction(self.colorGreenAction)
+        self.colorMenu.addAction(self.colorYellowAction)
+        self.colorMenu.addAction(self.colorBlueAction)
+        self.colorMenu.addAction(self.colorRedAction)
+        self.colorMenu.addAction(self.colorOrangeAction)
+        self.colorMenu.addAction(self.colorNoColorAction)
+        self.priorityMenu = self.taskMenu.addMenu(self.tr('&Set priority'))
+        self.priorityMenu.addAction(self.priority1Action)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.expandAllChildrenAction)
@@ -282,14 +298,6 @@ class MainWindow(QMainWindow):
     def move_right(self):
         self.grid_holder().proxy.move_right(self.grid_holder().view.selectionModel().selectedIndexes())
 
-    def editRow(self):
-        if self.grid_holder().view.hasFocus():
-            self.grid_holder().view.edit(self.grid_holder().view.selectionModel().currentIndex())
-        elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
-            pass
-        else:
-            self.grid_holder().view.setFocus()
-
     def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.state() == QAbstractItemView.EditingState:
@@ -310,9 +318,21 @@ class MainWindow(QMainWindow):
 
     # task menu actions
 
-    def color_green(self):
+    def editRow(self):
         if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), QColor(Qt.green).name(), field='color')
+            self.grid_holder().view.edit(self.grid_holder().view.selectionModel().currentIndex())
+        elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
+            pass
+        else:
+            self.grid_holder().view.setFocus()
+
+    def color_row(self, color):
+        if self.grid_holder().view.hasFocus():
+            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), color, field='color')
+
+    def set_priority(self, number):
+      if self.grid_holder().view.hasFocus():
+            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), number, field='priority')
 
     # view menu actions
 
