@@ -111,7 +111,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                #del server[new_db_name]
+                del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -366,6 +366,13 @@ class FilterProxyModel(QSortFilterProxyModel):
     def setData(self, index, value, role=Qt.EditRole, field='text'):
         return self.sourceModel().setData(self.mapToSource(index), value, role=role, field=field)
 
+    def set_unset_task(self, index):
+        item = self.getItem(index)
+        db_item = self.sourceModel().db[item.id]
+        if db_item['checked'] == None:
+            self.setData(index, False, field='checked')
+        else:
+            self.setData(index, False, field='checked')
 
 class Delegate(QStyledItemDelegate):
     def __init__(self, parent, model):
@@ -373,6 +380,31 @@ class Delegate(QStyledItemDelegate):
         self.model = model
 
     def paint(self, painter, option, index):
+        db_item = self.model.sourceModel().db[self.model.getItem(index).id]
+        # if 'checked' in db_item:
+        #     checked = db_item['QColor']
+        #     check_box_style_option = QStyleOptionButton()
+        #
+        #     # if (index.flags() & Qt.ItemIsEditable) > 0:
+        #     check_box_style_option.state |= QStyle.State_Enabled
+        #     # else:
+        #     # check_box_style_option.state |= QStyle.State_ReadOnly
+        #     #
+        #     # if checked:
+        #     #     check_box_style_option.state |= QStyle.State_On
+        #     # else:
+        #     #     check_box_style_option.state |= QStyle.State_Off
+        #
+        #     check_box_style_option.rect = self.getCheckBoxRect(option)
+        #
+        #     # this will not run - hasFlag does not exist
+        #     #if not index.model().hasFlag(index, QtCore.Qt.ItemIsEditable):
+        #     #check_box_style_option.state |= QtGui.QStyle.State_ReadOnly
+        #
+        #     check_box_style_option.state |= QStyle.State_Enabled
+        #
+        #     QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
+
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
             if word[0] == ':':
@@ -392,6 +424,12 @@ class Delegate(QStyledItemDelegate):
         painter.translate(option.rect.x(), option.rect.y() - 4)  # -4: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
+
+    def getCheckBoxRect(self, option):
+        check_box_style_option = QStyleOptionButton()
+        check_box_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_box_style_option, None)
+        check_box_point = QPoint(option.rect.x(), option.rect.y())
+        return QRect(check_box_point, check_box_rect.size())
 
     def createEditor(self, parent, option, index):
         return QStyledItemDelegate.createEditor(self, parent, option, index)
