@@ -36,7 +36,7 @@ class Updater(QThread):
                     my_edit = change_dict['user'] == socket.gethostname()
                     method = change_dict['method']
                     if method == 'updated':
-                        self.model.updated_signal.emit(item_id, db_item['text'], my_edit)
+                        self.model.updated_signal.emit(item_id, db_item, my_edit)
                     elif method == 'added':
                         self.model.added_signal.emit(item_id, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
                     elif method == 'removed':
@@ -60,6 +60,7 @@ class Tree_item(object):
         self.text = text
         self.childItems = None
         self.id = None
+        self.date = ''
 
     def child_number(self):
         if self.parentItem is not None:
@@ -92,7 +93,7 @@ class TreeModel(QAbstractItemModel):
     """
     The methods of this model changes the database only. The view gets updated by the Updater-Thread.
     """
-    updated_signal = pyqtSignal(str, str, bool)
+    updated_signal = pyqtSignal(str, dict, bool)
     added_signal = pyqtSignal(str, int, list, bool, bool)
     removed_signal = pyqtSignal(str, int, int, bool)
     moved_vertical_signal = pyqtSignal(str, int, int, int, bool)
@@ -156,7 +157,7 @@ class TreeModel(QAbstractItemModel):
         self.updater.start()
 
     def columnCount(self, parent):
-        return 1
+        return 2
 
     def flags(self, index):
         if not index.isValid():
@@ -210,7 +211,7 @@ class TreeModel(QAbstractItemModel):
             return None
 
         item = self.getItem(index)
-        return item.text
+        return item.text if index.column() == 0 else item.date
 
     def setData(self, index, value, role=Qt.EditRole, field='text'):
         if role != Qt.EditRole:
@@ -218,7 +219,10 @@ class TreeModel(QAbstractItemModel):
 
         item = self.getItem(index)
         db_item = self.db[item.id]
-        db_item[field] = value
+        if index.column() == 0:
+            db_item[field] = value
+        else:
+            db_item['date'] = value.toString('dd.MM.yy')
         db_item['change'] = dict(method='updated', user=socket.gethostname())
         self.db[item.id] = db_item
         return True
@@ -462,12 +466,15 @@ class Delegate(QStyledItemDelegate):
         return True
 
     def createEditor(self, parent, option, index):
-        e = OpenPopupDateEdit(parent, self)
-        e.setCalendarPopup(True)
-        return e
-
-        suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
-        return AutoCompleteEdit(parent, list(suggestions_model))
+        if index.column() == 0:
+            suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
+            return AutoCompleteEdit(parent, list(suggestions_model))
+        else:
+            date_edit = OpenPopupDateEdit(parent, self)
+            date = QDate.currentDate() if index.data == '' else QDate.fromString(index.data(), 'dd.MM.yy')
+            date_edit.setDate(date)
+            date_edit.setCalendarPopup(True)
+            return date_edit
 
     def setEditorData(self, editor, index):
         QStyledItemDelegate.setEditorData(self, editor, index)
@@ -481,7 +488,7 @@ class OpenPopupDateEdit(QDateEdit):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
 
-    def focusInEvent(self, event): # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
+    def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
         self.calendarWidget().activated.connect(self.commit)
         opt = QStyleOptionSpinBox()
         self.initStyleOption(opt)

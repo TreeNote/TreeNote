@@ -15,7 +15,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.model = model.TreeModel()
-        self.model.updated_signal[str, str, bool].connect(self.updated)
+        self.model.updated_signal[str, dict, bool].connect(self.updated)
         self.model.added_signal[str, int, list, bool, bool].connect(self.added)
         self.model.removed_signal[str, int, int, bool].connect(self.removed)
         self.model.moved_vertical_signal[str, int, int, int, bool].connect(self.moved_vertical)
@@ -181,9 +181,10 @@ class MainWindow(QMainWindow):
         if current_tag is not None:
             self.grid_holder().search_bar.setText(current_tag)
 
-    def updated(self, item_id, new_text, my_edit):
+    def updated(self, item_id, new_item_dict, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
-        self.model.getItem(index).text = new_text
+        self.model.getItem(index).text = new_item_dict['text']
+        self.model.getItem(index).date = new_item_dict['date']
         # self.model.dataChanged.emit(index, index) # todo nötig?
         # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
         if my_edit:
@@ -366,6 +367,8 @@ class MainWindow(QMainWindow):
         grid_holder.view.setModel(grid_holder.proxy)
         grid_holder.view.setItemDelegate(model.Delegate(self, grid_holder.proxy))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
+        grid_holder.view.setColumnWidth(0, 300) # todo update ratio when window size changes
+        grid_holder.view.setColumnWidth(1, 100)
 
         grid_holder.tag_view = QTreeView()
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
