@@ -8,7 +8,8 @@ import model
 import tag_model
 import subprocess
 import socket
-
+import webbrowser
+import re
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -54,6 +55,7 @@ class MainWindow(QMainWindow):
         add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), self.tr('&No color'), self, shortcut='N', triggered=lambda: self.color_row(QColor(Qt.white).name())))
         add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
+        add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -85,6 +87,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.splitWindowAct)
         self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
+        self.viewMenu.addAction(self.openLinkAction)
 
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
@@ -268,7 +271,7 @@ class MainWindow(QMainWindow):
         # if search lags: increase keyboardInputInterval
         self.grid_holder().proxy.filter = str
         self.grid_holder().proxy.invalidateFilter()
-        if str != self.grid_holder().tag_view.selectionModel().currentIndex().data():
+        if str != self.grid_holder().tag_view.selectionModel().selectedRows()[0].data():
             self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
 
     def expand_node(self, parent_index, bool_expand):
@@ -281,10 +284,10 @@ class MainWindow(QMainWindow):
     # structure menu actions
 
     def expand_all_children(self):
-        self.expand_node(self.grid_holder().view.selectionModel().currentIndex(), True)
+        self.expand_node(self.grid_holder().view.selectionModel().selectedRows()[0], True)
 
     def collapse_all_children(self):
-        self.expand_node(self.grid_holder().view.selectionModel().currentIndex(), False)
+        self.expand_node(self.grid_holder().view.selectionModel().selectedRows()[0], False)
 
     def move_up(self):
         indexes = self.grid_holder().view.selectionModel().selectedRows()
@@ -334,20 +337,32 @@ class MainWindow(QMainWindow):
 
     def toggle_task(self):
         if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.toggle_task(self.grid_holder().view.selectionModel().currentIndex())
+            for row_index in self.grid_holder().view.selectionModel().selectedRows():
+                self.grid_holder().proxy.toggle_task(row_index)
 
     def color_row(self, color):
         if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), color, field='color')
+            for row_index in self.grid_holder().view.selectionModel().selectedRows():
+                self.grid_holder().proxy.setData(row_index, color, field='color')
 
     def set_priority(self, number):
         if self.grid_holder().view.hasFocus():
+            # todo mehrere mit selectedRows()
             self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), number, field='priority')
 
     # view menu actions
 
     def focus_search_bar(self):
         self.grid_holder().search_bar.setFocus()
+
+    def open_links(self):
+        for row_index in self.grid_holder().view.selectionModel().selectedRows():
+            url_regex = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))""" # source: http://daringfireball.net/2010/07/improved_regex_for_matching_urls
+            url_list = re.findall(url_regex, row_index.data())
+            for url in url_list:
+                if not url.startswith('http://'):
+                    url = 'http://' + url
+                webbrowser.open(url)
 
     def split_window(self):  # creates the view, too
         grid_holder = QWidget()
