@@ -287,18 +287,18 @@ class MainWindow(QMainWindow):
         self.expand_node(self.grid_holder().view.selectionModel().currentIndex(), False)
 
     def move_up(self):
-        indexes = self.grid_holder().view.selectionModel().selectedIndexes()
+        indexes = self.grid_holder().view.selectionModel().selectedRows()
         self.grid_holder().proxy.move_vertical(indexes, -1)
 
     def move_down(self):
-        indexes = self.grid_holder().view.selectionModel().selectedIndexes()
+        indexes = self.grid_holder().view.selectionModel().selectedRows()
         self.grid_holder().proxy.move_vertical(indexes, +1)
 
     def move_left(self):
-        self.grid_holder().proxy.move_left(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.move_left(self.grid_holder().view.selectionModel().selectedRows())
 
     def move_right(self):
-        self.grid_holder().proxy.move_right(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.move_right(self.grid_holder().view.selectionModel().selectedRows())
 
     def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
@@ -316,7 +316,7 @@ class MainWindow(QMainWindow):
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
 
     def removeSelection(self):
-        self.grid_holder().proxy.removeRows(self.grid_holder().view.selectionModel().selectedIndexes())
+        self.grid_holder().proxy.removeRows(self.grid_holder().view.selectionModel().selectedRows())
 
     # task menu actions
 
