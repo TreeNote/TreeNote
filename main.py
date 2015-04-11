@@ -187,8 +187,8 @@ class MainWindow(QMainWindow):
         self.model.getItem(index).date = new_item_dict['date']
         # self.model.dataChanged.emit(index, index) # todo nötig?
         # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
-        # if my_edit: # todo nötig?
-        #     self.update_selection(index, index)
+        if my_edit:
+            self.update_selection(index, index)
         self.setup_tag_model()
         self.model.dataChanged.emit(index, index)
 
@@ -247,16 +247,15 @@ class MainWindow(QMainWindow):
             self.update_selection(index_first_moved_item, index_moved_item)
 
     def update_selection(self, index_from, index_to):
-        if isinstance(index_from.model(), model.TreeModel):
-            index_to = self.grid_holder().proxy.mapFromSource(index_to)
-            index_from = self.grid_holder().proxy.mapFromSource(index_from)
-        index_from = index_from.sibling(index_from.row(), 0)
-        index_to = index_to.sibling(index_to.row(), 1)
-        print(index_from.data())
-        print(index_to.data())
-        self.grid_holder().view.setFocus()
-        self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
-        self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
+        if self.grid_holder().view.state() != QAbstractItemView.EditingState:
+            if isinstance(index_from.model(), model.TreeModel):
+                index_to = self.grid_holder().proxy.mapFromSource(index_to)
+                index_from = self.grid_holder().proxy.mapFromSource(index_from)
+            index_from = index_from.sibling(index_from.row(), 0)
+            index_to = index_to.sibling(index_to.row(), 1)
+            self.grid_holder().view.setFocus()
+            self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+            self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
     def update_selection_and_edit(self, index):
         proxy_index = self.grid_holder().proxy.mapFromSource(index)
@@ -324,10 +323,14 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def editRow(self):
-        if self.grid_holder().view.hasFocus():
-            self.grid_holder().view.edit(self.grid_holder().view.selectionModel().currentIndex())
-        elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
-            pass
+        current_index = self.grid_holder().view.selectionModel().currentIndex()
+        if self.grid_holder().view.state() == QAbstractItemView.EditingState: # change column with tab key
+            swapped_column_number = 1 - current_index.column()
+            sibling_index = current_index.sibling(current_index.row(), swapped_column_number)
+            self.grid_holder().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
+            self.grid_holder().view.edit(sibling_index)
+        elif self.grid_holder().view.hasFocus():
+            self.grid_holder().view.edit(current_index)
         else:
             self.grid_holder().view.setFocus()
 
