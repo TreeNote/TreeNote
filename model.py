@@ -434,7 +434,7 @@ class Delegate(QStyledItemDelegate):
         document.drawContents(painter)
         painter.restore()
 
-        if checked != 'None':
+        if checked != 'None' and index.column() == 0:
             check_box_style_option = QStyleOptionButton()
             if checked == 'True':
                 check_box_style_option.state |= QStyle.State_On

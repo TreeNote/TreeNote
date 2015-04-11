@@ -185,10 +185,8 @@ class MainWindow(QMainWindow):
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.getItem(index).text = new_item_dict['text']
         self.model.getItem(index).date = new_item_dict['date']
-        # self.model.dataChanged.emit(index, index) # todo nötig?
-        # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
         if my_edit:
-            self.update_selection(index, index)
+            self.set_selection(index, index)
         self.setup_tag_model()
         self.model.dataChanged.emit(index, index)
 
@@ -205,7 +203,7 @@ class MainWindow(QMainWindow):
             if set_edit_focus:
                 self.update_selection_and_edit(index_first_added)
             else:
-                self.update_selection(index_first_added, index_last_added)
+                self.set_selection(index_first_added, index_last_added)
 
     def deleted(self, item_id):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -225,9 +223,9 @@ class MainWindow(QMainWindow):
                 position -= 1
             if len(item.childItems) > 0:
                 index_next_child = self.model.index(position, 0, index)
-                self.update_selection(index_next_child, index_next_child)
+                self.set_selection(index_next_child, index_next_child)
             else:  # all childs deleted, select parent
-                self.update_selection(index, index)
+                self.set_selection(index, index)
 
     def moved_vertical(self, item_id, position, count, up_or_down, my_edit):
         index = QModelIndex(self.model.id_index_dict[item_id])
@@ -244,9 +242,9 @@ class MainWindow(QMainWindow):
                 index_first_moved_item = index_moved_item
         self.grid_holder().proxy.layoutChanged.emit()
         if my_edit:
-            self.update_selection(index_first_moved_item, index_moved_item)
+            self.set_selection(index_first_moved_item, index_moved_item)
 
-    def update_selection(self, index_from, index_to):
+    def set_selection(self, index_from, index_to):
         if self.grid_holder().view.state() != QAbstractItemView.EditingState:
             if isinstance(index_from.model(), model.TreeModel):
                 index_to = self.grid_holder().proxy.mapFromSource(index_to)
@@ -416,7 +414,7 @@ class MyQLineEdit(QLineEdit):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Down:
             index = self.main.grid_holder().proxy.index(0, 0, QModelIndex())
-            self.main.update_selection(index, index)
+            self.main.set_selection(index, index)
             self.main.focusNextChild()
         else:
             QLineEdit.keyPressEvent(self, event)
