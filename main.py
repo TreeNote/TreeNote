@@ -324,8 +324,8 @@ class MainWindow(QMainWindow):
 
     def editRow(self):
         current_index = self.grid_holder().view.selectionModel().currentIndex()
-        if self.grid_holder().view.state() == QAbstractItemView.EditingState: # change column with tab key
-            swapped_column_number = 1 - current_index.column()
+        if self.grid_holder().view.state() == QAbstractItemView.EditingState:  # change column with tab key
+            swapped_column_number = 1 if current_index.column() == 0 else 0
             sibling_index = current_index.sibling(current_index.row(), swapped_column_number)
             self.grid_holder().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
             self.grid_holder().view.edit(sibling_index)
@@ -343,7 +343,7 @@ class MainWindow(QMainWindow):
             self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), color, field='color')
 
     def set_priority(self, number):
-      if self.grid_holder().view.hasFocus():
+        if self.grid_holder().view.hasFocus():
             self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), number, field='priority')
 
     # view menu actions
@@ -358,6 +358,7 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar.textChanged[str].connect(self.search)
 
         grid_holder.view = QTreeView()
+        grid_holder.view.setPalette(model.PALETTE)
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
@@ -372,7 +373,7 @@ class MainWindow(QMainWindow):
         grid_holder.view.setModel(grid_holder.proxy)
         grid_holder.view.setItemDelegate(model.Delegate(self, grid_holder.proxy))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
-        grid_holder.view.setColumnWidth(0, 300) # todo update ratio when window size changes
+        grid_holder.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
         grid_holder.view.setColumnWidth(1, 100)
 
         grid_holder.tag_view = QTreeView()
@@ -447,6 +448,13 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon.png'))
+    app.setStyleSheet(
+        "QTreeView::branch:closed:has-children {\
+            image: url(:/branch-closed);\
+        }\
+        QTreeView::branch:open:has-children {\
+            image: url(:/branch-open);\
+        }")
     form = MainWindow()
     form.show()
     app.exec_()

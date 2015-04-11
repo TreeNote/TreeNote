@@ -10,6 +10,8 @@ import socket
 
 NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': ''}
 DELIMITER = ':'
+PALETTE = QPalette()
+PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
 
 
 class Updater(QThread):
@@ -418,7 +420,7 @@ class Delegate(QStyledItemDelegate):
         document = QTextDocument()
         document.setHtml(' '.join(word_list))
         if option.state & QStyle.State_Selected:
-            color = option.palette.highlight().color()
+            color = PALETTE.highlight().color()
         else:
             db_item = self.model.sourceModel().db[self.model.getItem(index).id]
             if 'color' in db_item:
@@ -473,7 +475,7 @@ class Delegate(QStyledItemDelegate):
             return AutoCompleteEdit(parent, list(suggestions_model))
         else:
             date_edit = OpenPopupDateEdit(parent, self)
-            date = QDate.currentDate() if index.data == '' else QDate.fromString(index.data(), 'dd.MM.yy')
+            date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
             return date_edit
