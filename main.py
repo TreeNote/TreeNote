@@ -187,8 +187,8 @@ class MainWindow(QMainWindow):
         self.model.getItem(index).date = new_item_dict['date']
         # self.model.dataChanged.emit(index, index) # todo nötig?
         # self.grid_holder().tag_view.model().dataChanged.emit(index, index) # todo nötig?
-        if my_edit:
-            self.update_selection(index, index)
+        # if my_edit: # todo nötig?
+        #     self.update_selection(index, index)
         self.setup_tag_model()
         self.model.dataChanged.emit(index, index)
 
@@ -197,10 +197,7 @@ class MainWindow(QMainWindow):
         parentItem = self.model.getItem(index)
         self.model.beginInsertRows(index, position, position + len(id_list) - 1)
         for i, added_item_id in enumerate(id_list):
-            parentItem.add_child(position + i, self.model.db[added_item_id]['text'], added_item_id)
-            new_index = self.model.index(position + i, 0, index)
-            self.model.id_index_dict[added_item_id] = QPersistentModelIndex(new_index)
-            self.model.pointer_set.add(new_index.internalId())
+            parentItem.add_child(position + i, added_item_id, index)
         self.model.endInsertRows()
         if my_edit:
             index_first_added = self.model.index(position, 0, index)
@@ -253,6 +250,11 @@ class MainWindow(QMainWindow):
         if isinstance(index_from.model(), model.TreeModel):
             index_to = self.grid_holder().proxy.mapFromSource(index_to)
             index_from = self.grid_holder().proxy.mapFromSource(index_from)
+        index_from = index_from.sibling(index_from.row(), 0)
+        index_to = index_to.sibling(index_to.row(), 1)
+        print(index_from.data())
+        print(index_to.data())
+        self.grid_holder().view.setFocus()
         self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
         self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 

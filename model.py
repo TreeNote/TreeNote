@@ -8,7 +8,7 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None'}
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': ''}
 DELIMITER = ':'
 
 
@@ -73,16 +73,18 @@ class Tree_item(object):
             children_id_list = self.model.db[self.id]['children'].split()
             for position in range(len(children_id_list)):
                 id = children_id_list[position]
-                self.add_child(position, self.model.db[children_id_list[position]]['text'], id)
-                new_index = self.model.index(position, 0, parent_index)
-                self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
-                self.model.pointer_set.add(new_index.internalId())
+                self.add_child(position, id, parent_index)
 
-    def add_child(self, position, text, id):
+    def add_child(self, position, id, parent_index):
         item = Tree_item('', self.model, self)
         self.childItems.insert(position, item)
-        self.childItems[position].text = text
+        self.childItems[position].text = self.model.db[id]['text']
+        self.childItems[position].date = self.model.db[id]['date']
         self.childItems[position].id = id
+
+        new_index = self.model.index(position, 0, parent_index)
+        self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
+        self.model.pointer_set.add(new_index.internalId())
 
     def remove_children(self, position, count):
         for row in range(count):
@@ -115,7 +117,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                # del server[new_db_name]
+                #del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
