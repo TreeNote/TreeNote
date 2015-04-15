@@ -14,6 +14,21 @@ PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
 
 
+class QUndoCommandStructure(QUndoCommand):
+    # Class variable that specifies expected fields
+    _fields = []
+
+    def __init__(self, *args):
+        if len(args) != len(self._fields):
+            raise TypeError('Expected {} arguments'.format(len(self._fields)))
+
+        # Set the arguments
+        for name, value in zip(self._fields, args):
+            setattr(self, name, value)
+
+        super(QUndoCommandStructure, self).__init__(QApplication.translate('command', self.title))
+
+
 class Updater(QThread):
     """
     This Thread watches the db for own and foreign changes and updates the view.
@@ -106,6 +121,8 @@ class TreeModel(QAbstractItemModel):
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
 
+        self.undoStack = QUndoStack(self)
+
         if sys.platform == "darwin":
             subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
@@ -119,7 +136,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                #del server[new_db_name]
+                # del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -217,18 +234,29 @@ class TreeModel(QAbstractItemModel):
         item = self.getItem(index)
         return item.text if index.column() == 0 else item.date
 
-    def setData(self, index, value, role=Qt.EditRole, field='text'):
-        if role != Qt.EditRole:
-            return False
+    def setData(self, item_id, value, role, column, field='text'):
 
-        item = self.getItem(index)
-        db_item = self.db[item.id]
-        if index.column() == 0:
-            db_item[field] = value
-        else:
-            db_item['date'] = value.toString('dd.MM.yy')
-        db_item['change'] = dict(method='updated', user=socket.gethostname())
-        self.db[item.id] = db_item
+        class setDataCommand(QUndoCommandStructure):
+            _fields = ['model', 'item_id', 'value', 'column', 'field']
+            title = 'setData'
+
+            def set_data(self, value):
+                db_item = self.model.db[self.item_id]
+                if self.column == 0:
+                    db_item[self.field] = value
+                else:
+                    db_item['date'] = value.toString('dd.MM.yy')
+                db_item['change'] = dict(method='updated', user=socket.gethostname())
+                self.model.db[self.item_id] = db_item
+
+            def redo(self):
+                self.old_value = self.model.db[self.item_id][self.field]
+                self.set_data(self.value)
+
+            def undo(self):
+                self.set_data(self.old_value)
+
+        self.undoStack.push(setDataCommand(self, item_id, value, column, field))
         return True
 
     def insertRows(self, position, parent, indexes=None):
@@ -389,19 +417,20 @@ class FilterProxyModel(QSortFilterProxyModel):
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))
 
-    def setData(self, index, value, role=Qt.EditRole, field='text'):
-        return self.sourceModel().setData(self.mapToSource(index), value, role=role, field=field)
+    def setData(self, index, value, role, field='text'):
+        item = self.getItem(index)
+        index_new = self.mapToSource(index)
+        return self.sourceModel().setData(item.id, value, role, index_new.column(), field=field)
 
-    def toggle_task(self, index_proxy):
-        index = self.mapToSource(index_proxy)
+    def toggle_task(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(index).id]
         checked = db_item['checked']
         if checked == 'None':
-            self.sourceModel().setData(index, 'False', field='checked')
+            self.setData(index, 'False', field='checked')
         elif checked == 'False':
-            self.sourceModel().setData(index, 'True', field='checked')
+            self.setData(index, 'True', field='checked')
         elif checked == 'True':
-            self.sourceModel().setData(index, 'None', field='checked')
+            self.setData(index, 'None', field='checked')
 
 
 class Delegate(QStyledItemDelegate):
