@@ -238,7 +238,7 @@ class TreeModel(QAbstractItemModel):
 
         class setDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
-            title = 'setData'
+            title = 'set Data'
 
             def set_data(self, value):
                 db_item = self.model.db[self.item_id]
@@ -259,23 +259,43 @@ class TreeModel(QAbstractItemModel):
         self.undoStack.push(setDataCommand(self, item_id, value, column, field))
         return True
 
-    def insertRows(self, position, parent, indexes=None):
-        id_list = list()
-        if indexes is None:  # used from view, create a single new row / self.db item
+    def insert_rows(self, position, parent_item_id, id_list=None):
+        if id_list is None:
+            # used from view, create a single new row / self.db item
             set_edit_focus = True
             child_id, _ = self.db.save(NEW_DB_ITEM.copy())
-            id_list.append(child_id)
+            id_list = [child_id]
         else:  # used from move methods, add existing db items to the parent
             set_edit_focus = False
-            for index in indexes:  # todo ginge auch über position
-                id_list.append(self.getItem(index).id)
-        parent_item_id = self.getItem(parent).id
+
         db_item = self.db[parent_item_id]
         children_list = db_item['children'].split()
         children_list_new = children_list[:position] + id_list + children_list[position:]
         db_item['children'] = ' '.join(children_list_new)
         db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
         self.db[parent_item_id] = db_item
+
+        # class insertRowsCommand(QUndoCommandStructure):
+        # _fields = ['model', 'item_id', 'value', 'column', 'field']
+        # title = 'insert row'
+        #
+        # def set_data(self, value):
+        # db_item = self.model.db[self.item_id]
+        # if self.column == 0:
+        # db_item[self.field] = value
+        # else:
+        # db_item['date'] = value.toString('dd.MM.yy')
+        # db_item['change'] = dict(method='updated', user=socket.gethostname())
+        # self.model.db[self.item_id] = db_item
+        #
+        # def redo(self):
+        # self.old_value = self.model.db[self.item_id][self.field]
+        # self.set_data(self.value)
+        #
+        # def undo(self):
+        # self.set_data(self.old_value)
+        #
+        # self.undoStack.push(insertRowsCommand(self, item_id, value, column, field))
         return True
 
     def removeRows(self, indexes, delete=True, restore_selection=False):
@@ -323,36 +343,58 @@ class TreeModel(QAbstractItemModel):
         db_item['change'] = dict(method='moved_vertical', position=old_position, count=len(indexes), up_or_down=up_or_down, user=socket.gethostname())
         self.db[parent_item_id] = db_item
 
-    def move_left(self, indexes):
+    def move_horizontal(self, indexes, direction):
         item = self.getItem(indexes[0])
+        id_list = list()
+        for index in indexes:
+            id_list.append(self.getItem(index).id)
+
         parent_parent_item = item.parentItem.parentItem
-        if parent_parent_item is not None:  # stop moving left if parent is root_item
-            self.remove_consecutive_rows_from_parent(indexes)
+        if parent_parent_item is None and direction == -1:  # stop moving left if parent is root_item
+            return
+        elif parent_parent_item is not None:  # just for moving left
+            parent_parent_item_id = parent_parent_item.id
+        else:  # for moving right we don't need 'parent_parent_item_id'
+            parent_parent_item_id = None
 
-            # insert as a child of the parent's parent
-            parent_parent_item_index = QModelIndex(self.id_index_dict[parent_parent_item.id])
-            position = item.parentItem.child_number() + 1
-            self.insertRows(position, parent_parent_item_index, indexes)
+        original_position = item.child_number()
+        if original_position == 0 and direction == 1:  # stop moving right if the moving item is the top item
+            return
+        sibling_index = self.index(original_position - 1, 0, self.parent(indexes[0]))
+        sibling_id = self.getItem(sibling_index).id
+        last_childnr_of_sibling = len(item.parentItem.childItems[original_position - 1].childItems)
 
-    def move_right(self, indexes):
-        # insert as a child of the sibling above
-        item = self.getItem(indexes[0])
-        childNumber = item.child_number()
-        if childNumber != 0:  # stop moving right if the moving item is the top item
-            self.remove_consecutive_rows_from_parent(indexes)  # we have to restore the selection of the moved item, because removeRow() discards it
+        class moveHorizontalCommand(QUndoCommandStructure):
+            _fields = ['model', 'direction', 'parent_parent_item_id', 'parent_item_id',
+                       'child_item_id', 'id_list', 'position', 'original_position', 'sibling_id', 'last_childnr_of_sibling']
+            title = 'move horizontal'
 
-            sibling_index = self.index(childNumber - 1, 0, self.parent(indexes[0]))
-            last_childnr_of_sibling = len(item.parentItem.childItems[childNumber - 1].childItems)
-            self.insertRows(last_childnr_of_sibling, sibling_index, indexes)
+            def move(self, from_parent, insert_in, position):
+                self.model.remove_consecutive_rows_from_parent(from_parent, self.child_item_id, len(self.id_list))
+                self.model.insert_rows(position, insert_in, self.id_list)
 
-    def remove_consecutive_rows_from_parent(self, indexes):  # just for moving
-        child_item = self.getItem(indexes[0])
-        parent_item_id = child_item.parentItem.id
+            def redo(self):
+                if self.direction == -1:  # left
+                    self.move(self.parent_item_id, self.parent_parent_item_id, self.position)  # insert as a child of the parent's parent
+                else:  # right
+                    self.move(self.parent_item_id, self.sibling_id, self.last_childnr_of_sibling)  # insert as a child of the sibling above
+
+            def undo(self):
+                if self.direction == 1:  # undo moving right
+                    self.move(self.sibling_id, self.parent_item_id, self.original_position)
+                else:  # undo moving left
+                    self.move(self.parent_parent_item_id, self.parent_item_id, self.original_position)
+
+        position = item.parentItem.child_number() + 1
+        self.undoStack.push(moveHorizontalCommand(self, direction, parent_parent_item_id, item.parentItem.id,
+                                                  item.id, id_list, position, original_position, sibling_id, last_childnr_of_sibling))
+
+    def remove_consecutive_rows_from_parent(self, parent_item_id, child_item_id, count):  # just for moving
         parent_db_item = self.db[parent_item_id]
         children_list = parent_db_item['children'].split()
-        position = children_list.index(child_item.id)
-        parent_db_item['change'] = dict(method='removed', position=position, count=len(indexes), user=socket.gethostname())
-        children_list[position:position + len(indexes)] = []
+        position = children_list.index(child_item_id)
+        parent_db_item['change'] = dict(method='removed', position=position, count=count, user=socket.gethostname())
+        children_list[position:position + count] = []
         parent_db_item['children'] = ' '.join(children_list)
         self.db[parent_item_id] = parent_db_item
 
@@ -396,20 +438,16 @@ class FilterProxyModel(QSortFilterProxyModel):
             indexes_source.append(self.mapToSource(index))
         return indexes_source
 
-    def move_right(self, indexes):
+    def move_horizontal(self, indexes, direction):
         if len(indexes) > 0:
-            self.sourceModel().move_right(self.map_indexes_to_source(indexes))
-
-    def move_left(self, indexes):
-        if len(indexes) > 0:
-            self.sourceModel().move_left(self.map_indexes_to_source(indexes))
+            self.sourceModel().move_horizontal(self.map_indexes_to_source(indexes), direction)
 
     def move_vertical(self, indexes, up_or_down):
         if len(indexes) > 0:
             self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
 
     def insertRow(self, position, parent):
-        self.sourceModel().insertRows(position, self.mapToSource(parent))
+        self.sourceModel().insert_rows(position, self.getItem(parent).id)
 
     def removeRows(self, indexes):
         self.sourceModel().removeRows(self.map_indexes_to_source(indexes))

@@ -307,10 +307,10 @@ class MainWindow(QMainWindow):
         self.grid_holder().proxy.move_vertical(indexes, +1)
 
     def move_left(self):
-        self.grid_holder().proxy.move_left(self.grid_holder().view.selectionModel().selectedRows())
+        self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), -1)
 
     def move_right(self):
-        self.grid_holder().proxy.move_right(self.grid_holder().view.selectionModel().selectedRows())
+        self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
