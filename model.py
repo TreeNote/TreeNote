@@ -286,9 +286,9 @@ class TreeModel(QAbstractItemModel):
                     # def delete_childs(item):
                     # for ch_item in item.childItems:
                     # delete_childs(ch_item)
-                    #         ch_db_item = self.db.get(ch_item.id)
-                    #         if ch_db_item is not None:
-                    #             # todo: set deleted flag for ch_db_item
+                    # ch_db_item = self.db.get(ch_item.id)
+                    # if ch_db_item is not None:
+                    # # todo: set deleted flag for ch_db_item
                     #
                     # delete_childs(child_item)
 
@@ -328,24 +328,37 @@ class TreeModel(QAbstractItemModel):
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
+
+        class moveVerticalCommand(QUndoCommandStructure):
+            _fields = ['model', 'item_id', 'parent_item_id', 'count', 'up_or_down']
+            title = 'Move vertically'
+
+            def move(self, up_or_down):
+                db_item = self.model.db[self.parent_item_id]
+                children_list = db_item['children'].split()
+                old_position = children_list.index(self.item_id)
+                if up_or_down == -1 and old_position == 0 or up_or_down == +1 and old_position + self.count - 1 == len(children_list) - 1:  # don't move if already at top or bottom
+                    return
+                self.model.layoutAboutToBeChanged.emit()
+                if up_or_down == -1:  # if we want to move several items up, we can move the item-above below the selection instead
+                    swapped_item = children_list.pop(old_position - 1)
+                    swapped_item_new_position = old_position + self.count - 1
+                elif up_or_down == +1:
+                    swapped_item = children_list.pop(old_position + self.count)
+                    swapped_item_new_position = old_position
+                children_list.insert(swapped_item_new_position, swapped_item)
+                db_item['children'] = ' '.join(children_list)
+                db_item['change'] = dict(method='moved_vertical', position=old_position, count=self.count, up_or_down=up_or_down, user=socket.gethostname())
+                self.model.db[self.parent_item_id] = db_item
+
+            def redo(self):
+                self.move(self.up_or_down)
+
+            def undo(self):
+                self.move(self.up_or_down * -1)
+
         item = self.getItem(indexes[0])
-        parent_item_id = item.parentItem.id
-        db_item = self.db[parent_item_id]
-        children_list = db_item['children'].split()
-        old_position = children_list.index(item.id)
-        if up_or_down == -1 and old_position == 0 or up_or_down == +1 and old_position + len(indexes) - 1 == len(children_list) - 1:  # don't move if already at top or bottom
-            return
-        self.layoutAboutToBeChanged.emit()
-        if up_or_down == -1:  # if we want to move several items up, we can move the item-above below the selection instead
-            swapped_item = children_list.pop(old_position - 1)
-            swapped_item_new_position = old_position + len(indexes) - 1
-        elif up_or_down == +1:
-            swapped_item = children_list.pop(old_position + len(indexes))
-            swapped_item_new_position = old_position
-        children_list.insert(swapped_item_new_position, swapped_item)
-        db_item['children'] = ' '.join(children_list)
-        db_item['change'] = dict(method='moved_vertical', position=old_position, count=len(indexes), up_or_down=up_or_down, user=socket.gethostname())
-        self.db[parent_item_id] = db_item
+        self.undoStack.push(moveVerticalCommand(self, item.id, item.parentItem.id, len(indexes), up_or_down))
 
     def move_horizontal(self, indexes, direction):
         item = self.getItem(indexes[0])
