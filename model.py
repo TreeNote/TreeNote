@@ -15,8 +15,8 @@ PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
 
 
 class QUndoCommandStructure(QUndoCommand):
-    # Class variable that specifies expected fields
-    _fields = []
+    # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
+    _fields = []  # Class variable that specifies expected fields
 
     def __init__(self, *args):
         if len(args) != len(self._fields):
@@ -136,7 +136,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                del server[new_db_name]
+                # del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -235,7 +235,8 @@ class TreeModel(QAbstractItemModel):
         return item.text if index.column() == 0 else item.date
 
     def setData(self, index, value, role=None, field='text'):
-        class setDataCommand(QUndoCommandStructure):
+
+        class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
             title = 'Edit row'
 
@@ -256,16 +257,18 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.set_data(self.old_value)
 
-        item_id= self.getItem(index).id
-        self.undoStack.push(setDataCommand(self, item_id, value, index.column(), field))
+        item_id = self.getItem(index).id
+        self.undoStack.push(SetDataCommand(self, item_id, value, index.column(), field))
         return True
 
     def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
-        class insertRemoveRowCommand(QUndoCommandStructure):
+
+        class InsertRemoveRowCommand(QUndoCommandStructure):
             _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus', 'delete_child_from_parent_id_list']
             title = 'Add or remove row'
 
-            def add_rows(self, model, position, parent_item_id, id_list, set_edit_focus):
+            @staticmethod  # because it is called from the outside for moving
+            def add_rows(model, position, parent_item_id, id_list, set_edit_focus):
                 db_item = model.db[parent_item_id]
                 children_list = db_item['children'].split()
                 children_list_new = children_list[:position] + id_list + children_list[position:]
@@ -316,21 +319,21 @@ class TreeModel(QAbstractItemModel):
             if id_list is None:
                 # used from view, create a single new row / self.db item
                 set_edit_focus = True
-                self.undoStack.push(insertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
+                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
             else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
                 set_edit_focus = False
-                insertRemoveRowCommand.add_rows(self, self, position, parent_item_id, id_list, set_edit_focus, None)
+                InsertRemoveRowCommand.add_rows(self, position, parent_item_id, id_list, set_edit_focus)
         else:  # remove command
             delete_child_from_parent_id_list = list()
             for index in indexes:
                 child_item = self.getItem(index)
                 delete_child_from_parent_id_list.append((child_item.id, child_item.parentItem.id, child_item.child_number()))  # save the position information for adding (undo)
-            self.undoStack.push(insertRemoveRowCommand(self, position, parent_item_id, id_list, False, delete_child_from_parent_id_list))
+            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, id_list, False, delete_child_from_parent_id_list))
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
 
-        class moveVerticalCommand(QUndoCommandStructure):
+        class MoveVerticalCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'parent_item_id', 'count', 'up_or_down']
             title = 'Move vertically'
 
@@ -359,7 +362,7 @@ class TreeModel(QAbstractItemModel):
                 self.move(self.up_or_down * -1)
 
         item = self.getItem(indexes[0])
-        self.undoStack.push(moveVerticalCommand(self, item.id, item.parentItem.id, len(indexes), up_or_down))
+        self.undoStack.push(MoveVerticalCommand(self, item.id, item.parentItem.id, len(indexes), up_or_down))
 
     def move_horizontal(self, indexes, direction):
         item = self.getItem(indexes[0])
@@ -382,7 +385,7 @@ class TreeModel(QAbstractItemModel):
         sibling_id = self.getItem(sibling_index).id
         last_childnr_of_sibling = len(item.parentItem.childItems[original_position - 1].childItems)
 
-        class moveHorizontalCommand(QUndoCommandStructure):
+        class MoveHorizontalCommand(QUndoCommandStructure):
             _fields = ['model', 'direction', 'parent_parent_item_id', 'parent_item_id',
                        'child_item_id', 'id_list', 'position', 'original_position', 'sibling_id', 'last_childnr_of_sibling']
             title = 'move horizontal'
@@ -404,7 +407,7 @@ class TreeModel(QAbstractItemModel):
                     self.move(self.parent_parent_item_id, self.parent_item_id, self.original_position)
 
         position = item.parentItem.child_number() + 1
-        self.undoStack.push(moveHorizontalCommand(self, direction, parent_parent_item_id, item.parentItem.id,
+        self.undoStack.push(MoveHorizontalCommand(self, direction, parent_parent_item_id, item.parentItem.id,
                                                   item.id, id_list, position, original_position, sibling_id, last_childnr_of_sibling))
 
     def remove_consecutive_rows_from_parent(self, parent_item_id, child_item_id, count):  # just for moving
