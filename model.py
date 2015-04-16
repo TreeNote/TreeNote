@@ -260,45 +260,39 @@ class TreeModel(QAbstractItemModel):
         return True
 
     def insert_rows(self, position, parent_item_id, id_list=None):
+        class insertRowsCommand(QUndoCommandStructure):
+            _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus']
+            title = 'Add or remove row'
+
+            def add_rows(self, model, position, parent_item_id, id_list, set_edit_focus):
+                db_item = model.db[parent_item_id]
+                children_list = db_item['children'].split()
+                children_list_new = children_list[:position] + id_list + children_list[position:]
+                db_item['children'] = ' '.join(children_list_new)
+                db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
+                model.db[parent_item_id] = db_item
+
+            def remove_rows(self):
+                pass
+
+            def redo(self): # is called when pushed to the stack
+                self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
+                self.set_edit_focus = False # when redo is called the second time (when the user is redoing), he doesn't want edit focus
+
+            def undo(self):
+                self.remove_rows()
+
         if id_list is None:
             # used from view, create a single new row / self.db item
             set_edit_focus = True
             child_id, _ = self.db.save(NEW_DB_ITEM.copy())
             id_list = [child_id]
-        else:  # used from move methods, add existing db items to the parent
+            self.undoStack.push(insertRowsCommand(self, position, parent_item_id, id_list, set_edit_focus))
+        else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
             set_edit_focus = False
+            insertRowsCommand.add_rows(self, self, position, parent_item_id, id_list, set_edit_focus)
 
-        db_item = self.db[parent_item_id]
-        children_list = db_item['children'].split()
-        children_list_new = children_list[:position] + id_list + children_list[position:]
-        db_item['children'] = ' '.join(children_list_new)
-        db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
-        self.db[parent_item_id] = db_item
-
-        # class insertRowsCommand(QUndoCommandStructure):
-        # _fields = ['model', 'item_id', 'value', 'column', 'field']
-        # title = 'insert row'
-        #
-        # def set_data(self, value):
-        # db_item = self.model.db[self.item_id]
-        # if self.column == 0:
-        # db_item[self.field] = value
-        # else:
-        # db_item['date'] = value.toString('dd.MM.yy')
-        # db_item['change'] = dict(method='updated', user=socket.gethostname())
-        # self.model.db[self.item_id] = db_item
-        #
-        # def redo(self):
-        # self.old_value = self.model.db[self.item_id][self.field]
-        # self.set_data(self.value)
-        #
-        # def undo(self):
-        # self.set_data(self.old_value)
-        #
-        # self.undoStack.push(insertRowsCommand(self, item_id, value, column, field))
-        return True
-
-    def removeRows(self, indexes, delete=True, restore_selection=False):
+    def removeRows(self, indexes):
         for index in indexes:
             child_item = self.getItem(index)
             child_db_item = self.db.get(child_item.id)
