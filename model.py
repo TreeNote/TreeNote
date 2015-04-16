@@ -259,9 +259,9 @@ class TreeModel(QAbstractItemModel):
         self.undoStack.push(setDataCommand(self, item_id, value, column, field))
         return True
 
-    def insert_rows(self, position, parent_item_id, id_list=None):
-        class insertRowsCommand(QUndoCommandStructure):
-            _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus']
+    def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
+        class insertRemoveRowCommand(QUndoCommandStructure):
+            _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus', 'delete_child_from_parent_id_list']
             title = 'Add or remove row'
 
             def add_rows(self, model, position, parent_item_id, id_list, set_edit_focus):
@@ -273,48 +273,58 @@ class TreeModel(QAbstractItemModel):
                 model.db[parent_item_id] = db_item
 
             def remove_rows(self):
-                pass
+                for child_item_id, parent_item_id, _ in self.delete_child_from_parent_id_list:
+                    parent_db_item = self.model.db[parent_item_id]
+                    children_list = parent_db_item['children'].split()
+                    parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item_id), count=1, user=socket.gethostname())
+                    children_list.remove(child_item_id)
+                    parent_db_item['children'] = ' '.join(children_list)
+                    self.model.db[parent_item_id] = parent_db_item
+                    # child_db_item = self.db.get(child_item.id)
+                    # # todo: set deleted flag for child_db_item
+                    #
+                    # def delete_childs(item):
+                    # for ch_item in item.childItems:
+                    # delete_childs(ch_item)
+                    #         ch_db_item = self.db.get(ch_item.id)
+                    #         if ch_db_item is not None:
+                    #             # todo: set deleted flag for ch_db_item
+                    #
+                    # delete_childs(child_item)
 
-            def redo(self): # is called when pushed to the stack
-                self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
-                self.set_edit_focus = False # when redo is called the second time (when the user is redoing), he doesn't want edit focus
+            def redo(self):  # is called when pushed to the stack
+                if position is not None:  # insert command
+                    if self.id_list is None:
+                        child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
+                        self.id_list = [child_id]
+                    self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
+                    self.set_edit_focus = False  # when redo is called the second time (when the user is redoing), he doesn't want edit focus
+                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)]
+                else:
+                    self.remove_rows()
 
             def undo(self):
-                self.remove_rows()
+                if self.position is not None:  # undo insert command
+                    # todo: delete really instead of set delete marker
+                    self.remove_rows()
+                else:  # undo remove command
+                    for child_item_id, parent_item_id, position in delete_child_from_parent_id_list:
+                        self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
 
-        if id_list is None:
-            # used from view, create a single new row / self.db item
-            set_edit_focus = True
-            child_id, _ = self.db.save(NEW_DB_ITEM.copy())
-            id_list = [child_id]
-            self.undoStack.push(insertRowsCommand(self, position, parent_item_id, id_list, set_edit_focus))
-        else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
-            set_edit_focus = False
-            insertRowsCommand.add_rows(self, self, position, parent_item_id, id_list, set_edit_focus)
-
-    def removeRows(self, indexes):
-        for index in indexes:
-            child_item = self.getItem(index)
-            child_db_item = self.db.get(child_item.id)
-            if child_db_item is not None:
-                self.db.delete(child_db_item)
-
-                def delete_childs(item):
-                    for ch_item in item.childItems:
-                        delete_childs(ch_item)
-                        ch_db_item = self.db.get(ch_item.id)
-                        if ch_db_item is not None:
-                            self.db.delete(ch_db_item)
-
-                delete_childs(child_item)
-
-                parent_item_id = child_item.parentItem.id
-                parent_db_item = self.db[parent_item_id]
-                children_list = parent_db_item['children'].split()
-                parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item.id), count=1, user=socket.gethostname())
-                children_list.remove(child_item.id)
-                parent_db_item['children'] = ' '.join(children_list)
-                self.db[parent_item_id] = parent_db_item
+        if position is not None:  # insert command
+            if id_list is None:
+                # used from view, create a single new row / self.db item
+                set_edit_focus = True
+                self.undoStack.push(insertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
+            else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
+                set_edit_focus = False
+                insertRemoveRowCommand.add_rows(self, self, position, parent_item_id, id_list, set_edit_focus, None)
+        else:  # remove command
+            delete_child_from_parent_id_list = list()
+            for index in indexes:
+                child_item = self.getItem(index)
+                delete_child_from_parent_id_list.append((child_item.id, child_item.parentItem.id, child_item.child_number()))  # save the position information for adding (undo)
+            self.undoStack.push(insertRemoveRowCommand(self, position, parent_item_id, id_list, False, delete_child_from_parent_id_list))
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
@@ -365,7 +375,7 @@ class TreeModel(QAbstractItemModel):
 
             def move(self, from_parent, insert_in, position):
                 self.model.remove_consecutive_rows_from_parent(from_parent, self.child_item_id, len(self.id_list))
-                self.model.insert_rows(position, insert_in, self.id_list)
+                self.model.insert_remove_rows(position, insert_in, self.id_list)
 
             def redo(self):
                 if self.direction == -1:  # left
@@ -441,10 +451,10 @@ class FilterProxyModel(QSortFilterProxyModel):
             self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
 
     def insertRow(self, position, parent):
-        self.sourceModel().insert_rows(position, self.getItem(parent).id)
+        self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
 
     def removeRows(self, indexes):
-        self.sourceModel().removeRows(self.map_indexes_to_source(indexes))
+        self.sourceModel().insert_remove_rows(indexes=self.map_indexes_to_source(indexes))
 
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))
