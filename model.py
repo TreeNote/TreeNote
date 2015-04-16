@@ -8,7 +8,7 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': ''}
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name()}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
@@ -136,7 +136,7 @@ class TreeModel(QAbstractItemModel):
                 # todo check if couchdb was started, else exit loop and print exc
                 server = couchdb.Server()
             try:
-                # del server[new_db_name]
+                del server[new_db_name]
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
@@ -234,29 +234,30 @@ class TreeModel(QAbstractItemModel):
         item = self.getItem(index)
         return item.text if index.column() == 0 else item.date
 
-    def setData(self, item_id, value, role, column, field='text'):
-
+    def setData(self, index, value, role=None, field='text'):
         class setDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
-            title = 'set Data'
+            title = 'Edit row'
 
             def set_data(self, value):
                 db_item = self.model.db[self.item_id]
                 if self.column == 0:
+                    self.old_value = db_item[self.field]
                     db_item[self.field] = value
                 else:
-                    db_item['date'] = value.toString('dd.MM.yy')
+                    self.old_value = db_item['date']
+                    db_item['date'] = value.toString('dd.MM.yy') if type(value) == QDate else value
                 db_item['change'] = dict(method='updated', user=socket.gethostname())
                 self.model.db[self.item_id] = db_item
 
             def redo(self):
-                self.old_value = self.model.db[self.item_id][self.field]
                 self.set_data(self.value)
 
             def undo(self):
                 self.set_data(self.old_value)
 
-        self.undoStack.push(setDataCommand(self, item_id, value, column, field))
+        item_id= self.getItem(index).id
+        self.undoStack.push(setDataCommand(self, item_id, value, index.column(), field))
         return True
 
     def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
@@ -472,13 +473,11 @@ class FilterProxyModel(QSortFilterProxyModel):
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))
 
-    def setData(self, index, value, role, field='text'):
-        item = self.getItem(index)
-        index_new = self.mapToSource(index)
-        return self.sourceModel().setData(item.id, value, role, index_new.column(), field=field)
+    def setData(self, index, value, role=None, field='text'):
+        return self.sourceModel().setData(self.mapToSource(index), value, field=field)
 
     def toggle_task(self, index):
-        db_item = self.sourceModel().db[self.sourceModel().getItem(index).id]
+        db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
         checked = db_item['checked']
         if checked == 'None':
             self.setData(index, 'False', field='checked')
@@ -507,10 +506,7 @@ class Delegate(QStyledItemDelegate):
             color = PALETTE.highlight().color()
         else:
             db_item = self.model.sourceModel().db[self.model.getItem(index).id]
-            if 'color' in db_item:
-                color = QColor(db_item['color'])
-            else:
-                color = QColor(Qt.white)
+            color = QColor(db_item['color'])
         painter.save()
         painter.fillRect(option.rect, color)
         gap_for_checkbox = 17 if checked != 'None' else 0
@@ -533,25 +529,6 @@ class Delegate(QStyledItemDelegate):
         check_box_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_box_style_option, None)
         check_box_point = QPoint(option.rect.x(), option.rect.y())
         return QRect(check_box_point, check_box_rect.size())
-
-    def editorEvent(self, event, model, option, index):
-        '''
-        Change the data in the model and the state of the checkbox
-        if the user presses the left mousebutton or Key_Space
-        '''
-        if event.type() == QEvent.MouseButtonPress:
-            return False
-        if event.type() == QEvent.MouseButtonRelease or event.type() == QEvent.MouseButtonDblClick:
-            if event.button() != Qt.LeftButton or not self.getCheckBoxRect(option).contains(event.pos()):
-                return False
-            if event.type() == QEvent.MouseButtonDblClick:
-                return True
-        elif event.type() == QEvent.KeyPress:
-            if event.key() != Qt.Key_Space and event.key() != Qt.Key_Select:
-                return False
-
-        model.toggle_task(index)
-        return True
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
