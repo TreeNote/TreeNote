@@ -46,22 +46,11 @@ class Updater(QThread):
             if 'doc' in line:
                 print(line)
                 db_item = line['doc']
-                item_id = db_item['_id']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
-                    change_dict = db_item['change']
-                    my_edit = change_dict['user'] == socket.gethostname()
-                    method = change_dict['method']
-                    if method == 'updated':
-                        self.model.updated_signal.emit(item_id, db_item, my_edit)
-                    elif method == 'added':
-                        self.model.added_signal.emit(item_id, change_dict['position'], change_dict['id_list'], my_edit, change_dict['set_edit_focus'])
-                    elif method == 'removed':
-                        self.model.removed_signal.emit(item_id, change_dict['position'], change_dict['count'], my_edit)
-                    elif method == 'moved_vertical':
-                        self.model.moved_vertical_signal.emit(item_id, change_dict['position'], change_dict['count'], change_dict['up_or_down'], my_edit)
+                    self.model.db_change_signal.emit(db_item)
                 elif '_deleted' in db_item:
-                    self.model.deleted_signal.emit(item_id)
+                    self.model.deleted_signal.emit(db_item['_id'])
 
 
 class Tree_item(object):
@@ -112,11 +101,7 @@ class TreeModel(QAbstractItemModel):
     """
     The methods of this model changes the database only. The view gets updated by the Updater-Thread.
     """
-    updated_signal = pyqtSignal(str, dict, bool)
-    added_signal = pyqtSignal(str, int, list, bool, bool)
-    removed_signal = pyqtSignal(str, int, int, bool)
-    moved_vertical_signal = pyqtSignal(str, int, int, int, bool)
-    deleted_signal = pyqtSignal(str)
+    db_change_signal = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
@@ -453,25 +438,19 @@ class FilterProxyModel(QSortFilterProxyModel):
 
         return False
 
-    def map_indexes_to_source(self, indexes):
-        indexes_source = []
-        for index in indexes:
-            indexes_source.append(self.mapToSource(index))
-        return indexes_source
-
-    def move_horizontal(self, indexes, direction):
-        if len(indexes) > 0:
-            self.sourceModel().move_horizontal(self.map_indexes_to_source(indexes), direction)
-
-    def move_vertical(self, indexes, up_or_down):
-        if len(indexes) > 0:
-            self.sourceModel().move_vertical(self.map_indexes_to_source(indexes), up_or_down)
-
     def insertRow(self, position, parent):
         self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
 
     def removeRows(self, indexes):
-        self.sourceModel().insert_remove_rows(indexes=self.map_indexes_to_source(indexes))
+        self.sourceModel().insert_remove_rows(indexes=[self.mapToSource(index) for index in indexes])
+
+    def move_horizontal(self, indexes, direction):
+        if len(indexes) > 0:
+            self.sourceModel().move_horizontal([self.mapToSource(index) for index in indexes], direction)
+
+    def move_vertical(self, indexes, up_or_down):
+        if len(indexes) > 0:
+            self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
 
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))

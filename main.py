@@ -17,11 +17,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.model = model.TreeModel()
-        self.model.updated_signal[str, dict, bool].connect(self.updated)
-        self.model.added_signal[str, int, list, bool, bool].connect(self.added)
-        self.model.removed_signal[str, int, int, bool].connect(self.removed)
-        self.model.moved_vertical_signal[str, int, int, int, bool].connect(self.moved_vertical)
-        self.model.deleted_signal[str].connect(self.deleted)
+        self.model.db_change_signal[dict].connect(self.db_change_signal)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -193,68 +189,67 @@ class MainWindow(QMainWindow):
         if current_tag is not None:
             self.grid_holder().search_bar.setText(current_tag)
 
-    def updated(self, item_id, new_item_dict, my_edit):
+    def db_change_signal(self, db_item):
+        change_dict = db_item['change']
+        my_edit = change_dict['user'] == socket.gethostname()
+        method = change_dict['method']
+        position = change_dict.get('position')
+        count = change_dict.get('count')
+        item_id = db_item['_id']
         index = QModelIndex(self.model.id_index_dict[item_id])
-        self.model.getItem(index).text = new_item_dict['text']
-        self.model.getItem(index).date = new_item_dict['date']
-        if my_edit:
-            self.set_selection(index, index)
-        self.setup_tag_model()
-        self.model.dataChanged.emit(index, index)
+        item = self.model.getItem(index)
+        if method == 'updated':
+            item.text = db_item['text']
+            item.date = db_item['date']
+            if my_edit:
+                self.set_selection(index, index)
+            self.setup_tag_model()
+            self.model.dataChanged.emit(index, index)
+        elif method == 'added':
+            id_list = change_dict['id_list']
+            self.model.beginInsertRows(index, position, position + len(id_list) - 1)
+            for i, added_item_id in enumerate(id_list):
+                item.add_child(position + i, added_item_id, index)
+            self.model.endInsertRows()
+            if my_edit:
+                index_first_added = self.model.index(position, 0, index)
+                index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
+                if change_dict['set_edit_focus']:
+                    self.update_selection_and_edit(index_first_added)
+                else:
+                    self.set_selection(index_first_added, index_last_added)
+        elif method == 'removed':
+            self.model.beginRemoveRows(index, position, position + count - 1)
+            item.childItems[position:position + count] = []
+            self.model.endRemoveRows()
+            if my_edit:
+                # select the item below
+                if position == len(item.childItems):  # there is no item below, so select the one above
+                    position -= 1
+                if len(item.childItems) > 0:
+                    index_next_child = self.model.index(position, 0, index)
+                    self.set_selection(index_next_child, index_next_child)
+                else:  # all childs deleted, select parent
+                    self.set_selection(index, index)
+        elif method == 'moved_vertical':
+            up_or_down = change_dict['up_or_down']
+            if up_or_down == -1:
+                # if we want to move several items up, we can move the item-above below the selection instead:
+                item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
+            elif up_or_down == +1:
+                item.childItems.insert(position, item.childItems.pop(position + count))
+            for i in range(count):
+                index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                if i == 0:
+                    index_first_moved_item = index_moved_item
+            self.grid_holder().proxy.layoutChanged.emit()
+            if my_edit:
+                self.set_selection(index_first_moved_item, index_moved_item)
 
-    def added(self, item_id, position, id_list, my_edit, set_edit_focus):
-        index = QModelIndex(self.model.id_index_dict[item_id])
-        parentItem = self.model.getItem(index)
-        self.model.beginInsertRows(index, position, position + len(id_list) - 1)
-        for i, added_item_id in enumerate(id_list):
-            parentItem.add_child(position + i, added_item_id, index)
-        self.model.endInsertRows()
-        if my_edit:
-            index_first_added = self.model.index(position, 0, index)
-            index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
-            if set_edit_focus:
-                self.update_selection_and_edit(index_first_added)
-            else:
-                self.set_selection(index_first_added, index_last_added)
-
-    def deleted(self, item_id):
+    def deleted(self, item_id):  # todo
         index = QModelIndex(self.model.id_index_dict[item_id])
         self.model.pointer_set.remove(index.internalId())
         self.setup_tag_model()
-
-    def removed(self, item_id, position, count, my_edit):
-        index = QModelIndex(self.model.id_index_dict[item_id])
-
-        item = self.model.getItem(index)
-        self.model.beginRemoveRows(index, position, position + count - 1)
-        item.childItems[position:position + count] = []
-        self.model.endRemoveRows()
-        if my_edit:
-            # select the item below
-            if position == len(item.childItems):  # there is no item below, so select the one above
-                position -= 1
-            if len(item.childItems) > 0:
-                index_next_child = self.model.index(position, 0, index)
-                self.set_selection(index_next_child, index_next_child)
-            else:  # all childs deleted, select parent
-                self.set_selection(index, index)
-
-    def moved_vertical(self, item_id, position, count, up_or_down, my_edit):
-        index = QModelIndex(self.model.id_index_dict[item_id])
-
-        item = self.model.getItem(index)
-        if up_or_down == -1:
-            # if we want to move several items up, we can move the item-above below the selection instead:
-            item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-        elif up_or_down == +1:
-            item.childItems.insert(position, item.childItems.pop(position + count))
-        for i in range(count):
-            index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
-            if i == 0:
-                index_first_moved_item = index_moved_item
-        self.grid_holder().proxy.layoutChanged.emit()
-        if my_edit:
-            self.set_selection(index_first_moved_item, index_moved_item)
 
     def set_selection(self, index_from, index_to):
         if self.grid_holder().view.state() != QAbstractItemView.EditingState:
