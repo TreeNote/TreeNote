@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
         add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
+        add_action('renameTagAction', QAction(QIcon(':/filenew.png'), self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.model.undoStack.createRedoAction(self))
@@ -61,6 +62,7 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.fileMenu.addAction(self.undoAction)
         self.fileMenu.addAction(self.redoAction)
+        self.fileMenu.addAction(self.renameTagAction)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -76,7 +78,7 @@ class MainWindow(QMainWindow):
         self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
         self.taskMenu.addAction(self.editRowAction)
         self.taskMenu.addAction(self.toggleTaskAction)
-        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color task'))
+        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected tasks'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
         self.colorMenu.addAction(self.colorBlueAction)
@@ -111,9 +113,6 @@ class MainWindow(QMainWindow):
         self.split_window()
         self.grid_holder().view.setFocus()
         self.updateActions()
-
-        self.grid_holder().tag_view.model().modelReset.connect(self.select_tag)
-        self.point = None
 
         settings = QSettings()
         self.resize(settings.value('size', QSize(400, 400)))
@@ -155,33 +154,7 @@ class MainWindow(QMainWindow):
 
     def updateActions(self):
         pass  # todo embed split action
-
-    def open_rename_tag_menu(self, point):
-        menu = QMenu()
-        renameTagAction = menu.addAction(self.tr("Rename tag"))
-        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
-        if action == renameTagAction:
-            tag = self.grid_holder().tag_view.indexAt(point).data()
-            RenameDialog(self, tag, point).exec_()
-
-    def rename_tag(self, tag, point, new_name):
-        map = "function(doc) {{ \
-                if (doc.text.indexOf('{}') != -1 ) \
-                    emit(doc, null); \
-            }}".format(tag)
-        res = self.model.db.query(map)
-        for row in res:
-            db_item = self.model.db[row.id]
-            db_item['text'] = db_item['text'].replace(tag, new_name)
-            db_item['change'] = dict(method='updated', user=socket.gethostname())
-            self.model.db[row.id] = db_item
-        self.point = point  # model reset deletes selection, so restore selection
-
-    def select_tag(self):
-        if self.point is not None:
-            index_new = self.grid_holder().tag_view.indexAt(self.point)
-            self.grid_holder().tag_view.selectionModel().select(index_new, QItemSelectionModel.ClearAndSelect)
-            self.point = None
+        # todo rename tag action just when a tag is selected
 
     def tag_clicked(self):
         current_index = self.grid_holder().tag_view.selectionModel().currentIndex()
@@ -272,10 +245,11 @@ class MainWindow(QMainWindow):
         self.grid_holder().view.setFocus()
 
     def search(self, str):
-        # if search lags: increase keyboardInputInterval
         self.grid_holder().proxy.filter = str
         self.grid_holder().proxy.invalidateFilter()
-        if str != self.grid_holder().tag_view.selectionModel().selectedRows()[0].data():
+        # deselect tag if user changes the search string
+        selected_tags = self.grid_holder().tag_view.selectionModel().selectedRows()
+        if len(selected_tags) > 0 and str != selected_tags[0].data():
             self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
 
     def expand_node(self, parent_index, bool_expand):
@@ -284,6 +258,32 @@ class MainWindow(QMainWindow):
             child_index = self.grid_holder().proxy.index(row_num, 0, parent_index)
             self.grid_holder().view.setExpanded(parent_index, bool_expand)
             self.expand_node(child_index, bool_expand)
+
+    def rename_tag(self, tag, new_name):
+        map = "function(doc) {{ \
+                if (doc.text.indexOf('{}') != -1 ) \
+                    emit(doc, null); \
+            }}".format(tag)
+        res = self.model.db.query(map)
+        for row in res:
+            db_item = self.model.db[row.id]
+            db_item['text'] = db_item['text'].replace(tag, new_name)
+            db_item['change'] = dict(method='updated', user=socket.gethostname())
+            self.model.db[row.id] = db_item
+
+    #  file menu actions
+
+    def open_rename_tag_dialog(self, point=False):
+        if not point: # called from menubar
+            tag = self.grid_holder().tag_view.currentIndex().data()
+        else: # called from context menu
+            menu = QMenu()
+            renameTagAction = menu.addAction(self.tr("Rename tag"))
+            action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
+            if action != renameTagAction:
+                return
+            tag = self.grid_holder().tag_view.indexAt(point).data()
+        RenameTagDialog(self, tag).exec_()
 
     # structure menu actions
 
@@ -395,7 +395,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.tag_view = QTreeView()
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_menu)
+        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_dialog)
         size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_tag_view.setHorizontalStretch(1)  # 1/3
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
@@ -439,12 +439,11 @@ class MyQLineEdit(QLineEdit):
             QLineEdit.keyPressEvent(self, event)
 
 
-class RenameDialog(QDialog):
-    def __init__(self, parent, tag, point):
-        super(RenameDialog, self).__init__(parent)
+class RenameTagDialog(QDialog):
+    def __init__(self, parent, tag):
+        super(RenameTagDialog, self).__init__(parent)
         self.parent = parent
         self.tag = tag
-        self.point = point
         self.line_edit = QLineEdit(tag)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -457,8 +456,8 @@ class RenameDialog(QDialog):
         self.setWindowTitle("Enter new name:")
 
     def apply(self):
-        self.parent.rename_tag(self.tag, self.point, self.line_edit.text())
-        super(RenameDialog, self).accept()
+        self.parent.rename_tag(self.tag, self.line_edit.text())
+        super(RenameTagDialog, self).accept()
 
 
 if __name__ == '__main__':
