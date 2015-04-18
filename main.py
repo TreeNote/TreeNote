@@ -11,6 +11,15 @@ import socket
 import webbrowser
 import re
 
+COLOR_DICT = {
+    'green': QColor(Qt.green).name(),
+    'yellow': QColor(Qt.yellow).name(),
+    'blue': QColor(Qt.blue).name(),
+    'red': QColor(Qt.red).name(),
+    'orange': QColor("darkorange").name(),
+    'no color': QColor(Qt.white).name()
+}
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -44,12 +53,12 @@ class MainWindow(QMainWindow):
         add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(QIcon(':/filenew.png'), self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
         add_action('escapeAction', QAction(QIcon(':/filenew.png'), self.tr('&Escape'), self, shortcut='Esc', triggered=self.escape))
-        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), self.tr('&Green'), self, shortcut='G', triggered=lambda: self.color_row(QColor(Qt.green).name())))
-        add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), self.tr('&Yellow'), self, shortcut='Y', triggered=lambda: self.color_row(QColor(Qt.yellow).name())))
-        add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), self.tr('&Blue'), self, shortcut='B', triggered=lambda: self.color_row(QColor(Qt.blue).name())))
-        add_action('colorRedAction', QAction(QIcon(':/filenew.png'), self.tr('&Red'), self, shortcut='R', triggered=lambda: self.color_row(QColor(Qt.red).name())))
-        add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), self.tr('&Orange'), self, shortcut='O', triggered=lambda: self.color_row(QColor("darkorange").name())))
-        add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), self.tr('&No color'), self, shortcut='N', triggered=lambda: self.color_row(QColor(Qt.white).name())))
+        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), '&Green', self, shortcut='G', triggered=lambda: self.color_row('green')))
+        add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), '&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('yellow')))
+        add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), '&Blue', self, shortcut='B', triggered=lambda: self.color_row('blue')))
+        add_action('colorRedAction', QAction(QIcon(':/filenew.png'), '&Red', self, shortcut='R', triggered=lambda: self.color_row('red')))
+        add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), '&Orange', self, shortcut='O', triggered=lambda: self.color_row('orange')))
+        add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), '&No color', self, shortcut='N', triggered=lambda: self.color_row('no color')))
         add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
@@ -85,8 +94,8 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorNoColorAction)
-        self.priorityMenu = self.taskMenu.addMenu(self.tr('&Set priority'))
-        self.priorityMenu.addAction(self.priority1Action)
+        # self.priorityMenu = self.taskMenu.addMenu(self.tr('&Set priority'))
+        # self.priorityMenu.addAction(self.priority1Action)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.expandAllChildrenAction)
@@ -161,6 +170,10 @@ class MainWindow(QMainWindow):
         current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
             self.grid_holder().search_bar.setText(current_tag)
+
+    def color_clicked(self, color):
+        COLOR_DICT[color] # todo
+        self.grid_holder().search_bar.setText(current_tag)
 
     def db_change_signal(self, db_item):
         change_dict = db_item['change']
@@ -271,12 +284,12 @@ class MainWindow(QMainWindow):
             db_item['change'] = dict(method='updated', user=socket.gethostname())
             self.model.db[row.id] = db_item
 
-    #  file menu actions
+    # file menu actions
 
     def open_rename_tag_dialog(self, point=False):
-        if not point: # called from menubar
+        if not point:  # called from menubar
             tag = self.grid_holder().tag_view.currentIndex().data()
-        else: # called from context menu
+        else:  # called from context menu
             menu = QMenu()
             renameTagAction = menu.addAction(self.tr("Rename tag"))
             action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
@@ -347,7 +360,7 @@ class MainWindow(QMainWindow):
     def color_row(self, color):
         if self.grid_holder().view.hasFocus():
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.setData(row_index, color, field='color')
+                self.grid_holder().proxy.setData(row_index, COLOR_DICT[color], field='color')
 
     def set_priority(self, number):
         if self.grid_holder().view.hasFocus():
@@ -397,16 +410,24 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_dialog)
         size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size_policy_tag_view.setHorizontalStretch(1)  # 1/3
+        size_policy_tag_view.setHorizontalStretch(1 / 2)  # smaller
+        size_policy_tag_view.setVerticalStretch(1)  # bigger
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
         grid_holder.tag_view.header().hide()
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.tag_clicked)
 
+        grid_holder.color = LabelledDropDown(self, self.tr('Color:'), self.tr('no color'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'))
+        grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
+
         grid = QGridLayout()
-        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # fill entire first cell
-        grid.addWidget(grid_holder.view, 1, 0)
-        grid.addWidget(grid_holder.tag_view, 1, 1)
+        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # Fill entire first cell
+
+        grid.addWidget(grid_holder.view, 1, 0, 3, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+
+        grid.addWidget(grid_holder.color, 1, 1, 1, 1)
+        grid.addWidget(grid_holder.deleted_for, 2, 1, 1, 1)
+        grid.addWidget(grid_holder.tag_view, 3, 1, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
@@ -458,6 +479,46 @@ class RenameTagDialog(QDialog):
     def apply(self):
         self.parent.rename_tag(self.tag, self.line_edit.text())
         super(RenameTagDialog, self).accept()
+
+
+class LabelledDropDown(QWidget):
+    """
+    parameter: main_window, labelText, *item_names
+    first item will be checked by default
+    """
+
+    def __init__(self, main_window, labelText, *item_names, position=Qt.AlignLeft):
+        super(LabelledDropDown, self).__init__(main_window)
+        layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
+        self.label = QLabel(labelText)
+        layout.addWidget(self.label)
+        comboBox = QComboBox()
+        comboBox.addItems(item_names)
+        comboBox.currentIndexChanged[str].connect(lambda: main_window.color_clicked(comboBox.currentText()))
+        layout.addWidget(comboBox, Qt.AlignLeft)
+        self.setLayout(layout)
+
+
+class LabelledButtonGroup(QWidget):
+    """
+    parameter: labelText, *button_names
+    first button will be checked by default
+    """
+
+    def __init__(self, labelText, *button_names, position=Qt.AlignLeft, parent=None):
+        super(LabelledButtonGroup, self).__init__(parent)
+        layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
+        self.label = QLabel(labelText)
+        layout.addWidget(self.label)
+        buttonGroup = QButtonGroup()
+        for idx, button_name in enumerate(button_names):
+            button = QRadioButton(button_name)
+            button.setCheckable(True)
+            if idx == 0:
+                button.setChecked(True)  # check first button
+            buttonGroup.addButton(button)
+            layout.addWidget(button)
+        self.setLayout(layout)
 
 
 if __name__ == '__main__':

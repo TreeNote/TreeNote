@@ -8,7 +8,7 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name()}
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date':''}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
@@ -269,17 +269,21 @@ class TreeModel(QAbstractItemModel):
                     children_list.remove(child_item_id)
                     parent_db_item['children'] = ' '.join(children_list)
                     self.model.db[parent_item_id] = parent_db_item
-                    # child_db_item = self.db.get(child_item.id)
-                    # # todo: set deleted flag for child_db_item
-                    #
-                    # def delete_childs(item):
-                    # for ch_item in item.childItems:
-                    # delete_childs(ch_item)
-                    # ch_db_item = self.db.get(ch_item.id)
-                    # if ch_db_item is not None:
-                    # # todo: set deleted flag for ch_db_item
-                    #
-                    # delete_childs(child_item)
+
+                    child_db_item = self.model.db[child_item.id]
+                    # todo: set deleted flag for child_db_item
+                    child_db_item['deleted_date'] = 'todo'
+                    self.model.db[child_db_item] = child_db_item
+
+                    def delete_childs(item):
+                        for ch_item in item.childItems:
+                            delete_childs(ch_item)
+                            ch_db_item = self.db.get(ch_item.id)
+                            if ch_db_item is not None:
+                                pass
+                            # todo: set deleted flag for ch_db_item
+
+                    delete_childs(child_item)
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
