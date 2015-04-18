@@ -11,15 +11,6 @@ import socket
 import webbrowser
 import re
 
-COLOR_DICT = {
-    'green': QColor(Qt.green).name(),
-    'yellow': QColor(Qt.yellow).name(),
-    'blue': QColor(Qt.blue).name(),
-    'red': QColor(Qt.red).name(),
-    'orange': QColor("darkorange").name(),
-    'no color': QColor(Qt.white).name()
-}
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -53,12 +44,12 @@ class MainWindow(QMainWindow):
         add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(QIcon(':/filenew.png'), self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
         add_action('escapeAction', QAction(QIcon(':/filenew.png'), self.tr('&Escape'), self, shortcut='Esc', triggered=self.escape))
-        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), '&Green', self, shortcut='G', triggered=lambda: self.color_row('green')))
-        add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), '&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('yellow')))
-        add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), '&Blue', self, shortcut='B', triggered=lambda: self.color_row('blue')))
-        add_action('colorRedAction', QAction(QIcon(':/filenew.png'), '&Red', self, shortcut='R', triggered=lambda: self.color_row('red')))
-        add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), '&Orange', self, shortcut='O', triggered=lambda: self.color_row('orange')))
-        add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), '&No color', self, shortcut='N', triggered=lambda: self.color_row('no color')))
+        add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), '&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
+        add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), '&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
+        add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), '&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')))
+        add_action('colorRedAction', QAction(QIcon(':/filenew.png'), '&Red', self, shortcut='R', triggered=lambda: self.color_row('r')))
+        add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), '&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')))
+        add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), '&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
         add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
@@ -172,8 +163,15 @@ class MainWindow(QMainWindow):
             self.grid_holder().search_bar.setText(current_tag)
 
     def color_clicked(self, color):
-        COLOR_DICT[color] # todo
-        self.grid_holder().search_bar.setText(current_tag)
+        color_character = color[0]
+        search_bar_text = self.grid_holder().search_bar.text()
+        if color_character == 'a':  # 'all colors' selected
+            search_bar_text = re.sub(r'c=\w', '', search_bar_text)
+        else:
+            search_bar_text = re.sub(r'c=\w', 'c=' + color_character, search_bar_text)
+            if 'c=' not in search_bar_text:
+                search_bar_text += ' c=' + color_character
+        self.grid_holder().search_bar.setText(search_bar_text)
 
     def db_change_signal(self, db_item):
         change_dict = db_item['change']
@@ -357,10 +355,10 @@ class MainWindow(QMainWindow):
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
                 self.grid_holder().proxy.toggle_task(row_index)
 
-    def color_row(self, color):
+    def color_row(self, color_character):
         if self.grid_holder().view.hasFocus():
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.setData(row_index, COLOR_DICT[color], field='color')
+                self.grid_holder().proxy.setData(row_index, model.CHAR_QCOLOR_DICT[color_character], field='color')
 
     def set_priority(self, number):
         if self.grid_holder().view.hasFocus():
@@ -417,7 +415,7 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.tag_clicked)
 
-        grid_holder.color = LabelledDropDown(self, self.tr('Color:'), self.tr('no color'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'))
+        grid_holder.color = LabelledDropDown(self, self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
         grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
         grid = QGridLayout()

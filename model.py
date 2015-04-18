@@ -8,10 +8,18 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date':''}
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': ''}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
+CHAR_QCOLOR_DICT = {
+    'g': QColor(Qt.green).name(),
+    'y': QColor(Qt.yellow).name(),
+    'b': QColor(Qt.blue).name(),
+    'r': QColor(Qt.red).name(),
+    'o': QColor("darkorange").name(),
+    'n': QColor(Qt.white).name()
+}
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -55,6 +63,9 @@ class Updater(QThread):
 
 class Tree_item(object):
     """
+    This item holds all id, parent, childs, text and date attributes. Other attributes like color are in the db only.
+    Attributes saved here are accessed faster than through the db.
+
     To understand Qt's way of building a TreeView, read:
     http://trevorius.com/scrapbook/uncategorized/pyqt-custom-abstractitemmodel/
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
@@ -281,7 +292,7 @@ class TreeModel(QAbstractItemModel):
                             ch_db_item = self.db.get(ch_item.id)
                             if ch_db_item is not None:
                                 pass
-                            # todo: set deleted flag for ch_db_item
+                                # todo: set deleted flag for ch_db_item
 
                     delete_childs(child_item)
 
@@ -428,14 +439,29 @@ class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
     # The QSortFilterProxyModel acts as a wrapper for the original model. If you need to convert source QModelIndexes to sorted/filtered model indexes or vice versa, use mapToSource(), mapFromSource(), mapSelectionToSource(), and mapSelectionFromSource().
+
     def filterAcceptsRow(self, row, parent):
         index = self.sourceModel().index(row, 0, parent)
         if not index.isValid():
             return False
 
-        if self.filter in index.data():
-            return True
+        # return True if this row's data is accepted
+        # todo tokenize, but not in "", and ignore tags in ""
+        tokens = self.filter.split()  # all tokens must be in the row's data
+        for token in tokens:
+            item = self.sourceModel().getItem(index)
+            db_item = self.sourceModel().db[item.id]
+            if token.startswith('c='):
+                color_character = token[2:3]
+                if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
+                    continue
+            elif token in index.data():
+                continue
+            break
+        else:  # just executed when not breaked
+            return True  # all tokens are in the row
 
+        # return True if a child row is accepted
         for row in range(self.sourceModel().rowCount(index)):
             if self.filterAcceptsRow(row, index):
                 return True;
