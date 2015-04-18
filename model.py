@@ -20,6 +20,11 @@ CHAR_QCOLOR_DICT = {
     'o': QColor("darkorange").name(),
     'n': QColor(Qt.white).name()
 }
+CHAR_CHECKED_DICT = {
+    'c': 'True',
+    'u': 'False',
+    'n': 'None'
+}
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -454,6 +459,10 @@ class FilterProxyModel(QSortFilterProxyModel):
             if token.startswith('c='):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
+                    continue
+            if token.startswith('t='):
+                task_character = token[2:3]
+                if db_item['checked'] == CHAR_CHECKED_DICT.get(task_character):
                     continue
             elif token in index.data():
                 continue

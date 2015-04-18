@@ -161,24 +161,21 @@ class MainWindow(QMainWindow):
         current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
             search_bar_text = self.grid_holder().search_bar.text()
-            new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text) # matches a tag
+            new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text)  # matches a tag
             if ':' not in search_bar_text:
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
-    def filter_color(self, color):
-        color_character = color[0]
+    def filter(self, key, value):
+        character = value[0]
         search_bar_text = self.grid_holder().search_bar.text()
-        if color_character == 'a':  # 'all colors' selected
-            search_bar_text = re.sub(r'c=\w', '', search_bar_text)
+        if character == 'a':  # 'all' selected
+            search_bar_text = re.sub(key + r'\w', '', search_bar_text)
         else:
-            search_bar_text = re.sub(r'c=\w', 'c=' + color_character, search_bar_text)
-            if 'c=' not in search_bar_text:
-                search_bar_text += ' c=' + color_character
+            search_bar_text = re.sub(key + r'\w', key + character, search_bar_text)
+            if key not in search_bar_text:
+                search_bar_text += ' ' + key + character
         self.grid_holder().search_bar.setText(search_bar_text)
-
-    def filter_task(self, task_type):
-        pass
 
     def db_change_signal(self, db_item):
         change_dict = db_item['change']
@@ -269,7 +266,7 @@ class MainWindow(QMainWindow):
         selected_tags = self.grid_holder().tag_view.selectionModel().selectedRows()
         if len(selected_tags) > 0 and str != selected_tags[0].data():
             self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
-        # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
+            # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
 
     def expand_node(self, parent_index, bool_expand):
@@ -424,8 +421,9 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        grid_holder.task = LabelledDropDown(self, self.filter_task, self.tr('Task:'), self.tr('all'), self.tr('no task'), self.tr('checked'), self.tr('unchecked'))
-        grid_holder.color = LabelledDropDown(self, self.filter_color, self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('no task'), self.tr('checked'), self.tr('unchecked'))
+        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'),
+                                             self.tr('no color'))
         # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
         grid = QGridLayout()
@@ -497,14 +495,14 @@ class LabelledDropDown(QWidget):
     first item will be checked by default
     """
 
-    def __init__(self, main_window, method, labelText, *item_names, position=Qt.AlignLeft):
+    def __init__(self, main_window, key, labelText, *item_names, position=Qt.AlignLeft):
         super(LabelledDropDown, self).__init__(main_window)
         layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
         self.label = QLabel(labelText)
         layout.addWidget(self.label)
         comboBox = QComboBox()
         comboBox.addItems(item_names)
-        comboBox.currentIndexChanged[str].connect(lambda: method(comboBox.currentText()))
+        comboBox.currentIndexChanged[str].connect(lambda: main_window.filter(key, comboBox.currentText()))
         layout.addWidget(comboBox, Qt.AlignLeft)
         self.setLayout(layout)
 
