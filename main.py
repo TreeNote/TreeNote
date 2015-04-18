@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         self.moveMenu.addAction(self.moveLeftAction)
         self.moveMenu.addAction(self.moveRightAction)
 
-        self.taskMenu = self.menuBar().addMenu(self.tr('&Edit Task'))
+        self.taskMenu = self.menuBar().addMenu(self.tr('&Edit task'))
         self.taskMenu.addAction(self.editRowAction)
         self.taskMenu.addAction(self.toggleTaskAction)
         self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected tasks'))
@@ -156,13 +156,17 @@ class MainWindow(QMainWindow):
         pass  # todo embed split action
         # todo rename tag action just when a tag is selected
 
-    def tag_clicked(self):
+    def filter_tag(self):
         current_index = self.grid_holder().tag_view.selectionModel().currentIndex()
         current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
-            self.grid_holder().search_bar.setText(current_tag)
+            search_bar_text = self.grid_holder().search_bar.text()
+            new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text) # matches a tag
+            if ':' not in search_bar_text:
+                new_text += ' ' + current_tag + ' '
+            self.grid_holder().search_bar.setText(new_text)
 
-    def color_clicked(self, color):
+    def filter_color(self, color):
         color_character = color[0]
         search_bar_text = self.grid_holder().search_bar.text()
         if color_character == 'a':  # 'all colors' selected
@@ -172,6 +176,9 @@ class MainWindow(QMainWindow):
             if 'c=' not in search_bar_text:
                 search_bar_text += ' c=' + color_character
         self.grid_holder().search_bar.setText(search_bar_text)
+
+    def filter_task(self, task_type):
+        pass
 
     def db_change_signal(self, db_item):
         change_dict = db_item['change']
@@ -262,6 +269,8 @@ class MainWindow(QMainWindow):
         selected_tags = self.grid_holder().tag_view.selectionModel().selectedRows()
         if len(selected_tags) > 0 and str != selected_tags[0].data():
             self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
+        # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
+
 
     def expand_node(self, parent_index, bool_expand):
         self.grid_holder().view.setExpanded(parent_index, bool_expand)
@@ -413,19 +422,22 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
         grid_holder.tag_view.header().hide()
         grid_holder.tag_view.setModel(tag_model.TagModel())
-        grid_holder.tag_view.selectionModel().selectionChanged.connect(self.tag_clicked)
+        grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        grid_holder.color = LabelledDropDown(self, self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
-        grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
+        grid_holder.task = LabelledDropDown(self, self.filter_task, self.tr('Task:'), self.tr('all'), self.tr('no task'), self.tr('checked'), self.tr('unchecked'))
+        grid_holder.color = LabelledDropDown(self, self.filter_color, self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+        # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
         grid = QGridLayout()
         grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # Fill entire first cell
 
-        grid.addWidget(grid_holder.view, 1, 0, 3, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.view, 1, 0, 5, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(grid_holder.color, 1, 1, 1, 1)
-        grid.addWidget(grid_holder.deleted_for, 2, 1, 1, 1)
-        grid.addWidget(grid_holder.tag_view, 3, 1, 1, 1)
+        grid.addWidget(QLabel(self.tr('Filter')), 1, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.task, 2, 1, 1, 1)
+        grid.addWidget(grid_holder.color, 3, 1, 1, 1)
+        # grid.addWidget(grid_holder.deleted_for, 4, 1, 1, 1)
+        grid.addWidget(grid_holder.tag_view, 5, 1, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
@@ -485,14 +497,14 @@ class LabelledDropDown(QWidget):
     first item will be checked by default
     """
 
-    def __init__(self, main_window, labelText, *item_names, position=Qt.AlignLeft):
+    def __init__(self, main_window, method, labelText, *item_names, position=Qt.AlignLeft):
         super(LabelledDropDown, self).__init__(main_window)
         layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
         self.label = QLabel(labelText)
         layout.addWidget(self.label)
         comboBox = QComboBox()
         comboBox.addItems(item_names)
-        comboBox.currentIndexChanged[str].connect(lambda: main_window.color_clicked(comboBox.currentText()))
+        comboBox.currentIndexChanged[str].connect(lambda: method(comboBox.currentText()))
         layout.addWidget(comboBox, Qt.AlignLeft)
         self.setLayout(layout)
 
