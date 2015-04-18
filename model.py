@@ -8,7 +8,7 @@ import subprocess
 import threading
 import socket
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': ''}
+NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
@@ -68,7 +68,7 @@ class Updater(QThread):
 
 class Tree_item(object):
     """
-    This item holds all id, parent, childs, text and date attributes. Other attributes like color are in the db only.
+    This item holds all id, parent, childs, text, estimate and date attributes. Other attributes like color are in the db only.
     Attributes saved here are accessed faster than through the db.
 
     To understand Qt's way of building a TreeView, read:
@@ -83,6 +83,7 @@ class Tree_item(object):
         self.childItems = None
         self.id = None
         self.date = ''
+        self.estimate = ''
 
     def child_number(self):
         if self.parentItem is not None:
@@ -102,6 +103,7 @@ class Tree_item(object):
         self.childItems.insert(position, item)
         self.childItems[position].text = self.model.db[id]['text']
         self.childItems[position].date = self.model.db[id]['date']
+        self.childItems[position].estimate = self.model.db[id]['estimate']
         self.childItems[position].id = id
 
         new_index = self.model.index(position, 0, parent_index)
@@ -170,6 +172,7 @@ class TreeModel(QAbstractItemModel):
         # local_server.replicate(server_url + db_name, db_name, continuous=True)
 
         self.rootItem = Tree_item('root item', self)
+        self.rootItem.header_list = ['Text', 'Start date', 'Estimate']
         self.rootItem.id = '0'
         index = QModelIndex()
         self.id_index_dict['0'] = index
@@ -178,8 +181,14 @@ class TreeModel(QAbstractItemModel):
         self.updater = Updater(self)
         self.updater.start()
 
-    def columnCount(self, parent):
-        return 2
+    def headerData(self, column, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.rootItem.header_list[column]
+
+        return None
+
+    def columnCount(self, parent=None):
+        return 3
 
     def flags(self, index):
         if not index.isValid():
@@ -233,7 +242,12 @@ class TreeModel(QAbstractItemModel):
             return None
 
         item = self.getItem(index)
-        return item.text if index.column() == 0 else item.date
+        if index.column() == 0:
+            return item.text
+        elif index.column() == 1:
+            return item.date
+        else:  # index.column() == 2:
+            return item.estimate
 
     def setData(self, index, value, role=None, field='text'):
 
@@ -243,12 +257,15 @@ class TreeModel(QAbstractItemModel):
 
             def set_data(self, value):
                 db_item = self.model.db[self.item_id]
-                if self.column == 0:
+                if self.column == 0: # used for setting color etc, too
                     self.old_value = db_item[self.field]
                     db_item[self.field] = value
-                else:
+                elif self.column == 1:
                     self.old_value = db_item['date']
                     db_item['date'] = value.toString('dd.MM.yy') if type(value) == QDate else value
+                elif self.column == 2:
+                    self.old_value = db_item['estimate']
+                    db_item['estimate'] = value
                 db_item['change'] = dict(method='updated', user=socket.gethostname())
                 self.model.db[self.item_id] = db_item
 
@@ -512,6 +529,7 @@ class Delegate(QStyledItemDelegate):
     def __init__(self, parent, model):
         super(Delegate, self).__init__(parent)
         self.model = model
+        self.main_window = parent
 
     def paint(self, painter, option, index):
         db_item = self.model.sourceModel().db[self.model.getItem(index).id]
@@ -555,12 +573,16 @@ class Delegate(QStyledItemDelegate):
         if index.column() == 0:
             suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
             return AutoCompleteEdit(parent, list(suggestions_model))
-        else:
+        if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
             date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
+            # date_edit.setCalendarWidget(TabCalendarWidget())
             return date_edit
+        else:  # index.column() == 2:
+            return QLineEdit(parent)
+
 
     def setEditorData(self, editor, index):
         QStyledItemDelegate.setEditorData(self, editor, index)
@@ -573,9 +595,10 @@ class OpenPopupDateEdit(QDateEdit):
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
+        self.installEventFilter(self)
 
     def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
-        self.calendarWidget().activated.connect(self.commit)
+        self.calendarWidget().activated.connect(self.commit)  # commit edit as soon as the user goes back from the calendar popup to the dateEdit
         opt = QStyleOptionSpinBox()
         self.initStyleOption(opt)
         rect = self.style().subControlRect(QStyle.CC_SpinBox, opt, QStyle.SC_SpinBoxDown)
@@ -585,6 +608,11 @@ class OpenPopupDateEdit(QDateEdit):
     def commit(self):
         self.delegate.commitData.emit(self)
         self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
+            self.delegate.main_window.edit_row()
+        return False  # don't stop the event being handled further
 
 
 class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html

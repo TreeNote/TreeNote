@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         add_action('unsplitWindowAct', QAction(QIcon(':/editedit.png'), self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
         self.unsplitWindowAct.setEnabled(False)  # todo put in update actions
         add_action('splitWindowAct', QAction(QIcon(':/filenew.png'), self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
-        add_action('editRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Edit row'), self, shortcut='Tab', triggered=self.editRow))
+        add_action('editRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row))
         add_action('deleteSelectedRowsAction', QAction(QIcon(':/filenew.png'), self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection))
         add_action('insertRowAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row))
         add_action('insertChildAction', QAction(QIcon(':/filenew.png'), self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child))
@@ -189,6 +189,7 @@ class MainWindow(QMainWindow):
         if method == 'updated':
             item.text = db_item['text']
             item.date = db_item['date']
+            item.estimate = db_item['estimate']
             if my_edit:
                 self.set_selection(index, index)
             self.setup_tag_model()
@@ -245,7 +246,7 @@ class MainWindow(QMainWindow):
                 index_to = self.grid_holder().proxy.mapFromSource(index_to)
                 index_from = self.grid_holder().proxy.mapFromSource(index_from)
             index_from = index_from.sibling(index_from.row(), 0)
-            index_to = index_to.sibling(index_to.row(), 1)
+            index_to = index_to.sibling(index_to.row(), self.model.columnCount() - 1)
             self.grid_holder().view.setFocus()
             self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
             self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
@@ -344,11 +345,11 @@ class MainWindow(QMainWindow):
 
     # task menu actions
 
-    def editRow(self):
+    def edit_row(self):
         current_index = self.grid_holder().view.selectionModel().currentIndex()
         if self.grid_holder().view.state() == QAbstractItemView.EditingState:  # change column with tab key
-            swapped_column_number = 1 if current_index.column() == 0 else 0
-            sibling_index = current_index.sibling(current_index.row(), swapped_column_number)
+            next_column_number = (current_index.column() + 1) % 3
+            sibling_index = current_index.sibling(current_index.row(), next_column_number)
             self.grid_holder().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
             self.grid_holder().view.edit(sibling_index)
         elif self.grid_holder().view.hasFocus():
@@ -396,8 +397,6 @@ class MainWindow(QMainWindow):
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
-
-        grid_holder.view.header().hide()
         grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         grid_holder.proxy = model.FilterProxyModel()
