@@ -55,6 +55,7 @@ class MainWindow(QMainWindow):
         add_action('renameTagAction', QAction(QIcon(':/filenew.png'), self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('focusListAction', QAction(QIcon(':/filenew.png'), self.tr('&Empty search and focus list'), self, shortcut='esc', triggered=self.empty_search_focus_list))
         add_action('toggleProjectAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
+        add_action('appendRepeatAction', QAction(QIcon(':/filenew.png'), self.tr('&Repeat'), self, triggered=self.append_repeat))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.model.undoStack.createRedoAction(self))
@@ -80,6 +81,7 @@ class MainWindow(QMainWindow):
         self.taskMenu.addAction(self.editRowAction)
         self.taskMenu.addAction(self.toggleTaskAction)
         self.taskMenu.addAction(self.toggleProjectAction)
+        self.taskMenu.addAction(self.appendRepeatAction)
         self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected rows'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
@@ -210,6 +212,14 @@ class MainWindow(QMainWindow):
                 self.set_selection(index, index)
             self.setup_tag_model()
             self.model.dataChanged.emit(index, index)
+
+            sorted_column = self.grid_holder().view.header().sortIndicatorSection()
+            if sorted_column == 1 or sorted_column == 2:
+                order = self.grid_holder().view.header().sortIndicatorOrder()
+                self.grid_holder().view.sortByColumn(sorted_column, 1 - order)  # update the sort by changing the ordering
+                self.grid_holder().view.sortByColumn(sorted_column, order)
+
+
         elif method == 'added':
             id_list = change_dict['id_list']
             self.model.beginInsertRows(index, position, position + len(id_list) - 1)
@@ -383,8 +393,13 @@ class MainWindow(QMainWindow):
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
                 self.grid_holder().proxy.toggle_project(row_index)
 
+    def append_repeat(self):
+        current_index = self.grid_holder().view.selectionModel().currentIndex()
+        self.grid_holder().proxy.setData(current_index, current_index.data() + ' repeat=1w')
+        self.edit_row()
+
     def color_row(self, color_character):
-        if self.grid_holder().view.hasFocus():
+        if self.grid_holder().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
                 self.grid_holder().proxy.setData(row_index, model.CHAR_QCOLOR_DICT[color_character], field='color')
 

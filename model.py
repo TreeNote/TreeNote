@@ -515,10 +515,13 @@ class FilterProxyModel(QSortFilterProxyModel):
         right_data = right_index.data()
         if column == 0:
             return True
+        elif column == 1:
+            new_left_data = QDate.fromString(left_data, 'dd.MM.yy')
+            new_right_data = QDate.fromString(right_data, 'dd.MM.yy')
         elif column == 2:
-            left_data = int(left_data) if left_data != '' else 0
-            right_data = int(right_data) if right_data != '' else 0
-        return left_data < right_data
+            new_left_data = int(left_data) if left_data != '' else 0
+            new_right_data = int(right_data) if right_data != '' else 0
+        return new_left_data < new_right_data
 
     def insertRow(self, position, parent):
         self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
@@ -546,7 +549,21 @@ class FilterProxyModel(QSortFilterProxyModel):
         if type != TASK and type != DONE_TASK:  # type is NOTE or a project
             self.setData(index, TASK, field='type')
         elif type == TASK:
-            self.setData(index, DONE_TASK, field='type')
+            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
+            if len(repeat_in_list) == 1:
+                repeat_in = repeat_in_list[0]
+                old_qdate = QDate.fromString(db_item['date'], 'dd.MM.yy')
+                if repeat_in[1] == 'd':
+                    new_qdate = old_qdate.addDays(int(repeat_in[0]))
+                elif repeat_in[1] == 'w':
+                    new_qdate = old_qdate.addDays(7 * int(repeat_in[0]))
+                elif repeat_in[1] == 'm':
+                    new_qdate = old_qdate.addMonths(int(repeat_in[0]))
+                elif repeat_in[1] == 'y':
+                    new_qdate = old_qdate.addYears(int(repeat_in[0]))
+                self.setData(index, new_qdate.toString('dd.MM.yy'), field='date')
+            else:
+                self.setData(index, DONE_TASK, field='type')
         elif type == DONE_TASK:
             self.setData(index, NOTE, field='type')
 
@@ -577,8 +594,13 @@ class Delegate(QStyledItemDelegate):
         for idx, word in enumerate(word_list):
             if word[0] == DELIMITER:
                 word_list[idx] = "<b><font color={}>{}</font></b>".format(QColor(Qt.darkMagenta).name(), word)
+            elif len(re.findall(r'repeat=\d(d|w|m|y)($| )', word)) > 0:
+                word_list[idx] = "<font color={}>{}</font>".format(QColor(Qt.blue).name(), word)
         document = QTextDocument()
-        document.setHtml(' '.join(word_list))
+        html = ' '.join(word_list)
+        if type == DONE_TASK:
+            html = "<font color={}>{}</font>".format(QColor(Qt.gray).name(), html)
+        document.setHtml(html)
         if option.state & QStyle.State_Selected:
             color = PALETTE.highlight().color()
         else:
