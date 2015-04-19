@@ -26,6 +26,7 @@ CHAR_CHECKED_DICT = {
     'u': 'False',
     'n': 'None'
 }
+EMPTY_DATE = '14.09.52'
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -263,7 +264,10 @@ class TreeModel(QAbstractItemModel):
                     db_item[self.field] = value
                 elif self.column == 1:
                     self.old_value = db_item['date']
-                    db_item['date'] = value.toString('dd.MM.yy') if type(value) == QDate else value
+                    value = value.toString('dd.MM.yy') if type(value) == QDate else value
+                    if value == EMPTY_DATE:  # workaround to set empty date
+                        value = ''
+                    db_item['date'] = value
                 elif self.column == 2:
                     self.old_value = db_item['estimate']
                     db_item['estimate'] = value
@@ -483,7 +487,7 @@ class FilterProxyModel(QSortFilterProxyModel):
                 if db_item['checked'] == CHAR_CHECKED_DICT.get(task_character):
                     continue
             if re.match(r'e(<|>|=)', token):
-                if db_item['estimate'] =='':
+                if db_item['estimate'] == '':
                     break
                 less_greater_equal_sign = token[1]
                 estimate_search = token[2:]
@@ -597,6 +601,7 @@ class Delegate(QStyledItemDelegate):
             date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
+            date_edit.setCalendarWidget(EscCalendarWidget(parent))
             return date_edit
         else:  # index.column() == 2:
             line_edit = QLineEdit(parent)
@@ -609,6 +614,13 @@ class Delegate(QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         QStyledItemDelegate.setModelData(self, editor, model, index)
+
+
+class EscCalendarWidget(QCalendarWidget):
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            open_popup_date_edit = self.parent().parent()
+            open_popup_date_edit.delegate.closeEditor.emit(open_popup_date_edit, QAbstractItemDelegate.NoHint)
 
 
 class OpenPopupDateEdit(QDateEdit):
@@ -632,6 +644,10 @@ class OpenPopupDateEdit(QDateEdit):
     def eventFilter(self, obj, event):
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
             self.delegate.main_window.edit_row()
+        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
+            self.setSpecialValueText(' ')
+            self.setDate(QDate.fromString(EMPTY_DATE, 'dd.MM.yy'))  # workaround to set empty date
+            self.commit()
         return False  # don't stop the event being handled further
 
 
