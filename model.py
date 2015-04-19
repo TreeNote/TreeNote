@@ -483,6 +483,8 @@ class FilterProxyModel(QSortFilterProxyModel):
                 if db_item['checked'] == CHAR_CHECKED_DICT.get(task_character):
                     continue
             if re.match(r'e(<|>|=)', token):
+                if db_item['estimate'] =='':
+                    break
                 less_greater_equal_sign = token[1]
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
@@ -499,6 +501,17 @@ class FilterProxyModel(QSortFilterProxyModel):
                 return True;
 
         return False
+
+    def lessThan(self, left_index, right_index):
+        column = left_index.column()
+        left_data = left_index.data()
+        right_data = right_index.data()
+        if column == 0:
+            return True
+        elif column == 2:
+            left_data = int(left_data) if left_data != '' else 0
+            right_data = int(right_data) if right_data != '' else 0
+        return left_data < right_data
 
     def insertRow(self, position, parent):
         self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)

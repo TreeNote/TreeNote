@@ -157,6 +157,15 @@ class MainWindow(QMainWindow):
         pass  # todo embed split action
         # todo rename tag action just when a tag is selected
 
+    def toggle_sorting(self, column):
+        if column == 0:
+            self.grid_holder().view.sortByColumn(-1, Qt.AscendingOrder)
+            self.grid_holder().view.setSortingEnabled(False)
+            self.grid_holder().view.header().setSectionsClickable(True)
+        else:
+            if not self.grid_holder().view.isSortingEnabled():
+                self.grid_holder().view.setSortingEnabled(True)
+
     def filter_tag(self):
         current_index = self.grid_holder().tag_view.selectionModel().currentIndex()
         current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
@@ -413,6 +422,8 @@ class MainWindow(QMainWindow):
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
         grid_holder.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
         grid_holder.view.setColumnWidth(1, 100)
+        grid_holder.view.header().sectionClicked[int].connect(self.toggle_sorting)
+        grid_holder.view.header().setSectionsClickable(True)
 
         grid_holder.tag_view = QTreeView()
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -435,7 +446,7 @@ class MainWindow(QMainWindow):
 
         grid.addWidget(grid_holder.view, 1, 0, 5, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(QLabel(self.tr('Add filter')), 1, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Add filters')), 1, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(grid_holder.task, 2, 1, 1, 1)
         grid.addWidget(grid_holder.estimate, 3, 1, 1, 1)
         grid.addWidget(grid_holder.color, 4, 1, 1, 1)
