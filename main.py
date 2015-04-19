@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
         add_action('expandAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Expand all children'), self, shortcut='Shift+Right', triggered=self.expand_all_children))
         add_action('collapseAllChildrenAction', QAction(QIcon(':/filenew.png'), self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(QIcon(':/filenew.png'), self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
-        add_action('escapeAction', QAction(QIcon(':/filenew.png'), self.tr('&Escape'), self, shortcut='Esc', triggered=self.escape))
         add_action('colorGreenAction', QAction(QIcon(':/filenew.png'), '&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
         add_action('colorYellowAction', QAction(QIcon(':/filenew.png'), '&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
         add_action('colorBlueAction', QAction(QIcon(':/filenew.png'), '&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')))
@@ -54,6 +53,7 @@ class MainWindow(QMainWindow):
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(QIcon(':/filenew.png'), self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
+        add_action('focusListAction', QAction(QIcon(':/filenew.png'), self.tr('&Empty search and focus list'), self, shortcut='esc', triggered=self.empty_search_focus_list))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.model.undoStack.createRedoAction(self))
@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.openLinkAction)
+        self.viewMenu.addAction(self.focusListAction)
 
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
@@ -170,11 +171,15 @@ class MainWindow(QMainWindow):
         character = value[0]
         search_bar_text = self.grid_holder().search_bar.text()
         if character == 'a':  # 'all' selected
-            search_bar_text = re.sub(key + r'\w', '', search_bar_text)
+            search_bar_text = re.sub(key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
         else:
-            search_bar_text = re.sub(key + r'\w', key + character, search_bar_text)
-            if key not in search_bar_text:
-                search_bar_text += ' ' + key + character
+            if len(key) == 1:  # key is a compare operator
+                key += value[0]
+                character = value[1:]
+            if not re.search(key[0] + r'(<|>|=)', search_bar_text):
+                search_bar_text += ' ' + key + character + ' '
+            else:
+                search_bar_text = re.sub(key[0] + r'(<|>|=|\w|\d)* ', key + character + ' ', search_bar_text)
         self.grid_holder().search_bar.setText(search_bar_text)
 
     def db_change_signal(self, db_item):
@@ -256,7 +261,7 @@ class MainWindow(QMainWindow):
         self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
         self.grid_holder().view.edit(proxy_index)
 
-    def escape(self):
+    def empty_search_focus_list(self):
         self.grid_holder().search_bar.setText('')
         self.grid_holder().view.setFocus()
 
@@ -421,8 +426,8 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('no task'), self.tr('checked'), self.tr('unchecked'))
-        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'),
-                                             self.tr('no color'))
+        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<15'), self.tr('<60'), self.tr('>60'))
+        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
         # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
         grid = QGridLayout()
@@ -430,9 +435,10 @@ class MainWindow(QMainWindow):
 
         grid.addWidget(grid_holder.view, 1, 0, 5, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(QLabel(self.tr('Filter')), 1, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Add filter')), 1, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(grid_holder.task, 2, 1, 1, 1)
-        grid.addWidget(grid_holder.color, 3, 1, 1, 1)
+        grid.addWidget(grid_holder.estimate, 3, 1, 1, 1)
+        grid.addWidget(grid_holder.color, 4, 1, 1, 1)
         # grid.addWidget(grid_holder.deleted_for, 4, 1, 1, 1)
         grid.addWidget(grid_holder.tag_view, 5, 1, 1, 1)
         grid_holder.setLayout(grid)

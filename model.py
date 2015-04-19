@@ -7,6 +7,7 @@ import sys
 import subprocess
 import threading
 import socket
+import re
 
 NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
 DELIMITER = ':'
@@ -257,7 +258,7 @@ class TreeModel(QAbstractItemModel):
 
             def set_data(self, value):
                 db_item = self.model.db[self.item_id]
-                if self.column == 0: # used for setting color etc, too
+                if self.column == 0:  # used for setting color etc, too
                     self.old_value = db_item[self.field]
                     db_item[self.field] = value
                 elif self.column == 1:
@@ -481,6 +482,11 @@ class FilterProxyModel(QSortFilterProxyModel):
                 task_character = token[2:3]
                 if db_item['checked'] == CHAR_CHECKED_DICT.get(task_character):
                     continue
+            if re.match(r'e(<|>|=)', token):
+                less_greater_equal_sign = token[1]
+                estimate_search = token[2:]
+                if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
+                    continue
             elif token in index.data():
                 continue
             break
@@ -578,10 +584,11 @@ class Delegate(QStyledItemDelegate):
             date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
-            # date_edit.setCalendarWidget(TabCalendarWidget())
             return date_edit
         else:  # index.column() == 2:
-            return QLineEdit(parent)
+            line_edit = QLineEdit(parent)
+            line_edit.setValidator(QIntValidator(0, 999, self));
+            return line_edit
 
 
     def setEditorData(self, editor, index):
