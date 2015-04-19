@@ -9,7 +9,7 @@ import threading
 import socket
 import re
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'checked': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
@@ -21,7 +21,7 @@ CHAR_QCOLOR_DICT = {
     'o': QColor("darkorange").name(),
     'n': QColor(Qt.white).name()
 }
-CHAR_CHECKED_DICT = {
+CHAR_TYPE_DICT = {
     'd': 'True',  # done task
     't': 'False',  # task
     'n': 'None'  # note
@@ -484,7 +484,7 @@ class FilterProxyModel(QSortFilterProxyModel):
                     continue
             if token.startswith('t='):
                 task_character = token[2:3]
-                if db_item['checked'] == CHAR_CHECKED_DICT.get(task_character):
+                if db_item['type'] == CHAR_TYPE_DICT.get(task_character):
                     continue
             if re.match(r'e(<|>|=)', token):
                 if db_item['estimate'] == '':
@@ -539,25 +539,25 @@ class FilterProxyModel(QSortFilterProxyModel):
 
     def toggle_task(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
-        checked = db_item['checked']
-        if checked == 'None':
-            self.setData(index, 'False', field='checked')
-        elif checked == 'False':
-            self.setData(index, 'True', field='checked')
-        elif checked == 'True':
-            self.setData(index, 'None', field='checked')
+        type = db_item['type']
+        if type != 'False' and type != 'True':  # type is 'None' or a project
+            self.setData(index, 'False', field='type')
+        elif type == 'False':
+            self.setData(index, 'True', field='type')
+        elif type == 'True':
+            self.setData(index, 'None', field='type')
 
     def toggle_project(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
-        project_state = db_item['checked']
-        if project_state == 'None':
-            self.setData(index, 'sequential', field='checked')
-        elif project_state == 'sequential':
-            self.setData(index, 'parallel', field='checked')
-        elif project_state == 'parallel':
-            self.setData(index, 'paused', field='checked')
-        elif project_state == 'paused':
-            self.setData(index, 'None', field='checked')
+        type = db_item['type']
+        if type == 'None' or type == 'True' or type == 'False':  # type is Note or Task
+            self.setData(index, 'sequential', field='type')
+        elif type == 'sequential':
+            self.setData(index, 'parallel', field='type')
+        elif type == 'parallel':
+            self.setData(index, 'paused', field='type')
+        elif type == 'paused':
+            self.setData(index, 'None', field='type')
 
 
 class Delegate(QStyledItemDelegate):
@@ -568,7 +568,7 @@ class Delegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         db_item = self.model.sourceModel().db[self.model.getItem(index).id]
-        checked = db_item['checked']
+        type = db_item['type']
 
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
@@ -583,24 +583,24 @@ class Delegate(QStyledItemDelegate):
             color = QColor(db_item['color'])
         painter.save()
         painter.fillRect(option.rect, color)
-        gap_for_checkbox = 17 if checked != 'None' else 0
+        gap_for_checkbox = 17
         painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
 
-        if checked != 'None' and index.column() == 0:
-            if checked == 'True' or checked == 'False':  # task
+        if type != 'None' and index.column() == 0:
+            if type == 'True' or type == 'False':  # task
                 check_box_style_option = QStyleOptionButton()
-                if checked == 'True':
+                if type == 'True':
                     check_box_style_option.state |= QStyle.State_On
-                elif checked == 'False':
+                elif type == 'False':
                     check_box_style_option.state |= QStyle.State_Off
                 check_box_style_option.rect = self.getCheckBoxRect(option)
                 check_box_style_option.state |= QStyle.State_Enabled
                 QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
             else:  # project
                 painter.save()
-                icon = QIcon(':/' + checked)
+                icon = QIcon(':/' + type)
                 iconsize = option.decorationSize
                 painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
                 painter.restore()
