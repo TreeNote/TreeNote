@@ -9,7 +9,6 @@ import threading
 import socket
 import re
 
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': 'None', 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
 DELIMITER = ':'
 PALETTE = QPalette()
 PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
@@ -21,12 +20,16 @@ CHAR_QCOLOR_DICT = {
     'o': QColor("darkorange").name(),
     'n': QColor(Qt.white).name()
 }
+DONE_TASK = 'DoneTask'
+TASK = 'Task'
+NOTE = 'Note'
 CHAR_TYPE_DICT = {
-    'd': 'True',  # done task
-    't': 'False',  # task
-    'n': 'None'  # note
+    'd': DONE_TASK,  # done task
+    't': TASK,  # task
+    'n': NOTE  # note
 }
 EMPTY_DATE = '14.09.52'
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -540,24 +543,24 @@ class FilterProxyModel(QSortFilterProxyModel):
     def toggle_task(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
         type = db_item['type']
-        if type != 'False' and type != 'True':  # type is 'None' or a project
-            self.setData(index, 'False', field='type')
-        elif type == 'False':
-            self.setData(index, 'True', field='type')
-        elif type == 'True':
-            self.setData(index, 'None', field='type')
+        if type != TASK and type != DONE_TASK:  # type is NOTE or a project
+            self.setData(index, TASK, field='type')
+        elif type == TASK:
+            self.setData(index, DONE_TASK, field='type')
+        elif type == DONE_TASK:
+            self.setData(index, NOTE, field='type')
 
     def toggle_project(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
         type = db_item['type']
-        if type == 'None' or type == 'True' or type == 'False':  # type is Note or Task
+        if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
             self.setData(index, 'sequential', field='type')
         elif type == 'sequential':
             self.setData(index, 'parallel', field='type')
         elif type == 'parallel':
             self.setData(index, 'paused', field='type')
         elif type == 'paused':
-            self.setData(index, 'None', field='type')
+            self.setData(index, NOTE, field='type')
 
 
 class Delegate(QStyledItemDelegate):
@@ -588,12 +591,12 @@ class Delegate(QStyledItemDelegate):
         document.drawContents(painter)
         painter.restore()
 
-        if type != 'None' and index.column() == 0:
-            if type == 'True' or type == 'False':  # task
+        if type != NOTE and index.column() == 0:
+            if type == DONE_TASK or type == TASK:  # task
                 check_box_style_option = QStyleOptionButton()
-                if type == 'True':
+                if type == DONE_TASK:
                     check_box_style_option.state |= QStyle.State_On
-                elif type == 'False':
+                elif type == TASK:
                     check_box_style_option.state |= QStyle.State_Off
                 check_box_style_option.rect = self.getCheckBoxRect(option)
                 check_box_style_option.state |= QStyle.State_Enabled
