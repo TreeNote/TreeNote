@@ -50,10 +50,11 @@ class MainWindow(QMainWindow):
         add_action('colorOrangeAction', QAction(QIcon(':/filenew.png'), '&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')))
         add_action('colorNoColorAction', QAction(QIcon(':/filenew.png'), '&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
         add_action('priority1Action', QAction(QIcon(':/filenew.png'), self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
-        add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: No task, Unchecked, Checked'), self, shortcut='Space', triggered=self.toggle_task))
+        add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: note, task, done task'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(QIcon(':/filenew.png'), self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('focusListAction', QAction(QIcon(':/filenew.png'), self.tr('&Empty search and focus list'), self, shortcut='esc', triggered=self.empty_search_focus_list))
+        add_action('toggleProjectAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.model.undoStack.createRedoAction(self))
@@ -69,16 +70,17 @@ class MainWindow(QMainWindow):
         self.structureMenu.addAction(self.insertChildAction)
         self.structureMenu.addAction(self.deleteSelectedRowsAction)
 
-        self.moveMenu = self.structureMenu.addMenu(self.tr('&Move task'))
+        self.moveMenu = self.structureMenu.addMenu(self.tr('&Move row'))
         self.moveMenu.addAction(self.moveUpAction)
         self.moveMenu.addAction(self.moveDownAction)
         self.moveMenu.addAction(self.moveLeftAction)
         self.moveMenu.addAction(self.moveRightAction)
 
-        self.taskMenu = self.menuBar().addMenu(self.tr('&Edit task'))
+        self.taskMenu = self.menuBar().addMenu(self.tr('&Edit row'))
         self.taskMenu.addAction(self.editRowAction)
         self.taskMenu.addAction(self.toggleTaskAction)
-        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected tasks'))
+        self.taskMenu.addAction(self.toggleProjectAction)
+        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected rows'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
         self.colorMenu.addAction(self.colorBlueAction)
@@ -376,6 +378,11 @@ class MainWindow(QMainWindow):
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
                 self.grid_holder().proxy.toggle_task(row_index)
 
+    def toggle_project(self):
+        if self.grid_holder().view.hasFocus():
+            for row_index in self.grid_holder().view.selectionModel().selectedRows():
+                self.grid_holder().proxy.toggle_project(row_index)
+
     def color_row(self, color_character):
         if self.grid_holder().view.hasFocus():
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
@@ -436,7 +443,7 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('no task'), self.tr('checked'), self.tr('unchecked'))
+        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('note'), self.tr('task'), self.tr('done task'))
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<15'), self.tr('<60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
         # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))

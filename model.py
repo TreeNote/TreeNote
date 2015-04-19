@@ -22,9 +22,9 @@ CHAR_QCOLOR_DICT = {
     'n': QColor(Qt.white).name()
 }
 CHAR_CHECKED_DICT = {
-    'c': 'True',
-    'u': 'False',
-    'n': 'None'
+    'd': 'True',  # done task
+    't': 'False',  # task
+    'n': 'None'  # note
 }
 EMPTY_DATE = '14.09.52'
 
@@ -547,6 +547,18 @@ class FilterProxyModel(QSortFilterProxyModel):
         elif checked == 'True':
             self.setData(index, 'None', field='checked')
 
+    def toggle_project(self, index):
+        db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
+        project_state = db_item['checked']
+        if project_state == 'None':
+            self.setData(index, 'sequential', field='checked')
+        elif project_state == 'sequential':
+            self.setData(index, 'parallel', field='checked')
+        elif project_state == 'parallel':
+            self.setData(index, 'paused', field='checked')
+        elif project_state == 'paused':
+            self.setData(index, 'None', field='checked')
+
 
 class Delegate(QStyledItemDelegate):
     def __init__(self, parent, model):
@@ -577,14 +589,21 @@ class Delegate(QStyledItemDelegate):
         painter.restore()
 
         if checked != 'None' and index.column() == 0:
-            check_box_style_option = QStyleOptionButton()
-            if checked == 'True':
-                check_box_style_option.state |= QStyle.State_On
-            else:
-                check_box_style_option.state |= QStyle.State_Off
-            check_box_style_option.rect = self.getCheckBoxRect(option)
-            check_box_style_option.state |= QStyle.State_Enabled
-            QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
+            if checked == 'True' or checked == 'False':  # task
+                check_box_style_option = QStyleOptionButton()
+                if checked == 'True':
+                    check_box_style_option.state |= QStyle.State_On
+                elif checked == 'False':
+                    check_box_style_option.state |= QStyle.State_Off
+                check_box_style_option.rect = self.getCheckBoxRect(option)
+                check_box_style_option.state |= QStyle.State_Enabled
+                QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
+            else:  # project
+                painter.save()
+                icon = QIcon(':/' + checked)
+                iconsize = option.decorationSize
+                painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
+                painter.restore()
 
     def getCheckBoxRect(self, option):  # source: http://stackoverflow.com/questions/17748546/pyqt-column-of-checkboxes-in-a-qtableview
         check_box_style_option = QStyleOptionButton()

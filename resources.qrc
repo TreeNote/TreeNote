@@ -1,8 +1,9 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="filenew.png">images/filenew.png</file>
-        <file alias="editedit.png">images/editedit.png</file>
         <file alias="branch-closed">images/branch-closed.png</file>
         <file alias="branch-open">images/branch-open.png</file>
+        <file alias="parallel">images/parallel.png</file>
+        <file alias="sequential">images/sequential.png</file>
+        <file alias="paused">images/paused.png</file>
     </qresource>
 </RCC>
