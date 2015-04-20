@@ -529,6 +529,8 @@ class FilterProxyModel(QSortFilterProxyModel):
                 if db_item['estimate'] == '':
                     break
                 less_greater_equal_sign = token[1]
+                if less_greater_equal_sign == '=':
+                    less_greater_equal_sign = '=='
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue

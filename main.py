@@ -465,7 +465,7 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('note'), self.tr('task'), self.tr('done task'))
-        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<15'), self.tr('<60'), self.tr('>60'))
+        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
         # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
