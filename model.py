@@ -23,6 +23,9 @@ CHAR_QCOLOR_DICT = {
 DONE_TASK = 'DoneTask'
 TASK = 'Task'
 NOTE = 'Note'
+SEQ = 'sequential'
+PAR = 'parallel'
+PAUSED = 'paused'
 CHAR_TYPE_DICT = {
     'd': DONE_TASK,  # done task
     't': TASK,  # task
@@ -464,6 +467,39 @@ class TreeModel(QAbstractItemModel):
                     tags_set.add(delimiter + word.strip(DELIMITER))
         return tags_set
 
+    def is_task_available(self, index):
+        """
+        return True if the parent is no sequential project
+        returns True if it is the next available task from the parent sequential project
+        """
+        item = self.getItem(index)
+        db_item = self.db[item.id]
+        if db_item['type'] != TASK:
+            return True
+
+        project_db_item = self.db[item.parentItem.id]
+        if project_db_item['type'] != SEQ:
+            return True
+
+        project_index = self.parent(index)
+        project_parent_index = self.parent(project_index)
+        available_index = self.get_next_available_task(project_index.row(), project_parent_index)
+        if available_index == index:
+            return True
+
+        return False
+
+    def get_next_available_task(self, row, parent):
+        index = self.index(row, 0, parent)
+        item = self.getItem(index)
+        db_item = self.db[item.id]
+        if db_item['type'] == TASK:
+            return True
+        for row in range(self.rowCount(index)):
+            if self.get_next_available_task(row, index):
+                return self.index(row, 0, index)
+        return False
+
 
 class FilterProxyModel(QSortFilterProxyModel):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
@@ -571,13 +607,16 @@ class FilterProxyModel(QSortFilterProxyModel):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
         type = db_item['type']
         if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
-            self.setData(index, 'sequential', field='type')
-        elif type == 'sequential':
-            self.setData(index, 'parallel', field='type')
-        elif type == 'parallel':
-            self.setData(index, 'paused', field='type')
-        elif type == 'paused':
+            self.setData(index, SEQ, field='type')
+        elif type == SEQ:
+            self.setData(index, PAR, field='type')
+        elif type == PAR:
+            self.setData(index, PAUSED, field='type')
+        elif type == PAUSED:
             self.setData(index, NOTE, field='type')
+
+    def is_task_available(self, index):
+        return self.sourceModel().is_task_available(self.mapToSource(index))
 
 
 class Delegate(QStyledItemDelegate):
@@ -587,7 +626,8 @@ class Delegate(QStyledItemDelegate):
         self.main_window = parent
 
     def paint(self, painter, option, index):
-        db_item = self.model.sourceModel().db[self.model.getItem(index).id]
+        item = self.model.getItem(index)
+        db_item = self.model.sourceModel().db[item.id]
         type = db_item['type']
 
         word_list = index.data().split()
@@ -598,13 +638,12 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<font color={}>{}</font>".format(QColor(Qt.blue).name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
-        if type == DONE_TASK:
-            html = "<font color={}>{}</font>".format(QColor(Qt.gray).name(), html)
+        if type == DONE_TASK or not self.model.is_task_available(index): # not available tasks in a sequential project are grey
+            html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         document.setHtml(html)
         if option.state & QStyle.State_Selected:
             color = PALETTE.highlight().color()
         else:
-            db_item = self.model.sourceModel().db[self.model.getItem(index).id]
             color = QColor(db_item['color'])
         painter.save()
         painter.fillRect(option.rect, color)

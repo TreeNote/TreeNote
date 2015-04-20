@@ -213,6 +213,12 @@ class MainWindow(QMainWindow):
             self.setup_tag_model()
             self.model.dataChanged.emit(index, index)
 
+            # update next available task in a sequential project
+            project_index = self.model.parent(index)
+            project_parent_index = self.model.parent(project_index)
+            available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+            self.model.dataChanged.emit(available_index, available_index)
+
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
             if sorted_column == 1 or sorted_column == 2:
                 order = self.grid_holder().view.header().sortIndicatorOrder()
