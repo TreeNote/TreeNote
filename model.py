@@ -478,6 +478,8 @@ class TreeModel(QAbstractItemModel):
             return True
 
         project_db_item = self.db[item.parentItem.id]
+        if project_db_item['type'] == PAUSED:
+            return False
         if project_db_item['type'] != SEQ:
             return True
 
@@ -640,7 +642,7 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<font color={}>{}</font>".format(QColor(Qt.blue).name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
-        if type == DONE_TASK or not self.model.is_task_available(index): # not available tasks in a sequential project are grey
+        if type == DONE_TASK or not self.model.is_task_available(index):  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         document.setHtml(html)
         if option.state & QStyle.State_Selected:

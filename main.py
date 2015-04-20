@@ -219,10 +219,11 @@ class MainWindow(QMainWindow):
             available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
             self.model.dataChanged.emit(available_index, available_index)
 
+            # update the sort by changing the ordering
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
             if sorted_column == 1 or sorted_column == 2:
                 order = self.grid_holder().view.header().sortIndicatorOrder()
-                self.grid_holder().view.sortByColumn(sorted_column, 1 - order)  # update the sort by changing the ordering
+                self.grid_holder().view.sortByColumn(sorted_column, 1 - order)
                 self.grid_holder().view.sortByColumn(sorted_column, order)
 
 
@@ -292,12 +293,12 @@ class MainWindow(QMainWindow):
         self.grid_holder().search_bar.setText('')
         self.grid_holder().view.setFocus()
 
-    def search(self, str):
-        self.grid_holder().proxy.filter = str
+    def search(self, search_text):
+        self.grid_holder().proxy.filter = search_text
         self.grid_holder().proxy.invalidateFilter()
         # deselect tag if user changes the search string
         selected_tags = self.grid_holder().tag_view.selectionModel().selectedRows()
-        if len(selected_tags) > 0 and str != selected_tags[0].data():
+        if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
             self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
             # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
