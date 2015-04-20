@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         add_action('toggleTaskAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: note, task, done task'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(QIcon(':/filenew.png'), self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(QIcon(':/filenew.png'), self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
-        add_action('focusListAction', QAction(QIcon(':/filenew.png'), self.tr('&Empty search and focus list'), self, shortcut='esc', triggered=self.empty_search_focus_list))
+        add_action('resetViewAction', QAction(QIcon(':/filenew.png'), self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(QIcon(':/filenew.png'), self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(QIcon(':/filenew.png'), self.tr('&Repeat'), self, triggered=self.append_repeat))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.openLinkAction)
-        self.viewMenu.addAction(self.focusListAction)
+        self.viewMenu.addAction(self.resetViewAction)
 
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
@@ -289,9 +289,13 @@ class MainWindow(QMainWindow):
         self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
         self.grid_holder().view.edit(proxy_index)
 
-    def empty_search_focus_list(self):
+    def reset_view(self):
+        self.grid_holder().task.comboBox.setCurrentIndex(0)
+        self.grid_holder().estimate.comboBox.setCurrentIndex(0)
+        self.grid_holder().color.comboBox.setCurrentIndex(0)
         self.grid_holder().search_bar.setText('')
-        self.grid_holder().view.setFocus()
+        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
+        self.set_selection(top_most_index, top_most_index)
 
     def search(self, search_text):
         self.grid_holder().proxy.filter = search_text
@@ -484,6 +488,10 @@ class MainWindow(QMainWindow):
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
+        
+        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
+        self.set_selection(top_most_index, top_most_index)
+
         self.unsplitWindowAct.setEnabled(True)
 
 
@@ -545,10 +553,10 @@ class LabelledDropDown(QWidget):
         layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
         self.label = QLabel(labelText)
         layout.addWidget(self.label)
-        comboBox = QComboBox()
-        comboBox.addItems(item_names)
-        comboBox.currentIndexChanged[str].connect(lambda: main_window.filter(key, comboBox.currentText()))
-        layout.addWidget(comboBox, Qt.AlignLeft)
+        self.comboBox = QComboBox()
+        self.comboBox.addItems(item_names)
+        self.comboBox.currentIndexChanged[str].connect(lambda: main_window.filter(key, self.comboBox.currentText()))
+        layout.addWidget(self.comboBox, Qt.AlignLeft)
         self.setLayout(layout)
 
 
