@@ -1,9 +1,9 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="branch-closed">images/branch-closed.png</file>
-        <file alias="branch-open">images/branch-open.png</file>
-        <file alias="parallel">images/parallel.png</file>
-        <file alias="sequential">images/sequential.png</file>
-        <file alias="paused">images/paused.png</file>
+        <file alias="parallel">images/dark_skin/parallel.png</file>
+        <file alias="paused">images/dark_skin/paused.png</file>
+        <file alias="sequential">images/dark_skin/sequential.png</file>
+        <file alias="DoneTask">images/dark_skin/DoneTask.png</file>
+        <file alias="Task">images/dark_skin/Task.png</file>
     </qresource>
 </RCC>

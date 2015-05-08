@@ -14,18 +14,18 @@ SELECTION_GRAY = QColor(65, 65, 65)
 BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
 FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
 HIGHLIGHT_ORANGE = QColor(195, 144, 72)
-TAG_COLOR = QColor('#CF4573')
-REPEAT_COLOR = QColor('#71CD58')
+TAG_COLOR = QColor('#71CD58')  # green
+REPEAT_COLOR = QColor('#CF4573')  # red
 CHAR_QCOLOR_DICT = {
-    'g': QColor(Qt.green).name(),
-    'y': QColor(Qt.yellow).name(),
-    'b': QColor(Qt.blue).name(),
-    'r': QColor(Qt.red).name(),
-    'o': QColor("darkorange").name(),
-    'n': BACKGROUND_GRAY.name()
+    'g': QColor('#85E326').name(),  # green
+    'y': QColor('#EEEF22').name(),  # yellow
+    'b': QColor('#6177D7').name(),  # blue
+    'r': QColor('#CE3535').name(),  # red
+    'o': QColor('#DFBC30').name(),  # orange
+    'n': TEXT_GRAY.name()
 }
 DELIMITER = ':'
-DONE_TASK = 'DoneTask'
+DONE_TASK = 'DoneTask'  # same as icon file names
 TASK = 'Task'
 NOTE = 'Note'
 SEQ = 'sequential'
@@ -37,7 +37,7 @@ CHAR_TYPE_DICT = {
     'n': NOTE  # note
 }
 EMPTY_DATE = '14.09.52'
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': QColor(Qt.white).name(), 'deleted_date': '', 'estimate': ''}
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), 'deleted_date': '', 'estimate': ''}
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -649,14 +649,15 @@ class Delegate(QStyledItemDelegate):
         html = ' '.join(word_list)
         if type == DONE_TASK or not self.model.is_task_available(index):  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
-        document.setHtml(html)
-        font = QFont()
-        font.setPixelSize(20)
-        document.setDefaultFont(font)
+        # font = QFont()
+        # font.setPixelSize(20)
+        # document.setDefaultFont(font)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
-            color = QColor(db_item['color'])
+            color = BACKGROUND_GRAY
+        html = "<font color={}>{}</font>".format(QColor(db_item['color']).name(), html)
+        document.setHtml(html)
         painter.save()
         painter.fillRect(option.rect, color)
         gap_for_checkbox = 17
@@ -664,28 +665,12 @@ class Delegate(QStyledItemDelegate):
         document.drawContents(painter)
         painter.restore()
 
-        if type != NOTE and index.column() == 0:
-            if type == DONE_TASK or type == TASK:  # task
-                check_box_style_option = QStyleOptionButton()
-                if type == DONE_TASK:
-                    check_box_style_option.state |= QStyle.State_On
-                elif type == TASK:
-                    check_box_style_option.state |= QStyle.State_Off
-                check_box_style_option.rect = self.getCheckBoxRect(option)
-                check_box_style_option.state |= QStyle.State_Enabled
-                QApplication.style().drawControl(QStyle.CE_CheckBox, check_box_style_option, painter)
-            else:  # project
-                painter.save()
-                icon = QIcon(':/' + type)
-                iconsize = option.decorationSize
-                painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
-                painter.restore()
-
-    def getCheckBoxRect(self, option):  # source: http://stackoverflow.com/questions/17748546/pyqt-column-of-checkboxes-in-a-qtableview
-        check_box_style_option = QStyleOptionButton()
-        check_box_rect = QApplication.style().subElementRect(QStyle.SE_CheckBoxIndicator, check_box_style_option, None)
-        check_box_point = QPoint(option.rect.x(), option.rect.y())
-        return QRect(check_box_point, check_box_rect.size())
+        if type != NOTE and index.column() == 0:  # set icon of task or project
+            painter.save()
+            icon = QIcon(':/' + type)
+            iconsize = option.decorationSize
+            painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
+            painter.restore()
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
