@@ -2,6 +2,7 @@
 An intuitive outliner for personal knowledge and task management. Supports collaborative, simultaneous editing.<br>
 This software is part of a bachelor thesis and currently developed.
 
+![Screemshot](/images/screenshot.png)
 
 ## Install
 ### Ubuntu
@@ -45,7 +46,3 @@ Open cmd.exe and enter `python -m pip install couchdb`
 
 ## Develop
 I can recommend this integrated development environment: https://www.jetbrains.com/pycharm
-
-## Screenshot
-
-![Screemshot](/images/screenshot.png)

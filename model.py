@@ -9,17 +9,22 @@ import threading
 import socket
 import re
 
-DELIMITER = ':'
-PALETTE = QPalette()
-PALETTE.setColor(QPalette.Highlight, QColor('#C1E7FC'))
+TEXT_GRAY = QColor(188, 195, 208)
+SELECTION_GRAY = QColor(65, 65, 65)
+BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
+FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
+HIGHLIGHT_ORANGE = QColor(195, 144, 72)
+TAG_COLOR = QColor('#CF4573')
+REPEAT_COLOR = QColor('#71CD58')
 CHAR_QCOLOR_DICT = {
     'g': QColor(Qt.green).name(),
     'y': QColor(Qt.yellow).name(),
     'b': QColor(Qt.blue).name(),
     'r': QColor(Qt.red).name(),
     'o': QColor("darkorange").name(),
-    'n': QColor(Qt.white).name()
+    'n': BACKGROUND_GRAY.name()
 }
+DELIMITER = ':'
 DONE_TASK = 'DoneTask'
 TASK = 'Task'
 NOTE = 'Note'
@@ -637,16 +642,19 @@ class Delegate(QStyledItemDelegate):
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
             if word[0] == DELIMITER:
-                word_list[idx] = "<b><font color={}>{}</font></b>".format(QColor(Qt.darkMagenta).name(), word)
+                word_list[idx] = "<font color={}>{}</font>".format(TAG_COLOR.name(), word)
             elif len(re.findall(r'repeat=\d(d|w|m|y)($| )', word)) > 0:
-                word_list[idx] = "<font color={}>{}</font>".format(QColor(Qt.blue).name(), word)
+                word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
         if type == DONE_TASK or not self.model.is_task_available(index):  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         document.setHtml(html)
+        font = QFont()
+        font.setPixelSize(20)
+        document.setDefaultFont(font)
         if option.state & QStyle.State_Selected:
-            color = PALETTE.highlight().color()
+            color = self.main_window.palette().highlight().color()
         else:
             color = QColor(db_item['color'])
         painter.save()

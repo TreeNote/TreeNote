@@ -440,7 +440,7 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar.textChanged[str].connect(self.search)
 
         grid_holder.view = QTreeView()
-        grid_holder.view.setPalette(model.PALETTE)
+        grid_holder.view.setPalette(app.palette())
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
@@ -477,18 +477,21 @@ class MainWindow(QMainWindow):
         grid = QGridLayout()
         grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # Fill entire first cell
 
-        grid.addWidget(grid_holder.view, 1, 0, 5, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.view, 1, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(QLabel(self.tr('Add filters')), 1, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.task, 2, 1, 1, 1)
-        grid.addWidget(grid_holder.estimate, 3, 1, 1, 1)
-        grid.addWidget(grid_holder.color, 4, 1, 1, 1)
+        grid.addWidget(QLabel(self.tr('')), 1, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Add filters:')), 2, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.task, 3, 1, 1, 1)
+        grid.addWidget(grid_holder.estimate, 4, 1, 1, 1)
+        grid.addWidget(grid_holder.color, 5, 1, 1, 1)
         # grid.addWidget(grid_holder.deleted_for, 4, 1, 1, 1)
-        grid.addWidget(grid_holder.tag_view, 5, 1, 1, 1)
+        grid.addWidget(QLabel(self.tr('')), 6, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Filter by tag:')), 7, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.tag_view, 8, 1, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
-        
+
         top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
 
@@ -586,13 +589,25 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon.png'))
-    app.setStyleSheet(
-        "QTreeView::branch:closed:has-children {\
-            image: url(:/branch-closed);\
-        }\
-        QTreeView::branch:open:has-children {\
-            image: url(:/branch-open);\
-        }")
+
+    app.setStyle("Fusion")
+    dark_palette = QPalette()
+    dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
+    dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.BrightText, Qt.red)
+    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+    dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
+    dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
+    app.setPalette(dark_palette)
+    app.setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
+
     form = MainWindow()
     form.show()
     app.exec_()
