@@ -13,6 +13,7 @@ import re
 
 FOCUS_TEXT = 'Focus on current row'
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -537,8 +538,16 @@ class MyQLineEdit(QLineEdit):
     def __init__(self, main):
         super(QLineEdit, self).__init__()
         self.main = main
+        self.setStyleSheet('QLineEdit {\
+        padding-left: 20px;\
+        background: url(:/search);\
+        background-position: left;\
+        background-repeat: no-repeat;\
+        border-radius: 3px;\
+        height: 22px;}')
 
     def keyPressEvent(self, event):
+        # arror key down: select first child
         if event.key() == Qt.Key_Down:
             index = self.main.grid_holder().proxy.index(0, 0, QModelIndex())
             self.main.set_selection(index, index)
@@ -630,14 +639,7 @@ if __name__ == '__main__':
     dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
     dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
     app.setPalette(dark_palette)
-    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
-    QLineEdit {\
-    padding-left: 20px;\
-    background: url(:/search);\
-    background-position: left;\
-    background-repeat: no-repeat;\
-    border-radius: 3px;\
-    height: 22px;}')
+    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }')
 
     form = MainWindow()
     form.show()

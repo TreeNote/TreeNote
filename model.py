@@ -678,17 +678,21 @@ class Delegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         if index.column() == 0:
             suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
-            return AutoCompleteEdit(parent, list(suggestions_model))
+            edit = AutoCompleteEdit(parent, list(suggestions_model))
+            edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
+            return edit
         if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
             date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
             date_edit.setCalendarWidget(EscCalendarWidget(parent))
+            date_edit.setStyleSheet('QDateEdit {padding-left: 14px;}')
             return date_edit
         else:  # index.column() == 2:
             line_edit = QLineEdit(parent)
             line_edit.setValidator(QIntValidator(0, 999, self));
+            line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
             return line_edit
 
 
