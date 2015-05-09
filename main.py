@@ -305,6 +305,7 @@ class MainWindow(QMainWindow):
         top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.grid_holder().view.setRootIndex(QModelIndex())
+        self.grid_holder().focus_button.setChecked(False)
 
     def search(self, search_text):
         self.grid_holder().proxy.filter = search_text
@@ -434,7 +435,6 @@ class MainWindow(QMainWindow):
         self.grid_holder().search_bar.setFocus()
 
     def focus(self):
-        self.grid_holder().focus_button.setDown(True)
         search_bar_text = self.grid_holder().search_bar.text()
         idx = self.grid_holder().view.selectionModel().currentIndex()
         self.grid_holder().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + idx.data())
@@ -455,9 +455,6 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar = MyQLineEdit(self)
         grid_holder.search_bar.textChanged[str].connect(self.search)
         grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
-
-        grid_holder.focus_button = QPushButton(FOCUS_TEXT)
-        grid_holder.focus_button.clicked.connect(self.focus)
 
         grid_holder.view = QTreeView()
         grid_holder.view.setPalette(app.palette())
@@ -492,7 +489,10 @@ class MainWindow(QMainWindow):
         grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
-        # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
+
+        grid_holder.focus_button = QPushButton(FOCUS_TEXT)
+        grid_holder.focus_button.setCheckable(True)
+        grid_holder.focus_button.clicked.connect(self.focus)
 
         grid = QGridLayout()
         m = 11
@@ -500,15 +500,14 @@ class MainWindow(QMainWindow):
         grid.setContentsMargins(m, m, m, m)
 
         grid.addWidget(grid_holder.search_bar, 0, 0, 1, 1)
-        grid.addWidget(grid_holder.view, 1, 0, 9, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.view, 1, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
         grid.addWidget(QLabel(self.tr('')), 1, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(QLabel(self.tr('Add filters:')), 2, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.focus_button, 3, 1, 1, 1, Qt.AlignLeft)
-        grid.addWidget(grid_holder.task, 4, 1, 1, 1)
-        grid.addWidget(grid_holder.estimate, 5, 1, 1, 1)
-        grid.addWidget(grid_holder.color, 6, 1, 1, 1)
-        # grid.addWidget(grid_holder.deleted_for, 4, 1, 1, 1)
+        grid.addWidget(grid_holder.task, 3, 1, 1, 1)
+        grid.addWidget(grid_holder.estimate, 4, 1, 1, 1)
+        grid.addWidget(grid_holder.color, 5, 1, 1, 1)
+        grid.addWidget(grid_holder.focus_button, 6, 1, 1, 1, Qt.AlignLeft)
         grid.addWidget(QLabel(self.tr('')), 7, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(QLabel(self.tr('Filter by tag:')), 8, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(grid_holder.tag_view, 9, 1, 1, 1)

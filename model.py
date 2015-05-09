@@ -542,7 +542,7 @@ class FilterProxyModel(QSortFilterProxyModel):
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue
-            elif token.startswith(FOCUS + '='):
+            elif token.startswith(FOCUS + '='): # ignore
                 continue
             elif token in index.data():
                 continue
