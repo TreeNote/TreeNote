@@ -11,6 +11,7 @@ import socket
 import webbrowser
 import re
 
+FOCUS_TEXT = 'Focus on current row'
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -54,6 +55,7 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
+        add_action('focusAction', QAction(self.tr(FOCUS_TEXT), self, shortcut='F', triggered=self.focus))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
@@ -98,6 +100,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.splitWindowAct)
         self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
+        self.viewMenu.addAction(self.focusAction)
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.resetViewAction)
 
@@ -183,16 +186,20 @@ class MainWindow(QMainWindow):
     def filter(self, key, value):
         character = value[0]
         search_bar_text = self.grid_holder().search_bar.text()
-        if character == 'a':  # 'all' selected
+        # 'all' selected: remove existing same filter
+        if character == 'a':
             search_bar_text = re.sub(key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
         else:
-            if len(key) == 1:  # key is a compare operator
+            # key is a compare operator
+            if len(key) == 1:
                 key += value[0]
                 character = value[1:]
-            if not re.search(key[0] + r'(<|>|=)', search_bar_text):
-                search_bar_text += ' ' + key + character + ' '
-            else:
+            # filter is already in the search bar: replace existing same filter
+            if re.search(key[0] + r'(<|>|=)', search_bar_text):
                 search_bar_text = re.sub(key[0] + r'(<|>|=|\w|\d)* ', key + character + ' ', search_bar_text)
+            else:
+                # add filter
+                search_bar_text += ' ' + key + character + ' '
         self.grid_holder().search_bar.setText(search_bar_text)
 
     def db_change_signal(self, db_item):
@@ -296,6 +303,7 @@ class MainWindow(QMainWindow):
         self.grid_holder().search_bar.setText('')
         top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
+        self.grid_holder().view.setRootIndex(QModelIndex())
 
     def search(self, search_text):
         self.grid_holder().proxy.filter = search_text
@@ -424,6 +432,13 @@ class MainWindow(QMainWindow):
     def focus_search_bar(self):
         self.grid_holder().search_bar.setFocus()
 
+    def focus(self):
+        self.grid_holder().focus_button.setDown(True)
+        search_bar_text = self.grid_holder().search_bar.text()
+        idx = self.grid_holder().view.selectionModel().currentIndex()
+        self.grid_holder().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + idx.data())
+        self.grid_holder().view.setRootIndex(idx)
+
     def open_links(self):
         for row_index in self.grid_holder().view.selectionModel().selectedRows():
             url_regex = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""  # source: http://daringfireball.net/2010/07/improved_regex_for_matching_urls
@@ -439,6 +454,9 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar = MyQLineEdit(self)
         grid_holder.search_bar.textChanged[str].connect(self.search)
         grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
+
+        grid_holder.focus_button = QPushButton(FOCUS_TEXT)
+        grid_holder.focus_button.clicked.connect(self.focus)
 
         grid_holder.view = QTreeView()
         grid_holder.view.setPalette(app.palette())
@@ -470,25 +488,29 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), self.tr('note'), self.tr('todo'), self.tr('done'))
+        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
         # grid_holder.deleted_for = LabelledDropDown(self, self.tr('Deleted:'), self.tr('none'), self.tr('this week'), self.tr('this month'), self.tr('this year'))
 
         grid = QGridLayout()
-        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 0)  # Fill entire first cell
+        m = 11
+        grid.setSpacing(m)
+        grid.setContentsMargins(m, m, m, m)
 
-        grid.addWidget(grid_holder.view, 1, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 1)
+        grid.addWidget(grid_holder.view, 1, 0, 9, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
         grid.addWidget(QLabel(self.tr('')), 1, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(QLabel(self.tr('Add filters:')), 2, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.task, 3, 1, 1, 1)
-        grid.addWidget(grid_holder.estimate, 4, 1, 1, 1)
-        grid.addWidget(grid_holder.color, 5, 1, 1, 1)
+        grid.addWidget(grid_holder.focus_button, 3, 1, 1, 1, Qt.AlignLeft)
+        grid.addWidget(grid_holder.task, 4, 1, 1, 1)
+        grid.addWidget(grid_holder.estimate, 5, 1, 1, 1)
+        grid.addWidget(grid_holder.color, 6, 1, 1, 1)
         # grid.addWidget(grid_holder.deleted_for, 4, 1, 1, 1)
-        grid.addWidget(QLabel(self.tr('')), 6, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(QLabel(self.tr('Filter by tag:')), 7, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.tag_view, 8, 1, 1, 1)
+        grid.addWidget(QLabel(self.tr('')), 7, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Filter by tag:')), 8, 1, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.tag_view, 9, 1, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
@@ -561,6 +583,7 @@ class LabelledDropDown(QWidget):
         self.comboBox.addItems(item_names)
         self.comboBox.currentIndexChanged[str].connect(lambda: main_window.filter(key, self.comboBox.currentText()))
         layout.addWidget(self.comboBox, Qt.AlignLeft)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
 

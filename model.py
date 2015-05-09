@@ -36,6 +36,7 @@ CHAR_TYPE_DICT = {
     't': TASK,  # task
     'n': NOTE  # note
 }
+FOCUS = 'focus'
 EMPTY_DATE = '14.09.52'
 NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), 'deleted_date': '', 'estimate': ''}
 
@@ -528,11 +529,11 @@ class FilterProxyModel(QSortFilterProxyModel):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
                     continue
-            if token.startswith('t='):
+            elif token.startswith('t='):
                 task_character = token[2:3]
                 if db_item['type'] == CHAR_TYPE_DICT.get(task_character):
                     continue
-            if re.match(r'e(<|>|=)', token):
+            elif re.match(r'e(<|>|=)', token):
                 if db_item['estimate'] == '':
                     break
                 less_greater_equal_sign = token[1]
@@ -541,6 +542,8 @@ class FilterProxyModel(QSortFilterProxyModel):
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue
+            elif token.startswith(FOCUS + '='):
+                continue
             elif token in index.data():
                 continue
             break
