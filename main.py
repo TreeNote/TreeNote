@@ -438,6 +438,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.search_bar = MyQLineEdit(self)
         grid_holder.search_bar.textChanged[str].connect(self.search)
+        grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
 
         grid_holder.view = QTreeView()
         grid_holder.view.setPalette(app.palette())
@@ -606,7 +607,14 @@ if __name__ == '__main__':
     dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
     dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
     app.setPalette(dark_palette)
-    app.setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
+    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
+    QLineEdit {\
+    padding-left: 20px;\
+    background: url(:/search);\
+    background-position: left;\
+    background-repeat: no-repeat;\
+    border-radius: 3px;\
+    height: 22px;}')
 
     form = MainWindow()
     form.show()

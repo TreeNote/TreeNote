@@ -25,9 +25,9 @@ CHAR_QCOLOR_DICT = {
     'n': TEXT_GRAY.name()
 }
 DELIMITER = ':'
-DONE_TASK = 'DoneTask'  # same as icon file names
-TASK = 'Task'
-NOTE = 'Note'
+DONE_TASK = 'done'  # same as icon file names
+TASK = 'todo'
+NOTE = 'note'
 SEQ = 'sequential'
 PAR = 'parallel'
 PAUSED = 'paused'

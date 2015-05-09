@@ -3,7 +3,8 @@
         <file alias="parallel">images/dark_skin/parallel.png</file>
         <file alias="paused">images/dark_skin/paused.png</file>
         <file alias="sequential">images/dark_skin/sequential.png</file>
-        <file alias="DoneTask">images/dark_skin/DoneTask.png</file>
-        <file alias="Task">images/dark_skin/Task.png</file>
+        <file alias="search">images/dark_skin/search.png</file>
+        <file alias="done">images/dark_skin/done.png</file>
+        <file alias="todo">images/dark_skin/todo.png</file>
     </qresource>
 </RCC>
