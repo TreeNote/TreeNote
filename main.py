@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')))
         add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')))
         add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
-        add_action('priority1Action', QAction(self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
+        # add_action('priority1Action', QAction(self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
@@ -459,12 +459,12 @@ class MainWindow(QMainWindow):
     def split_window(self):  # creates the view, too
         grid_holder = QWidget()
 
-        grid_holder.search_bar = MyQLineEdit(self)
-        grid_holder.search_bar.textChanged[str].connect(self.search)
-        grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
+        grid_holder.bookmarks_view = QTreeView()
+        grid_holder.bookmarks_view.header().hide()
+        # grid_holder.bookmarks_view.setModel(tag_model.TagModel())
+        # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid_holder.view = QTreeView()
-        grid_holder.view.setPalette(app.palette())
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
@@ -482,6 +482,18 @@ class MainWindow(QMainWindow):
         grid_holder.view.header().sectionClicked[int].connect(self.toggle_sorting)
         grid_holder.view.header().setSectionsClickable(True)
 
+        grid_holder.search_bar = MyQLineEdit(self)
+        grid_holder.search_bar.textChanged[str].connect(self.search)
+        grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
+
+        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
+        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
+        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+
+        grid_holder.focus_button = QPushButton(model.FOCUS_TEXT)
+        grid_holder.focus_button.setCheckable(True)
+        grid_holder.focus_button.clicked.connect(self.focus)
+
         grid_holder.tag_view = QTreeView()
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_dialog)
@@ -493,31 +505,24 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
-        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
-
-        grid_holder.focus_button = QPushButton(model.FOCUS_TEXT)
-        grid_holder.focus_button.setCheckable(True)
-        grid_holder.focus_button.clicked.connect(self.focus)
-
         grid = QGridLayout()
-        m = 11
-        grid.setSpacing(m)
-        grid.setContentsMargins(m, m, m, m)
+        grid.setSpacing(11) # space between contained widgets
+        grid.setContentsMargins(0, 0, 11, 0) # left, top, right, bottom
 
-        grid.addWidget(grid_holder.search_bar, 0, 0, 1, 1)
-        grid.addWidget(grid_holder.view, 1, 0, 9, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 10, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(QLabel(self.tr('')), 1, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(QLabel(self.tr('Add filters:')), 2, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.task, 3, 1, 1, 1)
-        grid.addWidget(grid_holder.estimate, 4, 1, 1, 1)
-        grid.addWidget(grid_holder.color, 5, 1, 1, 1)
-        grid.addWidget(grid_holder.focus_button, 6, 1, 1, 1, Qt.AlignLeft)
-        grid.addWidget(QLabel(self.tr('')), 7, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(QLabel(self.tr('Filter by tag:')), 8, 1, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.tag_view, 9, 1, 1, 1)
+        grid.addWidget(grid_holder.view, 0, 1, 10, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+
+        grid.addWidget(grid_holder.search_bar, 0, 2, 1, 1)
+        grid.addWidget(QLabel(self.tr('')), 1, 2, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Add filters:')), 2, 2, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.task, 3, 2, 1, 1)
+        grid.addWidget(grid_holder.estimate, 4, 2, 1, 1)
+        grid.addWidget(grid_holder.color, 5, 2, 1, 1)
+        grid.addWidget(grid_holder.focus_button, 6, 2, 1, 1, Qt.AlignLeft)
+        grid.addWidget(QLabel(self.tr('')), 7, 2, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('Filter by tag:')), 8, 2, 1, 1, Qt.AlignCenter)
+        grid.addWidget(grid_holder.tag_view, 9, 2, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
@@ -545,6 +550,7 @@ class MyQLineEdit(QLineEdit):
         super(QLineEdit, self).__init__()
         self.main = main
         self.setStyleSheet('QLineEdit {\
+        margin-top: 11px;\
         padding-left: 20px;\
         background: url(:/search);\
         background-position: left;\
