@@ -38,7 +38,8 @@ CHAR_TYPE_DICT = {
 }
 FOCUS = 'focus'
 EMPTY_DATE = '14.09.52'
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), 'deleted_date': '', 'estimate': ''}
+DELETED = 'deleted'
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': ''}
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -76,8 +77,6 @@ class Updater(QThread):
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
                     self.model.db_change_signal.emit(db_item)
-                elif '_deleted' in db_item:
-                    self.model.deleted_signal.emit(db_item['_id'])
 
 
 class Tree_item(object):
@@ -184,6 +183,16 @@ class TreeModel(QAbstractItemModel):
         # get_create_db(db_name, server_url)
         # local_server.replicate(db_name, server_url + db_name, continuous=True)
         # local_server.replicate(server_url + db_name, db_name, continuous=True)
+
+        # delete items with deleted flag permanently
+        map = "function(doc) { \
+                    if (doc." + DELETED + " != '') \
+                        emit(doc, null); \
+                }"
+        res = self.db.query(map)
+        for row in res:
+            print("aa" + row.id)
+            self.db.delete(self.db[row.id])
 
         self.rootItem = Tree_item('root item', self)
         self.rootItem.header_list = ['Text', 'Start date', 'Estimate']
@@ -313,6 +322,20 @@ class TreeModel(QAbstractItemModel):
 
             def remove_rows(self):
                 for child_item_id, parent_item_id, _ in self.delete_child_from_parent_id_list:
+                    child_db_item = self.model.db[child_item.id]
+                    child_db_item[DELETED] = 'True'
+                    self.model.db[child_db_item.id] = child_db_item
+
+                    def delete_childs(item):
+                        for ch_item in item.childItems:
+                            delete_childs(ch_item)
+                            ch_db_item = self.model.db.get(ch_item.id)
+                            if ch_db_item is not None:
+                                ch_db_item[DELETED] = 'True'
+                                self.model.db[ch_db_item.id] = ch_db_item
+
+                    delete_childs(child_item)
+
                     parent_db_item = self.model.db[parent_item_id]
                     children_list = parent_db_item['children'].split()
                     parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item_id), count=1, user=socket.gethostname())
@@ -320,20 +343,6 @@ class TreeModel(QAbstractItemModel):
                     parent_db_item['children'] = ' '.join(children_list)
                     self.model.db[parent_item_id] = parent_db_item
 
-                    child_db_item = self.model.db[child_item.id]
-                    # todo: set deleted flag for child_db_item
-                    child_db_item['deleted_date'] = 'todo'
-                    self.model.db[child_db_item] = child_db_item
-
-                    def delete_childs(item):
-                        for ch_item in item.childItems:
-                            delete_childs(ch_item)
-                            ch_db_item = self.db.get(ch_item.id)
-                            if ch_db_item is not None:
-                                pass
-                                # todo: set deleted flag for ch_db_item
-
-                    delete_childs(child_item)
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
@@ -348,7 +357,7 @@ class TreeModel(QAbstractItemModel):
 
             def undo(self):
                 if self.position is not None:  # undo insert command
-                    # todo: delete really instead of set delete marker
+                    # todo: delete really instead of set delete marker ?
                     self.remove_rows()
                 else:  # undo remove command
                     for child_item_id, parent_item_id, position in delete_child_from_parent_id_list:
@@ -542,7 +551,7 @@ class FilterProxyModel(QSortFilterProxyModel):
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue
-            elif token.startswith(FOCUS + '='): # ignore
+            elif token.startswith(FOCUS + '='):  # ignore
                 continue
             elif token in index.data():
                 continue

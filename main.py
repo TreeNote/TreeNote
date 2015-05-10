@@ -222,10 +222,12 @@ class MainWindow(QMainWindow):
             self.model.dataChanged.emit(index, index)
 
             # update next available task in a sequential project
-            project_index = self.model.parent(index)
-            project_parent_index = self.model.parent(project_index)
-            available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
-            self.model.dataChanged.emit(available_index, available_index)
+            # todo
+            # project_index = self.model.parent(index)
+            # if self.model.rowCount(project_index) > 1:
+            #     project_parent_index = self.model.parent(project_index)
+            #     available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+            #     self.model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
@@ -500,7 +502,7 @@ class MainWindow(QMainWindow):
         grid.setContentsMargins(m, m, m, m)
 
         grid.addWidget(grid_holder.search_bar, 0, 0, 1, 1)
-        grid.addWidget(grid_holder.view, 1, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.view, 1, 0, 9, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
         grid.addWidget(QLabel(self.tr('')), 1, 1, 1, 1, Qt.AlignCenter)
         grid.addWidget(QLabel(self.tr('Add filters:')), 2, 1, 1, 1, Qt.AlignCenter)
