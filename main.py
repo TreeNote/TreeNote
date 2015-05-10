@@ -213,6 +213,7 @@ class MainWindow(QMainWindow):
         index = QModelIndex(self.model.id_index_dict[item_id])
 
         item = self.model.getItem(index)
+
         if method == 'updated':
             item.text = db_item['text']
             item.date = db_item['date']
@@ -223,12 +224,11 @@ class MainWindow(QMainWindow):
             self.model.dataChanged.emit(index, index)
 
             # update next available task in a sequential project
-            # todo
-            # project_index = self.model.parent(index)
-            # if self.model.rowCount(project_index) > 1:
-            # project_parent_index = self.model.parent(project_index)
-            # available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
-            # self.model.dataChanged.emit(available_index, available_index)
+            project_index = self.model.parent(index)
+            project_parent_index = self.model.parent(project_index)
+            available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+            if isinstance(available_index, QModelIndex):
+                self.model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
@@ -236,7 +236,6 @@ class MainWindow(QMainWindow):
                 order = self.grid_holder().view.header().sortIndicatorOrder()
                 self.grid_holder().view.sortByColumn(sorted_column, 1 - order)
                 self.grid_holder().view.sortByColumn(sorted_column, order)
-
 
         elif method == 'added':
             id_list = change_dict['id_list']
@@ -251,6 +250,7 @@ class MainWindow(QMainWindow):
                     self.update_selection_and_edit(index_first_added)
                 else:
                     self.set_selection(index_first_added, index_last_added)
+
         elif method == 'removed':
             self.model.beginRemoveRows(index, position, position + count - 1)
             item.childItems[position:position + count] = []
@@ -264,6 +264,7 @@ class MainWindow(QMainWindow):
                     self.set_selection(index_next_child, index_next_child)
                 else:  # all childs deleted, select parent
                     self.set_selection(index, index)
+
         elif method == 'moved_vertical':
             up_or_down = change_dict['up_or_down']
             if up_or_down == -1:
@@ -278,6 +279,7 @@ class MainWindow(QMainWindow):
             self.grid_holder().proxy.layoutChanged.emit()
             if my_edit:
                 self.set_selection(index_first_moved_item, index_moved_item)
+
         elif method == model.DELETED:
             if self.model.db[item_id][model.DELETED] == '':
                 self.model.pointer_set.add(index.internalId())
