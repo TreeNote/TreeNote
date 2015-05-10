@@ -9,38 +9,6 @@ import threading
 import socket
 import re
 
-TEXT_GRAY = QColor(188, 195, 208)
-SELECTION_GRAY = QColor(65, 65, 65)
-BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
-FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
-HIGHLIGHT_ORANGE = QColor(195, 144, 72)
-TAG_COLOR = QColor('#71CD58')  # green
-REPEAT_COLOR = QColor('#CF4573')  # red
-CHAR_QCOLOR_DICT = {
-    'g': QColor('#85E326').name(),  # green
-    'y': QColor('#EEEF22').name(),  # yellow
-    'b': QColor('#6177D7').name(),  # blue
-    'r': QColor('#CE3535').name(),  # red
-    'o': QColor('#DFBC30').name(),  # orange
-    'n': TEXT_GRAY.name()
-}
-DELIMITER = ':'
-DONE_TASK = 'done'  # same as icon file names
-TASK = 'todo'
-NOTE = 'note'
-SEQ = 'sequential'
-PAR = 'parallel'
-PAUSED = 'paused'
-CHAR_TYPE_DICT = {
-    'd': DONE_TASK,  # done task
-    't': TASK,  # task
-    'n': NOTE  # note
-}
-FOCUS = 'focus'
-EMPTY_DATE = '14.09.52'
-DELETED = 'deleted'
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': ''}
-
 
 class QUndoCommandStructure(QUndoCommand):
     # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
@@ -75,7 +43,7 @@ class Updater(QThread):
                 print(line)
                 db_item = line['doc']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
-                if 'change' in db_item and db_item['change'] != 'ignore':
+                if 'change' in db_item:
                     self.model.db_change_signal.emit(db_item)
 
 
@@ -166,7 +134,7 @@ class TreeModel(QAbstractItemModel):
                 print(err.message)
 
         # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:
-        self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict.
+        self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict. This dict may grow huge during runtime.
         self.pointer_set = set()
 
         db_name = 'tree'
@@ -316,22 +284,23 @@ class TreeModel(QAbstractItemModel):
 
             # set delete = false for redoing (re-adding) if it was deleted
             def set_deleted_marker(self, string, child_item_id):
-                    child_db_item = self.model.db[child_item_id]
-                    child_db_item[DELETED] = string
-                    child_db_item['change'] = 'ignore'
-                    self.model.db[child_db_item.id] = child_db_item
+                child_db_item = self.model.db[child_item_id]
+                child_db_item[DELETED] = string
+                child_db_item['change'] = dict(method=DELETED, user=socket.gethostname())
+                self.model.db[child_db_item.id] = child_db_item
 
-                    # set deleted marker for children
-                    def delete_childs(db_item):
-                        children_list = db_item['children'].split()
-                        for ch_item_id in children_list:
-                            delete_childs(self.model.db[ch_item_id])
-                            ch_db_item = self.model.db.get(ch_item_id)
-                            if ch_db_item is not None:
-                                ch_db_item[DELETED] = string
-                                ch_db_item['change'] = 'ignore'
-                                self.model.db[ch_db_item.id] = ch_db_item
-                    delete_childs(child_db_item)
+                # set deleted marker for children
+                def delete_childs(db_item):
+                    children_list = db_item['children'].split()
+                    for ch_item_id in children_list:
+                        delete_childs(self.model.db[ch_item_id])
+                        ch_db_item = self.model.db.get(ch_item_id)
+                        if ch_db_item is not None:
+                            ch_db_item[DELETED] = string
+                            ch_db_item['change'] = dict(method=DELETED, user=socket.gethostname())
+                            self.model.db[ch_db_item.id] = ch_db_item
+
+                delete_childs(child_db_item)
 
             @staticmethod  # static because it is called from the outside for moving
             def add_rows(model, position, parent_item_id, id_list, set_edit_focus):
@@ -357,19 +326,19 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
-                    if self.id_list is None: # for newly created items. else: add existing item (for move)
+                    if self.id_list is None:  # for newly created items. else: add existing item (for move)
                         child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
                         self.id_list = [child_id]
-                    self.set_deleted_marker('', self.id_list[0]) # remove delete marker. just one item is inserted / re-inserted
+                    self.set_deleted_marker('', self.id_list[0])  # remove delete marker. just one item is inserted / re-inserted
                     self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
                     self.set_edit_focus = False  # when redo is called the second time (when the user is redoing), he doesn't want edit focus
-                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)] # info for undoing
+                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)]  # info for undoing
                 else:
                     self.remove_rows()
 
             def undo(self):
                 if self.position is not None:  # undo insert command
-                     self.remove_rows()
+                    self.remove_rows()
                 else:  # undo remove command
                     for child_item_id, parent_item_id, position in self.delete_child_from_parent_id_list:
                         self.set_deleted_marker('', child_item_id)
@@ -814,3 +783,37 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.setCompletionPrefix(completionPrefix)
         self._completer.popup().setCurrentIndex(
             self._completer.completionModel().index(0, 0))
+
+
+TEXT_GRAY = QColor(188, 195, 208)
+SELECTION_GRAY = QColor(65, 65, 65)
+BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
+FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
+HIGHLIGHT_ORANGE = QColor(195, 144, 72)
+TAG_COLOR = QColor('#71CD58')  # green
+REPEAT_COLOR = QColor('#CF4573')  # red
+CHAR_QCOLOR_DICT = {
+    'g': QColor('#85E326').name(),  # green
+    'y': QColor('#EEEF22').name(),  # yellow
+    'b': QColor('#6177D7').name(),  # blue
+    'r': QColor('#CE3535').name(),  # red
+    'o': QColor('#DFBC30').name(),  # orange
+    'n': TEXT_GRAY.name()
+}
+DELIMITER = ':'
+DONE_TASK = 'done'  # same as icon file names
+TASK = 'todo'
+NOTE = 'note'
+SEQ = 'sequential'
+PAR = 'parallel'
+PAUSED = 'paused'
+CHAR_TYPE_DICT = {
+    'd': DONE_TASK,  # done task
+    't': TASK,  # task
+    'n': NOTE  # note
+}
+FOCUS = 'focus'
+EMPTY_DATE = '14.09.52'
+DELETED = 'deleted'
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': ''}
+FOCUS_TEXT = 'Focus on current row'

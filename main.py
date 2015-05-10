@@ -11,8 +11,6 @@ import socket
 import webbrowser
 import re
 
-FOCUS_TEXT = 'Focus on current row'
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -208,7 +206,12 @@ class MainWindow(QMainWindow):
         position = change_dict.get('position')
         count = change_dict.get('count')
         item_id = db_item['_id']
+
+        # ignore cases when the 'update delete marker' change comes before the corresponding item is created
+        if item_id not in self.model.id_index_dict:
+            return
         index = QModelIndex(self.model.id_index_dict[item_id])
+
         item = self.model.getItem(index)
         if method == 'updated':
             item.text = db_item['text']
@@ -223,9 +226,9 @@ class MainWindow(QMainWindow):
             # todo
             # project_index = self.model.parent(index)
             # if self.model.rowCount(project_index) > 1:
-            #     project_parent_index = self.model.parent(project_index)
-            #     available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
-            #     self.model.dataChanged.emit(available_index, available_index)
+            # project_parent_index = self.model.parent(project_index)
+            # available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+            # self.model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
@@ -275,11 +278,13 @@ class MainWindow(QMainWindow):
             self.grid_holder().proxy.layoutChanged.emit()
             if my_edit:
                 self.set_selection(index_first_moved_item, index_moved_item)
+        elif method == model.DELETED:
+            if self.model.db[item_id][model.DELETED] == '':
+                self.model.pointer_set.add(index.internalId())
+            else:
+                self.model.pointer_set.remove(index.internalId())
+            self.setup_tag_model()
 
-    def deleted(self, item_id):  # todo
-        index = QModelIndex(self.model.id_index_dict[item_id])
-        self.model.pointer_set.remove(index.internalId())
-        self.setup_tag_model()
 
     def set_selection(self, index_from, index_to):
         if self.grid_holder().view.state() != QAbstractItemView.EditingState:
@@ -490,7 +495,7 @@ class MainWindow(QMainWindow):
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        grid_holder.focus_button = QPushButton(FOCUS_TEXT)
+        grid_holder.focus_button = QPushButton(model.FOCUS_TEXT)
         grid_holder.focus_button.setCheckable(True)
         grid_holder.focus_button.clicked.connect(self.focus)
 
