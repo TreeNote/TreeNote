@@ -56,7 +56,6 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
-        add_action('focusAction', QAction(self.tr(FOCUS_TEXT), self, shortcut='F', triggered=self.focus))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
         add_action('undoAction', self.model.undoStack.createUndoAction(self))
@@ -101,7 +100,6 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.splitWindowAct)
         self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
-        self.viewMenu.addAction(self.focusAction)
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.resetViewAction)
 

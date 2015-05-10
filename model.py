@@ -75,7 +75,7 @@ class Updater(QThread):
                 print(line)
                 db_item = line['doc']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
-                if 'change' in db_item:
+                if 'change' in db_item and db_item['change'] != 'ignore':
                     self.model.db_change_signal.emit(db_item)
 
 
@@ -305,13 +305,35 @@ class TreeModel(QAbstractItemModel):
         self.undoStack.push(SetDataCommand(self, item_id, value, index.column(), field))
         return True
 
+    # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
 
+        # Delete design decision: We could delete items permanently. But if then the user renames, deletes and then undoes both actions, the undo of 'delete' would create an item with a new id. Therefore rename won't work.
+        # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
             _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus', 'delete_child_from_parent_id_list']
             title = 'Add or remove row'
 
-            @staticmethod  # because it is called from the outside for moving
+            # set delete = false for redoing (re-adding) if it was deleted
+            def set_deleted_marker(self, string, child_item_id):
+                    child_db_item = self.model.db[child_item_id]
+                    child_db_item[DELETED] = string
+                    child_db_item['change'] = 'ignore'
+                    self.model.db[child_db_item.id] = child_db_item
+
+                    # set deleted marker for children
+                    def delete_childs(db_item):
+                        children_list = db_item['children'].split()
+                        for ch_item_id in children_list:
+                            delete_childs(self.model.db[ch_item_id])
+                            ch_db_item = self.model.db.get(ch_item_id)
+                            if ch_db_item is not None:
+                                ch_db_item[DELETED] = string
+                                ch_db_item['change'] = 'ignore'
+                                self.model.db[ch_db_item.id] = ch_db_item
+                    delete_childs(child_db_item)
+
+            @staticmethod  # static because it is called from the outside for moving
             def add_rows(model, position, parent_item_id, id_list, set_edit_focus):
                 db_item = model.db[parent_item_id]
                 children_list = db_item['children'].split()
@@ -320,22 +342,11 @@ class TreeModel(QAbstractItemModel):
                 db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
                 model.db[parent_item_id] = db_item
 
+            # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
                 for child_item_id, parent_item_id, _ in self.delete_child_from_parent_id_list:
-                    child_db_item = self.model.db[child_item.id]
-                    child_db_item[DELETED] = 'True'
-                    self.model.db[child_db_item.id] = child_db_item
-
-                    def delete_childs(item):
-                        for ch_item in item.childItems:
-                            delete_childs(ch_item)
-                            ch_db_item = self.model.db.get(ch_item.id)
-                            if ch_db_item is not None:
-                                ch_db_item[DELETED] = 'True'
-                                self.model.db[ch_db_item.id] = ch_db_item
-
-                    delete_childs(child_item)
-
+                    self.set_deleted_marker('True', child_item_id)
+                    # remove from parent and inform the updater thread
                     parent_db_item = self.model.db[parent_item_id]
                     children_list = parent_db_item['children'].split()
                     parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item_id), count=1, user=socket.gethostname())
@@ -346,21 +357,22 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
-                    if self.id_list is None:
+                    if self.id_list is None: # for newly created items. else: add existing item (for move)
                         child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
                         self.id_list = [child_id]
+                    self.set_deleted_marker('', self.id_list[0]) # remove delete marker. just one item is inserted / re-inserted
                     self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
                     self.set_edit_focus = False  # when redo is called the second time (when the user is redoing), he doesn't want edit focus
-                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)]
+                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)] # info for undoing
                 else:
                     self.remove_rows()
 
             def undo(self):
                 if self.position is not None:  # undo insert command
-                    # todo: delete really instead of set delete marker ?
-                    self.remove_rows()
+                     self.remove_rows()
                 else:  # undo remove command
-                    for child_item_id, parent_item_id, position in delete_child_from_parent_id_list:
+                    for child_item_id, parent_item_id, position in self.delete_child_from_parent_id_list:
+                        self.set_deleted_marker('', child_item_id)
                         self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
 
         if position is not None:  # insert command
