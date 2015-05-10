@@ -16,13 +16,6 @@ class TreeItem(object):
         self.text = text
         self.childItems = []
 
-    def add_and_return_child(self, item):
-        for existing_item in self.childItems:
-            if existing_item.text == item.text:
-                return existing_item
-        self.childItems.append(item)
-        return item
-
     def child(self, row):
         return self.childItems[row]
 
@@ -47,11 +40,17 @@ class SimpleModel(QAbstractItemModel):
     def columnCount(self, parent):
         return 1
 
+    def headerData(self, column, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.rootItem.header_list[column]
+
+        return None
+
     def data(self, index, role):
         if not index.isValid():
             return None
 
-        if role != Qt.DisplayRole and role != FULL_PATH:
+        if role != Qt.DisplayRole:
             return None
 
         item = index.internalPointer()

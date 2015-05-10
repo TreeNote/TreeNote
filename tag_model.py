@@ -13,9 +13,25 @@ import simple_model
 FULL_PATH = 'FULL_PATH'
 
 
+class TagTreeItem(simple_model.TreeItem):
+    def __init__(self, text, parent=None):
+        self.parentItem = parent
+        self.text = text
+        self.childItems = []
+
+    def add_and_return_child(self, item):
+        for existing_item in self.childItems:
+            if existing_item.text == item.text:
+                return existing_item
+        self.childItems.append(item)
+        return item
+
+
 class TagModel(simple_model.SimpleModel):
     def __init__(self):
         super(TagModel, self).__init__()
+        self.rootItem = TagTreeItem(None)
+        self.rootItem.header_list = ['Tags']
 
     def data(self, index, role):
         if not index.isValid():
@@ -48,7 +64,7 @@ class TagModel(simple_model.SimpleModel):
             splitted_tag = whole_tag.split(model.DELIMITER)
 
             def add_below(parent, remaining_tags):
-                new_item = parent.add_and_return_child(simple_model.TreeItem(model.DELIMITER + remaining_tags[0], parent))
+                new_item = parent.add_and_return_child(TagTreeItem(model.DELIMITER + remaining_tags[0], parent))
                 del remaining_tags[0]
                 if len(remaining_tags) > 0:
                     add_below(new_item, remaining_tags)

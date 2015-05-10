@@ -6,5 +6,6 @@
         <file alias="search">images/dark_skin/search.png</file>
         <file alias="done">images/dark_skin/done.png</file>
         <file alias="todo">images/dark_skin/todo.png</file>
+        <file alias="star">images/dark_skin/star.png</file>
     </qresource>
 </RCC>

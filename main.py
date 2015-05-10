@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import *
 import qrc_resources
 import model
 import tag_model
+import bookmark_model
 import subprocess
 import socket
 import webbrowser
@@ -345,6 +346,10 @@ class MainWindow(QMainWindow):
 
     # file menu actions
 
+    def add_bookmark(self):
+        search_bar_text = self.grid_holder().search_bar.text()
+        self.grid_holder().bookmarks_view.model().add(search_bar_text)
+
     def open_rename_tag_dialog(self, point=False):
         if not point:  # called from menubar
             tag = self.grid_holder().tag_view.currentIndex().data()
@@ -460,8 +465,7 @@ class MainWindow(QMainWindow):
         grid_holder = QWidget()
 
         grid_holder.bookmarks_view = QTreeView()
-        grid_holder.bookmarks_view.header().hide()
-        # grid_holder.bookmarks_view.setModel(tag_model.TagModel())
+        grid_holder.bookmarks_view.setModel(bookmark_model.BookmarkModel())
         # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid_holder.view = QTreeView()
@@ -486,6 +490,21 @@ class MainWindow(QMainWindow):
         grid_holder.search_bar.textChanged[str].connect(self.search)
         grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
 
+        bookmark_button = QPushButton()
+        bookmark_button.setIcon(QIcon(':/star'))
+        bookmark_button.setStyleSheet('QPushButton {\
+        margin-top: 11px;\
+        width: 20px;\
+        height: 20px;}')
+        bookmark_button.clicked.connect(self.add_bookmark)
+
+        search_holder = QWidget()
+        layout = QBoxLayout(QBoxLayout.LeftToRight)
+        layout.addWidget(grid_holder.search_bar)
+        layout.addWidget(bookmark_button)
+        layout.setContentsMargins(0, 0, 0, 0)
+        search_holder.setLayout(layout)
+
         grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
@@ -501,7 +520,6 @@ class MainWindow(QMainWindow):
         size_policy_tag_view.setHorizontalStretch(1 / 2)  # smaller
         size_policy_tag_view.setVerticalStretch(1)  # bigger
         grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
-        grid_holder.tag_view.header().hide()
         grid_holder.tag_view.setModel(tag_model.TagModel())
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
@@ -509,20 +527,18 @@ class MainWindow(QMainWindow):
         grid.setSpacing(11) # space between contained widgets
         grid.setContentsMargins(0, 0, 11, 0) # left, top, right, bottom
 
-        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 10, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(grid_holder.view, 0, 1, 10, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.view, 0, 1, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
-        grid.addWidget(grid_holder.search_bar, 0, 2, 1, 1)
+        grid.addWidget(search_holder, 0, 2, 1, 1)
         grid.addWidget(QLabel(self.tr('')), 1, 2, 1, 1, Qt.AlignCenter)
         grid.addWidget(QLabel(self.tr('Add filters:')), 2, 2, 1, 1, Qt.AlignCenter)
         grid.addWidget(grid_holder.task, 3, 2, 1, 1)
         grid.addWidget(grid_holder.estimate, 4, 2, 1, 1)
         grid.addWidget(grid_holder.color, 5, 2, 1, 1)
         grid.addWidget(grid_holder.focus_button, 6, 2, 1, 1, Qt.AlignLeft)
-        grid.addWidget(QLabel(self.tr('')), 7, 2, 1, 1, Qt.AlignCenter)
-        grid.addWidget(QLabel(self.tr('Filter by tag:')), 8, 2, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.tag_view, 9, 2, 1, 1)
+        grid.addWidget(grid_holder.tag_view, 7, 2, 1, 1)
         grid_holder.setLayout(grid)
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
