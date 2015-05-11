@@ -11,14 +11,18 @@ import subprocess
 import socket
 import webbrowser
 import re
+import time
+import couchdb
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.model = model.TreeModel()
+        self.model = model.TreeModel(self.get_db('tree'))
         self.model.db_change_signal[dict].connect(self.db_change_signal)
+
+        self.bookmark_model = bookmark_model.BookmarkModel(self.get_db('bookmarks'))
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -124,6 +128,50 @@ class MainWindow(QMainWindow):
         self.resize(settings.value('size', QSize(400, 400)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
+    def get_db(self, db_name):
+        if sys.platform == "darwin":
+            subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
+
+        def get_create_db(new_db_name, db_url=None):
+
+            if db_url:
+                # todo check if couchdb was started, else exit loop and print exc
+                # http://stackoverflow.com/questions/1378974/is-there-a-way-to-start-stop-linux-processes-with-python
+                server = couchdb.Server(db_url)
+            else:
+                # todo check if couchdb was started, else exit loop and print exc
+                server = couchdb.Server()
+            try:
+                # del server[new_db_name]
+                return server, server[new_db_name]
+            except couchdb.http.ResourceNotFound:
+                new_db = server.create(new_db_name)
+                new_db['0'] = (NEW_DB_ITEM.copy())
+                print("Database does not exist. Created the database.")
+                return server, new_db
+            except couchdb.http.Unauthorized as err:
+                print(err.message)
+
+            except couchdb.http.ServerError as err:
+                print(err.message)
+
+
+        local_server = None
+        while local_server is None:  # wait until couchdb is started
+            try:
+                time.sleep(0.1)
+                local_server, db = get_create_db(db_name)
+                break
+            except Exception as e:
+                print(e.__doc__)
+                print(e.message)
+        return db
+
+        server_url = 'http://192.168.178.42:5984/'
+        # get_create_db(db_name, server_url)
+        # local_server.replicate(db_name, server_url + db_name, continuous=True)
+        # local_server.replicate(server_url + db_name, db_name, continuous=True)
+
     def grid_holder(self):  # returns focused grid_holder
         for i in range(0, self.mainSplitter.count()):
             if self.mainSplitter.widget(i).hasFocus():
@@ -180,6 +228,12 @@ class MainWindow(QMainWindow):
             if ':' not in search_bar_text:
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
+
+
+    def bookmark(self):
+        search_bar_text = self.grid_holder().search_bar.text()
+        if search_bar_text != '':
+            self.bookmark_model.add(search_bar_text)
 
     def filter(self, key, value):
         character = value[0]
@@ -334,9 +388,9 @@ class MainWindow(QMainWindow):
 
     def rename_tag(self, tag, new_name):
         map = "function(doc) {{ \
-                if (doc.text.indexOf('{}') != -1 ) \
-                    emit(doc, null); \
-            }}".format(tag)
+                    if (doc.text.indexOf('{}') != -1 ) \
+                        emit(doc, null); \
+                }}".format(tag)
         res = self.model.db.query(map)
         for row in res:
             db_item = self.model.db[row.id]
@@ -344,11 +398,6 @@ class MainWindow(QMainWindow):
             db_item['change'] = dict(method='updated', user=socket.gethostname())
             self.model.db[row.id] = db_item
 
-    # file menu actions
-
-    def add_bookmark(self):
-        search_bar_text = self.grid_holder().search_bar.text()
-        self.grid_holder().bookmarks_view.model().add(search_bar_text)
 
     def open_rename_tag_dialog(self, point=False):
         if not point:  # called from menubar
@@ -465,7 +514,7 @@ class MainWindow(QMainWindow):
         grid_holder = QWidget()
 
         grid_holder.bookmarks_view = QTreeView()
-        grid_holder.bookmarks_view.setModel(bookmark_model.BookmarkModel())
+        grid_holder.bookmarks_view.setModel(self.bookmark_model)
         # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid_holder.view = QTreeView()
@@ -493,10 +542,10 @@ class MainWindow(QMainWindow):
         bookmark_button = QPushButton()
         bookmark_button.setIcon(QIcon(':/star'))
         bookmark_button.setStyleSheet('QPushButton {\
-        margin-top: 11px;\
-        width: 20px;\
-        height: 20px;}')
-        bookmark_button.clicked.connect(self.add_bookmark)
+            margin-top: 11px;\
+            width: 20px;\
+            height: 20px;}')
+        bookmark_button.clicked.connect(self.bookmark)
 
         search_holder = QWidget()
         layout = QBoxLayout(QBoxLayout.LeftToRight)
@@ -524,8 +573,8 @@ class MainWindow(QMainWindow):
         grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
         grid = QGridLayout()
-        grid.setSpacing(11) # space between contained widgets
-        grid.setContentsMargins(0, 0, 11, 0) # left, top, right, bottom
+        grid.setSpacing(11)  # space between contained widgets
+        grid.setContentsMargins(0, 0, 11, 0)  # left, top, right, bottom
 
         grid.addWidget(grid_holder.bookmarks_view, 0, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 

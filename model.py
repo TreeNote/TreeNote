@@ -2,7 +2,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import couchdb
-import time
 import sys
 import subprocess
 import threading
@@ -102,55 +101,14 @@ class TreeModel(QAbstractItemModel):
     """
     db_change_signal = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, db, parent=None):
         super(TreeModel, self).__init__(parent)
-
+        self.db = db
         self.undoStack = QUndoStack(self)
-
-        if sys.platform == "darwin":
-            subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
-
-        def get_create_db(new_db_name, db_url=None):
-
-            if db_url:
-                # todo check if couchdb was started, else exit loop and print exc
-                # http://stackoverflow.com/questions/1378974/is-there-a-way-to-start-stop-linux-processes-with-python
-                server = couchdb.Server(db_url)
-            else:
-                # todo check if couchdb was started, else exit loop and print exc
-                server = couchdb.Server()
-            try:
-                # del server[new_db_name]
-                return server, server[new_db_name]
-            except couchdb.http.ResourceNotFound:
-                new_db = server.create(new_db_name)
-                new_db['0'] = (NEW_DB_ITEM.copy())
-                print("Database does not exist. Created the database.")
-                return server, new_db
-            except couchdb.http.Unauthorized as err:
-                print(err.message)
-
-            except couchdb.http.ServerError as err:
-                print(err.message)
 
         # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:
         self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict. This dict may grow huge during runtime.
         self.pointer_set = set()
-
-        db_name = 'tree'
-        server_url = 'http://192.168.178.42:5984/'
-        local_server = None
-        while local_server is None:  # wait until couchdb is started
-            try:
-                time.sleep(0.1)
-                local_server, self.db = get_create_db(db_name)
-                break
-            except:
-                pass
-
-        # get_create_db(db_name, server_url)
-        # local_server.replicate(db_name, server_url + db_name, continuous=True)
-        # local_server.replicate(server_url + db_name, db_name, continuous=True)
 
         # delete items with deleted flag permanently
         map = "function(doc) { \
@@ -159,7 +117,6 @@ class TreeModel(QAbstractItemModel):
                 }"
         res = self.db.query(map)
         for row in res:
-            print("aa" + row.id)
             self.db.delete(self.db[row.id])
 
         self.rootItem = Tree_item('root item', self)
