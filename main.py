@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
     def bookmark(self):
         search_bar_text = self.grid_holder().search_bar.text()
         if search_bar_text != '':
-            self.bookmark_model.add(search_bar_text)
+            BookmarkDialog(self, search_bar_text).exec_()
 
     def filter(self, key, value):
         character = value[0]
@@ -641,24 +641,32 @@ class MyQLineEdit(QLineEdit):
 
 
 class BookmarkDialog(QDialog):
-    def __init__(self, parent, tag):
+    def __init__(self, parent, search_bar_text):
         super(BookmarkDialog, self).__init__(parent)
         self.parent = parent
-        self.tag = tag
-        self.line_edit = QLineEdit(tag)
+        self.search_bar_text = search_bar_text
+        self.name_edit = QLineEdit()
+        self.search_bar_text_edit = QLineEdit(search_bar_text)
+        self.shortcut_edit = QLineEdit()
+        self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
-        grid.addWidget(self.line_edit, 0, 0)
-        grid.addWidget(buttonBox, 1, 0)
+        grid.addWidget(QLabel('Bookmark name:'), 0, 0)  # row, column
+        grid.addWidget(QLabel('Saved filters:'), 1, 0)
+        grid.addWidget(QLabel('Shortcut (optional):'), 2, 0)
+        grid.addWidget(self.name_edit, 0, 1)
+        grid.addWidget(self.search_bar_text_edit, 1, 1)
+        grid.addWidget(self.shortcut_edit, 2, 1)
+        grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.setWindowTitle("Bookmark current filters")
 
     def apply(self):
-        self.parent.rename_tag(self.tag, self.line_edit.text())
-        super(RenameTagDialog, self).accept()
+        self.parent.bookmark_model.add_or_update(self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text())
+        super(BookmarkDialog, self).accept()
 
 
 class RenameTagDialog(QDialog):

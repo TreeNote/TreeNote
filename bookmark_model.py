@@ -9,39 +9,24 @@ import threading
 import socket
 import model
 import simple_model
-import collections
 
 NAME = 'name'
 SEARCH_TEXT = 'search_text'
-ICON = 'icon'
 SHORTCUT = 'shortcut'
-NEW_BOOKMARK_DB_ITEM = {NAME: '', SEARCH_TEXT: '', ICON: '', SHORTCUT: ''}
-
+NEW_BOOKMARK_DB_ITEM = {NAME: '', SEARCH_TEXT: '', SHORTCUT: ''}
 
 class BookmarkItem(simple_model.TreeItem):
-    def __init__(self, text, parent=None):
+    def __init__(self, text, id, parent=None):
         self.parentItem = parent
         self.text = text
-        self.childItems = collections.OrderedDict()
+        self.childItems = []
+        self.id = id
 
-    def child(self, row):
-        return self.childItems[row]
-
-    def childCount(self):
-        return len(self.childItems)
-
-    def parent(self):
-        return self.parentItem
-
-    def row(self):
-        if self.parentItem:
-            return self.parentItem.childItems.index(self)
-
-        return 0
-
+# each user has local bookmarks
 class BookmarkModel(simple_model.SimpleModel):
     def __init__(self, db):
         super(BookmarkModel, self).__init__()
+        self.rootItem = BookmarkItem('root', '0', None)
         self.rootItem.header_list = ['Bookmarks']
         self.db = db
         map = "function(doc) { \
@@ -50,24 +35,20 @@ class BookmarkModel(simple_model.SimpleModel):
         res = self.db.query(map)
         for row in res:
             db_item = self.db[row.id]
-            self.rootItem.childItems.append(BookmarkItem(db_item[NAME], self.rootItem))
+            self.rootItem.childItems.append(BookmarkItem(db_item[NAME],row.id, self.rootItem))
 
-    def add(self, search_text):
+    def add_or_update(self, name, search_text, shortcut, index=None):
         self.beginResetModel()
-        self.rootItem.childItems.append(BookmarkItem(search_text, self.rootItem))
-        item_id, _ = self.db.save(NEW_BOOKMARK_DB_ITEM.copy())
-        db_item = self.db[item_id]
-        db_item[NAME] = search_text
-        self.db[item_id] = db_item
-        self.endResetModel()
-
-    def update(self, item_id, name, search_text, icon, shortcut):
-        self.beginResetModel()
-        self.rootItem.childItems.ge(BookmarkItem(search_text, self.rootItem))
-        db_item = self.db[item_id]
+        if index is None:
+            item_id, _ = self.db.save(NEW_BOOKMARK_DB_ITEM.copy())
+            db_item = self.db[item_id]
+            self.rootItem.childItems.append(BookmarkItem(name, item_id, self.rootItem))
+        else:
+            item = self.getItem(index)
+            db_item = self.db[item.id]
+            item.text = name
         db_item[NAME] = name
         db_item[SEARCH_TEXT] = search_text
-        db_item[ICON] = icon
         db_item[SHORTCUT] = shortcut
         self.db[item_id] = db_item
         self.endResetModel()
@@ -75,7 +56,7 @@ class BookmarkModel(simple_model.SimpleModel):
     def delete(self, search_text):
         self.beginResetModel()
         self.rootItem.childItems.append(BookmarkItem(search_text, self.rootItem))
-        item_id, _ = self.db.save(NEW_BOOKMARK_DB_ITEM.copy())
+        item_id, _ = self.db.save(BookmarkItem.copy())
         db_item = self.db[item_id]
         db_item[NAME] = search_text
         self.db[item_id] = db_item

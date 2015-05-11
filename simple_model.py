@@ -46,6 +46,14 @@ class SimpleModel(QAbstractItemModel):
 
         return None
 
+    def getItem(self, index):
+        if index.isValid():
+            item = index.internalPointer()
+            if item:
+                return item
+
+        return self.rootItem
+
     def data(self, index, role):
         if not index.isValid():
             return None
