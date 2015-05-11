@@ -228,6 +228,9 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
+    def filter_bookmark(self):
+        current_index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
+        self.grid_holder().search_bar.setText(current_index.data())
 
     def bookmark(self):
         search_bar_text = self.grid_holder().search_bar.text()
@@ -514,7 +517,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.bookmarks_view = QTreeView()
         grid_holder.bookmarks_view.setModel(self.bookmark_model)
-        # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_tag)
+        grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -635,6 +638,27 @@ class MyQLineEdit(QLineEdit):
             self.main.focusNextChild()
         else:
             QLineEdit.keyPressEvent(self, event)
+
+
+class BookmarkDialog(QDialog):
+    def __init__(self, parent, tag):
+        super(BookmarkDialog, self).__init__(parent)
+        self.parent = parent
+        self.tag = tag
+        self.line_edit = QLineEdit(tag)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(self.line_edit, 0, 0)
+        grid.addWidget(buttonBox, 1, 0)
+        self.setLayout(grid)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        self.setWindowTitle("Bookmark current filters")
+
+    def apply(self):
+        self.parent.rename_tag(self.tag, self.line_edit.text())
+        super(RenameTagDialog, self).accept()
 
 
 class RenameTagDialog(QDialog):
