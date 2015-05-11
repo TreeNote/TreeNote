@@ -16,6 +16,7 @@ import couchdb
 
 EDIT_BOOKMARK = 'Edit bookmark'
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -149,7 +150,7 @@ class MainWindow(QMainWindow):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db['0'] = (NEW_DB_ITEM.copy())
+                new_db['0'] = (model.NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -157,7 +158,6 @@ class MainWindow(QMainWindow):
 
             except couchdb.http.ServerError as err:
                 print(err.message)
-
 
         local_server = None
         while local_server is None:  # wait until couchdb is started
@@ -231,16 +231,11 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
-    def filter_bookmark(self): # set the search bar text according to the selected bookmark
+    def filter_bookmark(self):  # set the search bar text according to the selected bookmark
         current_index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
         item = self.bookmark_model.getItem(current_index)
         search_bar_text = self.bookmark_model.db[item.id][bookmark_model.SEARCH_TEXT]
         self.grid_holder().search_bar.setText(search_bar_text)
-
-    def bookmark(self):
-        search_bar_text = self.grid_holder().search_bar.text()
-        if search_bar_text != '':
-            BookmarkDialog(self, search_bar_text=search_bar_text).exec_()
 
     def filter(self, key, value):
         character = value[0]
@@ -567,7 +562,7 @@ class MainWindow(QMainWindow):
             width: 20px;\
             height: 20px;\
             padding: 2px; }')
-        bookmark_button.clicked.connect(self.bookmark)
+        bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=grid_holder.search_bar.text()).exec_())
 
         search_holder = QWidget()
         layout = QBoxLayout(QBoxLayout.LeftToRight)
