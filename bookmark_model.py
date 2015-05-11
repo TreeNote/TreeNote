@@ -45,8 +45,9 @@ class BookmarkModel(simple_model.SimpleModel):
             self.rootItem.childItems.append(BookmarkItem(name, item_id, self.rootItem))
         else:
             item = self.getItem(index)
-            db_item = self.db[item.id]
+            item_id = item.id
             item.text = name
+        db_item = self.db[item_id]
         db_item[NAME] = name
         db_item[SEARCH_TEXT] = search_text
         db_item[SHORTCUT] = shortcut

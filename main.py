@@ -14,6 +14,7 @@ import re
 import time
 import couchdb
 
+EDIT_BOOKMARK = 'Edit bookmark'
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -58,6 +59,7 @@ class MainWindow(QMainWindow):
         add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
+        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=self.open_edit_bookmark_dialog))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -70,6 +72,7 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.undoAction)
         self.fileMenu.addAction(self.redoAction)
         self.fileMenu.addAction(self.renameTagAction)
+        self.fileMenu.addAction(self.editBookmarkAction)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -228,14 +231,16 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
-    def filter_bookmark(self):
+    def filter_bookmark(self): # set the search bar text according to the selected bookmark
         current_index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
-        self.grid_holder().search_bar.setText(current_index.data())
+        item = self.bookmark_model.getItem(current_index)
+        search_bar_text = self.bookmark_model.db[item.id][bookmark_model.SEARCH_TEXT]
+        self.grid_holder().search_bar.setText(search_bar_text)
 
     def bookmark(self):
         search_bar_text = self.grid_holder().search_bar.text()
         if search_bar_text != '':
-            BookmarkDialog(self, search_bar_text).exec_()
+            BookmarkDialog(self, search_bar_text=search_bar_text).exec_()
 
     def filter(self, key, value):
         character = value[0]
@@ -413,6 +418,18 @@ class MainWindow(QMainWindow):
             tag = self.grid_holder().tag_view.indexAt(point).data()
         RenameTagDialog(self, tag).exec_()
 
+    def open_edit_bookmark_dialog(self, point=False):
+        if not point:  # called from menubar
+            index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
+        else:  # called from context menu
+            menu = QMenu()
+            editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
+            action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
+            if action != editBookmarkAction:
+                return
+            index = self.grid_holder().bookmarks_view.indexAt(point)
+        BookmarkDialog(self, index=index).exec_()
+
     # structure menu actions
 
     def expand_all_children(self):
@@ -518,6 +535,8 @@ class MainWindow(QMainWindow):
         grid_holder.bookmarks_view = QTreeView()
         grid_holder.bookmarks_view.setModel(self.bookmark_model)
         grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
+        grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -641,14 +660,29 @@ class MyQLineEdit(QLineEdit):
 
 
 class BookmarkDialog(QDialog):
-    def __init__(self, parent, search_bar_text):
+    # init it with either search_bar_text or index set
+    # search_bar_text is set: create new bookmark
+    # index is set: edit existing bookmark
+    def __init__(self, parent, search_bar_text=None, index=None):
         super(BookmarkDialog, self).__init__(parent)
         self.parent = parent
         self.search_bar_text = search_bar_text
-        self.name_edit = QLineEdit()
+        self.index = index
+        if index is not None:
+            item = parent.bookmark_model.getItem(index)
+            db_item = parent.bookmark_model.db[item.id]
+
+        name = '' if index is None else db_item[bookmark_model.NAME]
+        self.name_edit = QLineEdit(name)
+
+        if search_bar_text is None:
+            search_bar_text = db_item[bookmark_model.SEARCH_TEXT]
         self.search_bar_text_edit = QLineEdit(search_bar_text)
-        self.shortcut_edit = QLineEdit()
+
+        shortcut = '' if index is None else db_item[bookmark_model.SHORTCUT]
+        self.shortcut_edit = QLineEdit(shortcut)
         self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
+
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
@@ -662,10 +696,13 @@ class BookmarkDialog(QDialog):
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        self.setWindowTitle("Bookmark current filters")
+        if self.index is None:
+            self.setWindowTitle("Bookmark current filters")
+        else:
+            self.setWindowTitle("Edit bookmark")
 
     def apply(self):
-        self.parent.bookmark_model.add_or_update(self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text())
+        self.parent.bookmark_model.add_or_update(self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text(), index=self.index)
         super(BookmarkDialog, self).accept()
 
 
