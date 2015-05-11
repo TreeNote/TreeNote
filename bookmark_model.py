@@ -10,8 +10,8 @@ import socket
 import model
 import simple_model
 
-
-NEW_BOOKMARK_DB_ITEM = {'name': '', 'search_text': '', 'icon': '', 'shortcut': ''}
+NAME = 'name'
+NEW_BOOKMARK_DB_ITEM = {NAME: '', 'search_text': '', 'icon': '', 'shortcut': ''}
 
 
 class BookmarkModel(simple_model.SimpleModel):
@@ -35,7 +35,10 @@ class BookmarkModel(simple_model.SimpleModel):
     def add(self, search_text):
         self.beginResetModel()
         self.rootItem.childItems.append(simple_model.TreeItem(search_text, self.rootItem))
-        # self.db.save(NEW_DB_ITEM.copy())
+        item_id, _ = self.db.save(NEW_BOOKMARK_DB_ITEM.copy())
+        db_item = self.db[item_id]
+        db_item[NAME] = search_text
+        self.db[item_id] = db_item
         self.endResetModel()
 
 

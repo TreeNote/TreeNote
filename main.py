@@ -163,8 +163,7 @@ class MainWindow(QMainWindow):
                 local_server, db = get_create_db(db_name)
                 break
             except Exception as e:
-                print(e.__doc__)
-                print(e.message)
+                print("Trying to connect to database, but: " + str(e))
         return db
 
         server_url = 'http://192.168.178.42:5984/'
@@ -544,7 +543,8 @@ class MainWindow(QMainWindow):
         bookmark_button.setStyleSheet('QPushButton {\
             margin-top: 11px;\
             width: 20px;\
-            height: 20px;}')
+            height: 20px;\
+            padding: 2px; }')
         bookmark_button.clicked.connect(self.bookmark)
 
         search_holder = QWidget()
@@ -560,6 +560,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.focus_button = QPushButton(model.FOCUS_TEXT)
         grid_holder.focus_button.setCheckable(True)
+        grid_holder.focus_button.setStyleSheet('QPushButton { padding: 4px; }')
         grid_holder.focus_button.clicked.connect(self.focus)
 
         grid_holder.tag_view = QTreeView()
@@ -581,7 +582,7 @@ class MainWindow(QMainWindow):
         grid.addWidget(grid_holder.view, 0, 1, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
         grid.addWidget(search_holder, 0, 2, 1, 1)
-        grid.addWidget(QLabel(self.tr('')), 1, 2, 1, 1, Qt.AlignCenter)
+        grid.addWidget(QLabel(self.tr('')), 1, 2, 1, 1, Qt.AlignCenter)  # or QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         grid.addWidget(QLabel(self.tr('Add filters:')), 2, 2, 1, 1, Qt.AlignCenter)
         grid.addWidget(grid_holder.task, 3, 2, 1, 1)
         grid.addWidget(grid_holder.estimate, 4, 2, 1, 1)
@@ -617,6 +618,9 @@ class MyQLineEdit(QLineEdit):
         self.setStyleSheet('QLineEdit {\
         margin-top: 11px;\
         padding-left: 20px;\
+        padding-top: 3px;\
+        padding-right: 3px;\
+        padding-bottom: 3px;\
         background: url(:/search);\
         background-position: left;\
         background-repeat: no-repeat;\
@@ -716,7 +720,11 @@ if __name__ == '__main__':
     dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
     dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
     app.setPalette(dark_palette)
-    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }')
+    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
+                      QHeaderView::section { padding-bottom: 5px;  padding-top: 2px;}')
+
+    font = QFont('Arial', 16)
+    app.setFont(font);
 
     form = MainWindow()
     form.show()
