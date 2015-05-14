@@ -117,9 +117,9 @@ class TreeModel(QAbstractItemModel):
 
         self.rootItem = Tree_item('root item', self)
         self.rootItem.header_list = header_list
-        self.rootItem.id = '0'
+        self.rootItem.id = ROOT_ID
         index = QModelIndex()
-        self.id_index_dict['0'] = index
+        self.id_index_dict[ROOT_ID] = index
         self.pointer_set.add(QModelIndex().internalId())
 
         self.updater = Updater(self)
@@ -748,7 +748,7 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.popup().setCurrentIndex(
             self._completer.completionModel().index(0, 0))
 
-
+ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
 SELECTION_GRAY = QColor(65, 65, 65)
 BACKGROUND_GRAY = QColor(57, 57, 57)  # darker

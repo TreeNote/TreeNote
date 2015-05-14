@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import *
 import qrc_resources
 import item_model
 import tag_model
-import bookmark_model
 import subprocess
 import socket
 import webbrowser
@@ -154,7 +153,7 @@ class MainWindow(QMainWindow):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db['0'] = (item_model.NEW_DB_ITEM.copy())
+                new_db[item_model.ROOT_ID] = (item_model.NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -240,6 +239,7 @@ class MainWindow(QMainWindow):
         item = self.bookmark_model.getItem(current_index)
         new_search_bar_text = self.bookmark_model.db[item.id][item_model.SEARCH_TEXT]
         self.grid_holder().search_bar.setText(new_search_bar_text)
+        self.grid_holder().view.setFocus()
 
     def filter(self, key, value):
         character = value[0]
@@ -410,24 +410,28 @@ class MainWindow(QMainWindow):
         if not point:  # called from menubar
             tag = self.grid_holder().tag_view.currentIndex().data()
         else:  # called from context menu
+            index = self.grid_holder().tag_view.indexAt(point)
+            if not index.isValid():
+                return
             menu = QMenu()
             renameTagAction = menu.addAction(self.tr("Rename tag"))
             action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
-            if action != renameTagAction:
-                return
-            tag = self.grid_holder().tag_view.indexAt(point).data()
-        RenameTagDialog(self, tag).exec_()
+            if action is renameTagAction:
+                RenameTagDialog(self, index.data()).exec_()
 
     def open_edit_bookmark_dialog(self, point=False):
         if not point:  # called from menubar
             index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
         else:  # called from context menu
+            index = self.grid_holder().bookmarks_view.indexAt(point)
+            if not index.isValid():
+                return
             menu = QMenu()
             editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
             deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
             action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
             if action is editBookmarkAction:
-                BookmarkDialog(self, index=self.grid_holder().bookmarks_view.indexAt(point)).exec_()
+                BookmarkDialog(self, index=index).exec_()
             elif action is deleteBookmarkAction:
                 self.removeSelection()
 
@@ -716,8 +720,8 @@ class BookmarkDialog(QDialog):
     def apply(self):
         if self.index is None:
             new_item_position = len(self.parent.bookmark_model.rootItem.childItems)
-            self.parent.bookmark_model.insert_remove_rows(new_item_position, '0')
-            children_list = self.parent.bookmark_model.db['0']['children'].split()
+            self.parent.bookmark_model.insert_remove_rows(new_item_position, item_model.ROOT_ID)
+            children_list = self.parent.bookmark_model.db[item_model.ROOT_ID]['children'].split()
             item_id = children_list[-1]
         else:
             item_id = self.parent.bookmark_model.get_db_item_id(self.index)

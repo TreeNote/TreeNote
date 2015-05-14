@@ -8,30 +8,106 @@ import subprocess
 import threading
 import socket
 import item_model
-import simple_model
 
 FULL_PATH = 'FULL_PATH'
 
 
-class TagTreeItem(simple_model.TreeItem):
+class TagTreeItem(object):
     def __init__(self, text, parent=None):
         self.parentItem = parent
         self.text = text
         self.childItems = []
 
+    def child(self, row):
+        return self.childItems[row]
+
+    def childCount(self):
+        return len(self.childItems)
+
+    def parent(self):
+        return self.parentItem
+
+    def row(self):
+        if self.parentItem:
+            return self.parentItem.childItems.index(self)
+
+        return 0
+
     def add_and_return_child(self, item):
         for existing_item in self.childItems:
             if existing_item.text == item.text:
                 return existing_item
+
         self.childItems.append(item)
         return item
 
 
-class TagModel(simple_model.SimpleModel):
+class TagModel(QAbstractItemModel):
     def __init__(self):
         super(TagModel, self).__init__()
         self.rootItem = TagTreeItem(None)
         self.rootItem.header_list = ['Tags']
+
+    def columnCount(self, parent):
+        return 1
+
+    def headerData(self, column, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.rootItem.header_list[column]
+
+        return None
+
+    def getItem(self, index):
+        if index.isValid():
+            item = index.internalPointer()
+            if item:
+                return item
+
+        return self.rootItem
+
+    def flags(self, index):
+        if not index.isValid():
+            return Qt.NoItemFlags
+
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+    def index(self, row, column, parent):
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+
+        childItem = parentItem.child(row)
+        if childItem:
+            return self.createIndex(row, column, childItem)
+        else:
+            return QModelIndex()
+
+    def parent(self, index):
+        if not index.isValid():
+            return QModelIndex()
+
+        childItem = index.internalPointer()
+        parentItem = childItem.parent()
+
+        if parentItem == self.rootItem:
+            return QModelIndex()
+
+        return self.createIndex(parentItem.row(), 0, parentItem)
+
+    def rowCount(self, parent):
+        if parent.column() > 0:
+            return 0
+
+        if not parent.isValid():
+            parentItem = self.rootItem
+        else:
+            parentItem = parent.internalPointer()
+
+        return parentItem.childCount()
 
     def data(self, index, role):
         if not index.isValid():
@@ -55,7 +131,6 @@ class TagModel(simple_model.SimpleModel):
             return ''.join(reversed(tag_list))
 
         return item.text
-
 
     def setupModelData(self, tags_set):
         self.beginResetModel()
