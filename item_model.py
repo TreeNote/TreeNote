@@ -197,7 +197,8 @@ class TreeModel(QAbstractItemModel):
         else:  # index.column() == 2:
             return item.estimate
 
-    def setData(self, index, value, role=None, field='text'):
+    # pass either index or item_id + column
+    def setData(self, value, index=None, item_id=None, column=None, field='text'):
 
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
@@ -226,8 +227,10 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.set_data(self.old_value)
 
-        item_id = self.getItem(index).id
-        self.undoStack.push(SetDataCommand(self, item_id, value, index.column(), field))
+        if item_id is None:
+            item_id = self.getItem(index).id
+            column = index.column()
+        self.undoStack.push(SetDataCommand(self, item_id, value, column, field))
         return True
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
@@ -536,7 +539,7 @@ class FilterProxyModel(QSortFilterProxyModel):
         return self.sourceModel().getItem(self.mapToSource(index))
 
     def setData(self, index, value, role=None, field='text'):
-        return self.sourceModel().setData(self.mapToSource(index), value, field=field)
+        return self.sourceModel().setData(value, index=self.mapToSource(index), field=field)
 
     def toggle_task(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
@@ -772,5 +775,8 @@ CHAR_TYPE_DICT = {
 FOCUS = 'focus'
 EMPTY_DATE = '14.09.52'
 DELETED = 'deleted'
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': ''}
+SEARCH_TEXT = 'search_text'
+SHORTCUT = 'shortcut'
+NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
+               SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'

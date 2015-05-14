@@ -57,7 +57,6 @@ class MainWindow(QMainWindow):
         add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')))
         add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')))
         add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
-        # add_action('priority1Action', QAction(self.tr('&Priority 1'), self, shortcut='1', triggered=lambda: self.set_priority(1)))
         add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
@@ -99,8 +98,6 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorNoColorAction)
-        # self.priorityMenu = self.taskMenu.addMenu(self.tr('&Set priority'))
-        # self.priorityMenu.addAction(self.priority1Action)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.expandAllChildrenAction)
@@ -304,10 +301,15 @@ class MainWindow(QMainWindow):
             if my_edit:
                 index_first_added = model.index(position, 0, index)
                 index_last_added = model.index(position + len(id_list) - 1, 0, index)
-                if change_dict['set_edit_focus']:
-                    self.update_selection_and_edit(index_first_added)
-                else:
+                if not change_dict['set_edit_focus']:
                     self.set_selection(index_first_added, index_last_added)
+                else:  # update selection_and_edit
+                    if index_first_added.model() is self.model:
+                        index_first_added = self.grid_holder().proxy.mapFromSource(index_first_added)
+                        self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
+                        self.focusWidget().edit(index_first_added)
+                    else: # bookmark
+                        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
         elif method == 'removed':
             model.beginRemoveRows(index, position, position + count - 1)
@@ -348,16 +350,15 @@ class MainWindow(QMainWindow):
 
     def set_selection(self, index_from, index_to):
         if self.grid_holder().view.state() != QAbstractItemView.EditingState:
+            if index_from.model() is self.model:
+                index_to = self.grid_holder().proxy.mapFromSource(index_to)
+                index_from = self.grid_holder().proxy.mapFromSource(index_from)
+            else:
+                self.grid_holder().bookmarks_view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
             index_to = index_to.sibling(index_to.row(), self.model.columnCount() - 1)
-            self.grid_holder().view.setFocus()
-            self.grid_holder().view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
-            self.grid_holder().view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
-
-    def update_selection_and_edit(self, index):
-        proxy_index = self.grid_holder().proxy.mapFromSource(index)
-        self.grid_holder().view.selectionModel().setCurrentIndex(proxy_index, QItemSelectionModel.ClearAndSelect)
-        self.grid_holder().view.edit(proxy_index)
+            self.focusWidget().selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+            self.focusWidget().selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
     def reset_view(self):
         self.grid_holder().task.comboBox.setCurrentIndex(0)
@@ -489,18 +490,13 @@ class MainWindow(QMainWindow):
 
     def append_repeat(self):
         current_index = self.grid_holder().view.selectionModel().currentIndex()
-        self.grid_holder().proxy.setData(current_index, current_index.data() + ' repeat=1w')
+        self.grid_holder().proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
     def color_row(self, color_character):
         if self.grid_holder().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.setData(row_index, item_model.CHAR_QCOLOR_DICT[color_character], field='color')
-
-    def set_priority(self, number):
-        if self.grid_holder().view.hasFocus():
-            # todo mehrere mit selectedRows()
-            self.grid_holder().proxy.setData(self.grid_holder().view.selectionModel().currentIndex(), number, field='priority')
+                self.grid_holder().proxy.setData(item_model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 
@@ -532,9 +528,9 @@ class MainWindow(QMainWindow):
         grid_holder.bookmarks_proxy.filter = ''
         grid_holder.bookmarks_view.setModel(grid_holder.bookmarks_proxy)
         # grid_holder.bookmarks_view.setModel(self.bookmark_model)
-        grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
-        grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
+        # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
+        # grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        # grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -614,6 +610,7 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
+        grid_holder.view.setFocus()
         self.set_selection(top_most_index, top_most_index)
 
         self.unsplitWindowAct.setEnabled(True)
@@ -700,21 +697,12 @@ class BookmarkDialog(QDialog):
             self.setWindowTitle("Edit bookmark")
 
     def apply(self):
-        # self.parent.bookmark_model.insert_remove_rows(0, '0')
-        # (self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text(), index=self.index)
-        if self.index is None: # create new bookmark
-            child_id, _ = self.parent.bookmark_model.db.save(item_model.NEW_DB_ITEM.copy())
-            db_item = self.parent.bookmark_model.db['0'] # append to bookmark root item
-            children_list = db_item['children'].split()
-            children_list_new = children_list + [child_id]
-            db_item['children'] = ' '.join(children_list_new)
-            self.parent.bookmark_model.db['0'] = db_item
-            # todo say method name
-            self.parent.bookmark_model.rootItem.add_child(0, child_id, QModelIndex()) # todo append unten
-            self.index = self.parent.bookmark_model.index(0, 0, QModelIndex())
-        # self.parent.grid_holder().proxy.setData(self.index, self.name_edit.text())
-        # self.parent.grid_holder().proxy.setData(self.index, self.search_bar_text_edit.text(), field=model.SEARCH_TEXT)
-        # self.parent.grid_holder().proxy.setData(self.index, self.shortcut_edit.text(), field=model.SHORTCUT)
+        self.parent.bookmark_model.insert_remove_rows(0, '0')
+        children_list = self.parent.bookmark_model.db['0']['children'].split()
+        new_item_id = children_list[-1]
+        self.parent.bookmark_model.setData(self.name_edit.text(), item_id=new_item_id, column=0, field='text')
+        # self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=new_item_id, column=0, field=item_model.SEARCH_TEXT)
+        # self.parent.bookmark_model.setData(self.shortcut_edit.text(), item_id=new_item_id, column=0, field=item_model.SHORTCUT)
         super(BookmarkDialog, self).accept()
 
 
