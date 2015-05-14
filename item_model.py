@@ -90,10 +90,6 @@ class Tree_item(object):
         self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
         self.model.pointer_set.add(new_index.internalId())
 
-    def remove_children(self, position, count):
-        for row in range(count):
-            self.childItems.pop(position)
-
 
 class TreeModel(QAbstractItemModel):
     """
@@ -165,6 +161,9 @@ class TreeModel(QAbstractItemModel):
             return QModelIndex()
 
         parentItem = self.getItem(parent)
+        if row >= len(parentItem.childItems): # bugfix
+            return QModelIndex()
+
         childItem = parentItem.childItems[row]
         return self.createIndex(row, column, childItem)
 

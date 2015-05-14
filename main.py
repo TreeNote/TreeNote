@@ -16,7 +16,6 @@ import couchdb
 
 EDIT_BOOKMARK = 'Edit bookmark'
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -63,6 +62,7 @@ class MainWindow(QMainWindow):
         add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=self.open_edit_bookmark_dialog))
         add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W',triggered=self.move_up))
         add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S',triggered=self.move_down))
+        add_action('moveBookmarkDownAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete',triggered=self.removeSelection))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -424,11 +424,12 @@ class MainWindow(QMainWindow):
         else:  # called from context menu
             menu = QMenu()
             editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
+            deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
             action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
-            if action != editBookmarkAction:
-                return
-            index = self.grid_holder().bookmarks_view.indexAt(point)
-        BookmarkDialog(self, index=index).exec_()
+            if action is editBookmarkAction:
+                BookmarkDialog(self, index=self.grid_holder().bookmarks_view.indexAt(point)).exec_()
+            elif action is deleteBookmarkAction:
+                self.removeSelection()
 
     # structure menu actions
 
@@ -447,11 +448,11 @@ class MainWindow(QMainWindow):
         indexes[0].model().move_vertical(indexes, +1)
 
     def move_left(self):
-        if self.focusWidget() is self.model:
+        if self.focusWidget() is self.grid_holder().view:
             self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), -1)
 
     def move_right(self):
-        if self.focusWidget() is self.model:
+        if self.focusWidget() is self.grid_holder().view:
             self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
@@ -470,7 +471,11 @@ class MainWindow(QMainWindow):
             self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
 
     def removeSelection(self):
-        self.grid_holder().proxy.removeRows(self.grid_holder().view.selectionModel().selectedRows())
+        indexes = self.focusWidget().selectionModel().selectedRows()
+        if self.focusWidget() is self.grid_holder().view:
+            self.grid_holder().proxy.removeRows(indexes)
+        else:
+            self.bookmark_model.insert_remove_rows(indexes=indexes)
 
     # task menu actions
 
