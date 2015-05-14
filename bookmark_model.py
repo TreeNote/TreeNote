@@ -7,7 +7,7 @@ import sys
 import subprocess
 import threading
 import socket
-import model
+import item_model
 import simple_model
 
 NAME = 'name'

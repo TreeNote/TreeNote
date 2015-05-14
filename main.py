@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
-import model
+import item_model
 import tag_model
 import bookmark_model
 import subprocess
@@ -21,10 +21,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.model = model.TreeModel(self.get_db('tree'))
-        self.model.db_change_signal[dict].connect(self.db_change_signal)
+        self.model = item_model.TreeModel(self.get_db('tree'))
+        self.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.bookmark_model = bookmark_model.BookmarkModel(self.get_db('bookmarks'))
+        self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'))
+        self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
         self.setCentralWidget(self.mainSplitter)
@@ -150,7 +151,7 @@ class MainWindow(QMainWindow):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db['0'] = (model.NEW_DB_ITEM.copy())
+                new_db['0'] = (item_model.NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -256,7 +257,7 @@ class MainWindow(QMainWindow):
                 search_bar_text += ' ' + key + character + ' '
         self.grid_holder().search_bar.setText(search_bar_text)
 
-    def db_change_signal(self, db_item):
+    def db_change_signal(self, db_item, model):
         change_dict = db_item['change']
         my_edit = change_dict['user'] == socket.gethostname()
         method = change_dict['method']
@@ -265,11 +266,11 @@ class MainWindow(QMainWindow):
         item_id = db_item['_id']
 
         # ignore cases when the 'update delete marker' change comes before the corresponding item is created
-        if item_id not in self.model.id_index_dict:
+        if item_id not in model.id_index_dict:
             return
-        index = QModelIndex(self.model.id_index_dict[item_id])
+        index = QModelIndex(model.id_index_dict[item_id])
 
-        item = self.model.getItem(index)
+        item = model.getItem(index)
 
         if method == 'updated':
             item.text = db_item['text']
@@ -278,14 +279,14 @@ class MainWindow(QMainWindow):
             if my_edit:
                 self.set_selection(index, index)
             self.setup_tag_model()
-            self.model.dataChanged.emit(index, index)
+            model.dataChanged.emit(index, index)
 
             # update next available task in a sequential project
-            project_index = self.model.parent(index)
-            project_parent_index = self.model.parent(project_index)
-            available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+            project_index = model.parent(index)
+            project_parent_index = model.parent(project_index)
+            available_index = model.get_next_available_task(project_index.row(), project_parent_index)
             if isinstance(available_index, QModelIndex):
-                self.model.dataChanged.emit(available_index, available_index)
+                model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.grid_holder().view.header().sortIndicatorSection()
@@ -296,28 +297,28 @@ class MainWindow(QMainWindow):
 
         elif method == 'added':
             id_list = change_dict['id_list']
-            self.model.beginInsertRows(index, position, position + len(id_list) - 1)
+            model.beginInsertRows(index, position, position + len(id_list) - 1)
             for i, added_item_id in enumerate(id_list):
                 item.add_child(position + i, added_item_id, index)
-            self.model.endInsertRows()
+            model.endInsertRows()
             if my_edit:
-                index_first_added = self.model.index(position, 0, index)
-                index_last_added = self.model.index(position + len(id_list) - 1, 0, index)
+                index_first_added = model.index(position, 0, index)
+                index_last_added = model.index(position + len(id_list) - 1, 0, index)
                 if change_dict['set_edit_focus']:
                     self.update_selection_and_edit(index_first_added)
                 else:
                     self.set_selection(index_first_added, index_last_added)
 
         elif method == 'removed':
-            self.model.beginRemoveRows(index, position, position + count - 1)
+            model.beginRemoveRows(index, position, position + count - 1)
             item.childItems[position:position + count] = []
-            self.model.endRemoveRows()
+            model.endRemoveRows()
             if my_edit:
                 # select the item below
                 if position == len(item.childItems):  # there is no item below, so select the one above
                     position -= 1
                 if len(item.childItems) > 0:
-                    index_next_child = self.model.index(position, 0, index)
+                    index_next_child = model.index(position, 0, index)
                     self.set_selection(index_next_child, index_next_child)
                 else:  # all childs deleted, select parent
                     self.set_selection(index, index)
@@ -330,26 +331,23 @@ class MainWindow(QMainWindow):
             elif up_or_down == +1:
                 item.childItems.insert(position, item.childItems.pop(position + count))
             for i in range(count):
-                index_moved_item = self.model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                index_moved_item = model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                 if i == 0:
                     index_first_moved_item = index_moved_item
             self.grid_holder().proxy.layoutChanged.emit()
             if my_edit:
                 self.set_selection(index_first_moved_item, index_moved_item)
 
-        elif method == model.DELETED:
-            if self.model.db[item_id][model.DELETED] == '':
-                self.model.pointer_set.add(index.internalId())
+        elif method == item_model.DELETED:
+            if model.db[item_id][item_model.DELETED] == '':
+                model.pointer_set.add(index.internalId())
             else:
-                self.model.pointer_set.remove(index.internalId())
+                model.pointer_set.remove(index.internalId())
             self.setup_tag_model()
 
 
     def set_selection(self, index_from, index_to):
         if self.grid_holder().view.state() != QAbstractItemView.EditingState:
-            if isinstance(index_from.model(), model.TreeModel):
-                index_to = self.grid_holder().proxy.mapFromSource(index_to)
-                index_from = self.grid_holder().proxy.mapFromSource(index_from)
             index_from = index_from.sibling(index_from.row(), 0)
             index_to = index_to.sibling(index_to.row(), self.model.columnCount() - 1)
             self.grid_holder().view.setFocus()
@@ -497,7 +495,7 @@ class MainWindow(QMainWindow):
     def color_row(self, color_character):
         if self.grid_holder().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.setData(row_index, model.CHAR_QCOLOR_DICT[color_character], field='color')
+                self.grid_holder().proxy.setData(row_index, item_model.CHAR_QCOLOR_DICT[color_character], field='color')
 
     def set_priority(self, number):
         if self.grid_holder().view.hasFocus():
@@ -512,7 +510,7 @@ class MainWindow(QMainWindow):
     def focus(self):
         search_bar_text = self.grid_holder().search_bar.text()
         idx = self.grid_holder().view.selectionModel().currentIndex()
-        self.grid_holder().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + idx.data())
+        self.grid_holder().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + idx.data())
         self.grid_holder().view.setRootIndex(idx)
 
     def open_links(self):
@@ -528,7 +526,12 @@ class MainWindow(QMainWindow):
         grid_holder = QWidget()
 
         grid_holder.bookmarks_view = QTreeView()
-        grid_holder.bookmarks_view.setModel(self.bookmark_model)
+        grid_holder.bookmarks_proxy = item_model.FilterProxyModel()
+        grid_holder.bookmarks_proxy.setSourceModel(self.bookmark_model)
+        grid_holder.bookmarks_proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
+        grid_holder.bookmarks_proxy.filter = ''
+        grid_holder.bookmarks_view.setModel(grid_holder.bookmarks_proxy)
+        # grid_holder.bookmarks_view.setModel(self.bookmark_model)
         grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
         grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
@@ -539,12 +542,12 @@ class MainWindow(QMainWindow):
         grid_holder.view.setSizePolicy(size_policy_view)
         grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        grid_holder.proxy = model.FilterProxyModel()
+        grid_holder.proxy = item_model.FilterProxyModel()
         grid_holder.proxy.setSourceModel(self.model)
         grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
         grid_holder.proxy.filter = ''
         grid_holder.view.setModel(grid_holder.proxy)
-        grid_holder.view.setItemDelegate(model.Delegate(self, grid_holder.proxy))
+        grid_holder.view.setItemDelegate(item_model.Delegate(self, grid_holder.proxy))
         grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
         grid_holder.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
         grid_holder.view.setColumnWidth(1, 100)
@@ -571,11 +574,11 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         search_holder.setLayout(layout)
 
-        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
+        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
         grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        grid_holder.focus_button = QPushButton(model.FOCUS_TEXT)
+        grid_holder.focus_button = QPushButton(item_model.FOCUS_TEXT)
         grid_holder.focus_button.setCheckable(True)
         grid_holder.focus_button.setStyleSheet('QPushButton { padding: 4px; }')
         grid_holder.focus_button.clicked.connect(self.focus)
@@ -697,7 +700,21 @@ class BookmarkDialog(QDialog):
             self.setWindowTitle("Edit bookmark")
 
     def apply(self):
-        self.parent.bookmark_model.add_or_update(self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text(), index=self.index)
+        # self.parent.bookmark_model.insert_remove_rows(0, '0')
+        # (self.name_edit.text(), self.search_bar_text_edit.text(), self.shortcut_edit.text(), index=self.index)
+        if self.index is None: # create new bookmark
+            child_id, _ = self.parent.bookmark_model.db.save(item_model.NEW_DB_ITEM.copy())
+            db_item = self.parent.bookmark_model.db['0'] # append to bookmark root item
+            children_list = db_item['children'].split()
+            children_list_new = children_list + [child_id]
+            db_item['children'] = ' '.join(children_list_new)
+            self.parent.bookmark_model.db['0'] = db_item
+            # todo say method name
+            self.parent.bookmark_model.rootItem.add_child(0, child_id, QModelIndex()) # todo append unten
+            self.index = self.parent.bookmark_model.index(0, 0, QModelIndex())
+        # self.parent.grid_holder().proxy.setData(self.index, self.name_edit.text())
+        # self.parent.grid_holder().proxy.setData(self.index, self.search_bar_text_edit.text(), field=model.SEARCH_TEXT)
+        # self.parent.grid_holder().proxy.setData(self.index, self.shortcut_edit.text(), field=model.SHORTCUT)
         super(BookmarkDialog, self).accept()
 
 
@@ -770,19 +787,19 @@ if __name__ == '__main__':
 
     app.setStyle("Fusion")
     dark_palette = QPalette()
-    dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
-    dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Window, item_model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.WindowText, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Base, item_model.BACKGROUND_GRAY)
+    dark_palette.setColor(QPalette.AlternateBase, item_model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ToolTipBase, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.ToolTipText, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Text, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Button, item_model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ButtonText, item_model.TEXT_GRAY)
     dark_palette.setColor(QPalette.BrightText, Qt.red)
     dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
-    dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Highlight, item_model.SELECTION_GRAY)
+    dark_palette.setColor(QPalette.HighlightedText, item_model.TEXT_GRAY)
     app.setPalette(dark_palette)
     app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
                       QHeaderView::section { padding-bottom: 5px;  padding-top: 2px;}')

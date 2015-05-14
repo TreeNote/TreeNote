@@ -43,7 +43,7 @@ class Updater(QThread):
                 db_item = line['doc']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
-                    self.model.db_change_signal.emit(db_item)
+                    self.model.db_change_signal.emit(db_item, self.model)
 
 
 class Tree_item(object):
@@ -99,7 +99,7 @@ class TreeModel(QAbstractItemModel):
     """
     The methods of this model changes the database only. The view gets updated by the Updater-Thread.
     """
-    db_change_signal = pyqtSignal(dict)
+    db_change_signal = pyqtSignal(dict, QAbstractItemModel)
 
     def __init__(self, db, parent=None):
         super(TreeModel, self).__init__(parent)
