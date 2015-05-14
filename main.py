@@ -21,10 +21,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.model = item_model.TreeModel(self.get_db('items'))
+        self.model = item_model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'))
+        self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
@@ -534,13 +534,21 @@ class MainWindow(QMainWindow):
         grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark)
         grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
+        grid_holder.bookmarks_view.hideColumn(1)
+        grid_holder.bookmarks_view.hideColumn(2)
+
+        grid_holder.root_view = QTreeView()
+        grid_holder.root_view.setModel(self.model)
+        # grid_holder.root_view.clicked.connect(self.filter_bookmark) # todo
+        grid_holder.root_view.setHeader(CustomHeaderView('Root'))
+        grid_holder.root_view.hideColumn(1)
+        grid_holder.root_view.hideColumn(2)
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_view.setHorizontalStretch(2)  # 2/3
         grid_holder.view.setSizePolicy(size_policy_view)
         grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-
         grid_holder.proxy = item_model.FilterProxyModel()
         grid_holder.proxy.setSourceModel(self.model)
         grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
@@ -596,7 +604,8 @@ class MainWindow(QMainWindow):
         grid.setSpacing(11)  # space between contained widgets
         grid.setContentsMargins(0, 0, 11, 0)  # left, top, right, bottom
 
-        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 4, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(grid_holder.root_view, 4, 0, 4, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
         grid.addWidget(grid_holder.view, 0, 1, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
 
@@ -774,6 +783,18 @@ class LabelledButtonGroup(QWidget):
             layout.addWidget(button)
         self.setLayout(layout)
 
+# changes the header text
+class CustomHeaderView(QHeaderView):
+    def __init__(self, text):
+        super(CustomHeaderView, self).__init__(Qt.Horizontal)
+        self.setSectionResizeMode(QHeaderView.Stretch)
+        self.text = text
+
+    def paintSection(self, painter, rect, logicalIndex):
+        opt = QStyleOptionHeader()
+        opt.rect = rect
+        opt.text = self.text
+        QApplication.style().drawControl(QStyle.CE_Header, opt, painter, self)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

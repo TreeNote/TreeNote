@@ -101,7 +101,7 @@ class TreeModel(QAbstractItemModel):
     """
     db_change_signal = pyqtSignal(dict, QAbstractItemModel)
 
-    def __init__(self, db, parent=None):
+    def __init__(self, db, header_list=None, parent=None):
         super(TreeModel, self).__init__(parent)
         self.db = db
         self.undoStack = QUndoStack(self)
@@ -120,7 +120,7 @@ class TreeModel(QAbstractItemModel):
             self.db.delete(self.db[row.id])
 
         self.rootItem = Tree_item('root item', self)
-        self.rootItem.header_list = ['Text', 'Start date', 'Estimate']
+        self.rootItem.header_list = header_list
         self.rootItem.id = '0'
         index = QModelIndex()
         self.id_index_dict['0'] = index
