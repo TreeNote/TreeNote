@@ -61,6 +61,8 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=self.open_edit_bookmark_dialog))
+        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W',triggered=self.move_up))
+        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S',triggered=self.move_down))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -74,6 +76,8 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.redoAction)
         self.fileMenu.addAction(self.renameTagAction)
         self.fileMenu.addAction(self.editBookmarkAction)
+        self.fileMenu.addAction(self.moveBookmarkUpAction)
+        self.fileMenu.addAction(self.moveBookmarkDownAction)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -115,6 +119,8 @@ class MainWindow(QMainWindow):
         self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
         self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
         for action in self.actions:
+            if action is self.moveBookmarkUpAction or action is self.moveBookmarkDownAction: # the shortcuts of these are already used by move row
+                continue
             keySequence = action.shortcut()
             if keySequence.count() == 1:
                 shortcut = QShortcut(keySequence, self)
@@ -336,7 +342,7 @@ class MainWindow(QMainWindow):
                 index_moved_item = model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                 if i == 0:
                     index_first_moved_item = index_moved_item
-            self.grid_holder().proxy.layoutChanged.emit()
+            index_first_moved_item.model().layoutChanged.emit()
             if my_edit:
                 self.set_selection(index_first_moved_item, index_moved_item)
 
@@ -433,18 +439,20 @@ class MainWindow(QMainWindow):
         self.expand_node(self.grid_holder().view.selectionModel().selectedRows()[0], False)
 
     def move_up(self):
-        indexes = self.grid_holder().view.selectionModel().selectedRows()
-        self.grid_holder().proxy.move_vertical(indexes, -1)
+        indexes = self.focusWidget().selectionModel().selectedRows()
+        indexes[0].model().move_vertical(indexes, -1)
 
     def move_down(self):
-        indexes = self.grid_holder().view.selectionModel().selectedRows()
-        self.grid_holder().proxy.move_vertical(indexes, +1)
+        indexes = self.focusWidget().selectionModel().selectedRows()
+        indexes[0].model().move_vertical(indexes, +1)
 
     def move_left(self):
-        self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), -1)
+        if self.focusWidget() is self.model:
+            self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), -1)
 
     def move_right(self):
-        self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), +1)
+        if self.focusWidget() is self.model:
+            self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
         index = self.grid_holder().view.selectionModel().currentIndex()
