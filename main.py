@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.model = item_model.TreeModel(self.get_db('tree'))
+        self.model = item_model.TreeModel(self.get_db('items'))
         self.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'))
@@ -232,8 +232,8 @@ class MainWindow(QMainWindow):
     def filter_bookmark(self):  # set the search bar text according to the selected bookmark
         current_index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
         item = self.bookmark_model.getItem(current_index)
-        search_bar_text = self.bookmark_model.db[item.id][bookmark_model.SEARCH_TEXT]
-        self.grid_holder().search_bar.setText(search_bar_text)
+        new_search_bar_text = self.bookmark_model.db[item.id][item_model.SEARCH_TEXT]
+        self.grid_holder().search_bar.setText(new_search_bar_text)
 
     def filter(self, key, value):
         character = value[0]
@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
                         index_first_added = self.grid_holder().proxy.mapFromSource(index_first_added)
                         self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
                         self.focusWidget().edit(index_first_added)
-                    else: # bookmark
+                    else:  # bookmark
                         self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
         elif method == 'removed':
@@ -522,15 +522,10 @@ class MainWindow(QMainWindow):
         grid_holder = QWidget()
 
         grid_holder.bookmarks_view = QTreeView()
-        grid_holder.bookmarks_proxy = item_model.FilterProxyModel()
-        grid_holder.bookmarks_proxy.setSourceModel(self.bookmark_model)
-        grid_holder.bookmarks_proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
-        grid_holder.bookmarks_proxy.filter = ''
-        grid_holder.bookmarks_view.setModel(grid_holder.bookmarks_proxy)
-        # grid_holder.bookmarks_view.setModel(self.bookmark_model)
-        # grid_holder.bookmarks_view.selectionModel().selectionChanged.connect(self.filter_bookmark)
-        # grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        # grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
+        grid_holder.bookmarks_view.setModel(self.bookmark_model)
+        grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark)
+        grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
 
         grid_holder.view = QTreeView()
         size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -667,14 +662,14 @@ class BookmarkDialog(QDialog):
             item = parent.bookmark_model.getItem(index)
             db_item = parent.bookmark_model.db[item.id]
 
-        name = '' if index is None else db_item[bookmark_model.NAME]
+        name = '' if index is None else db_item[item_model.TEXT]
         self.name_edit = QLineEdit(name)
 
         if search_bar_text is None:
-            search_bar_text = db_item[bookmark_model.SEARCH_TEXT]
+            search_bar_text = db_item[item_model.SEARCH_TEXT]
         self.search_bar_text_edit = QLineEdit(search_bar_text)
 
-        shortcut = '' if index is None else db_item[bookmark_model.SHORTCUT]
+        shortcut = '' if index is None else db_item[item_model.SHORTCUT]
         self.shortcut_edit = QLineEdit(shortcut)
         self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
 
@@ -697,12 +692,16 @@ class BookmarkDialog(QDialog):
             self.setWindowTitle("Edit bookmark")
 
     def apply(self):
-        self.parent.bookmark_model.insert_remove_rows(0, '0')
-        children_list = self.parent.bookmark_model.db['0']['children'].split()
-        new_item_id = children_list[-1]
-        self.parent.bookmark_model.setData(self.name_edit.text(), item_id=new_item_id, column=0, field='text')
-        # self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=new_item_id, column=0, field=item_model.SEARCH_TEXT)
-        # self.parent.bookmark_model.setData(self.shortcut_edit.text(), item_id=new_item_id, column=0, field=item_model.SHORTCUT)
+        if self.index is None:
+            new_item_position = len(self.parent.bookmark_model.rootItem.childItems)
+            self.parent.bookmark_model.insert_remove_rows(new_item_position, '0')
+            children_list = self.parent.bookmark_model.db['0']['children'].split()
+            item_id = children_list[-1]
+        else:
+            item_id = self.parent.bookmark_model.get_db_item_id(self.index)
+        self.parent.bookmark_model.setData(self.name_edit.text(), item_id=item_id, column=0, field='text')
+        self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=item_model.SEARCH_TEXT)
+        self.parent.bookmark_model.setData(self.shortcut_edit.text(), item_id=item_id, column=0, field=item_model.SHORTCUT)
         super(BookmarkDialog, self).accept()
 
 

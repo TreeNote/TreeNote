@@ -144,6 +144,11 @@ class TreeModel(QAbstractItemModel):
 
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
+    def get_db_item_id(self, index):
+        item = self.getItem(index)
+        db_item = self.db[item.id]
+        return db_item['_id']
+
     def getItem(self, index):
         if index.isValid():
             item = index.internalPointer()
@@ -777,6 +782,7 @@ EMPTY_DATE = '14.09.52'
 DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
-NEW_DB_ITEM = {'text': '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
+TEXT = 'text'
+NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
