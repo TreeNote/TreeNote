@@ -12,6 +12,7 @@ import webbrowser
 import re
 import time
 import couchdb
+from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
 
@@ -147,7 +148,7 @@ class MainWindow(QMainWindow):
             db_item = self.bookmark_model.db[row.id]
             if row.id != item_model.ROOT_ID:
                 self.bookmarkShortcutsMenu.addAction(QAction(db_item[item_model.TEXT], self, shortcut=db_item[item_model.SHORTCUT],
-                                                             triggered=lambda: self.filter_bookmark(new_search_bar_text=db_item[item_model.SEARCH_TEXT])))
+                                                             triggered=partial(self.filter_bookmark, row.id)))
 
     def get_db(self, db_name):
         if sys.platform == "darwin":
@@ -248,12 +249,18 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
-    def filter_bookmark(self, current_index=None, new_search_bar_text=None):  # set the search bar text according to the selected bookmark
-        if new_search_bar_text is None:
-            item = self.bookmark_model.getItem(current_index)
-            new_search_bar_text = self.bookmark_model.db[item.id][item_model.SEARCH_TEXT]
+    # set the search bar text according to the selected bookmark
+    def filter_bookmark(self, item_id):
+        new_search_bar_text = self.bookmark_model.db[item_id][item_model.SEARCH_TEXT]
         self.grid_holder().search_bar.setText(new_search_bar_text)
+        # if shortcut was used: select bookmarks row for visual highlight
+        index = self.bookmark_model.id_index_dict[item_id]
+        self.set_selection(index, index)
         self.grid_holder().view.setFocus()
+
+    def filter_bookmark_click(self, index):
+        item_id = self.bookmark_model.getItem(index).id
+        self.filter_bookmark(item_id)
 
     def filter(self, key, value):
         character = value[0]
@@ -387,6 +394,7 @@ class MainWindow(QMainWindow):
         self.grid_holder().search_bar.setText('')
         top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
+        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.grid_holder().view.setRootIndex(QModelIndex())
         self.grid_holder().focus_button.setChecked(False)
 
@@ -555,7 +563,8 @@ class MainWindow(QMainWindow):
 
         grid_holder.bookmarks_view = QTreeView()
         grid_holder.bookmarks_view.setModel(self.bookmark_model)
-        grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark)
+        grid_holder.bookmarks_view.setItemDelegate(item_model.BookmarkDelegate(self, self.bookmark_model))
+        grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark_click)
         grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
         grid_holder.bookmarks_view.hideColumn(1)
@@ -645,9 +654,10 @@ class MainWindow(QMainWindow):
         self.mainSplitter.addWidget(grid_holder)
         self.setup_tag_model()
 
-        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         grid_holder.view.setFocus()
+        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
+        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
         self.unsplitWindowAct.setEnabled(True)
 

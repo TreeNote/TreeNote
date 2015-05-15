@@ -660,6 +660,33 @@ class Delegate(QStyledItemDelegate):
         QStyledItemDelegate.setModelData(self, editor, model, index)
 
 
+class BookmarkDelegate(QStyledItemDelegate):
+    def __init__(self, parent, model):
+        super(BookmarkDelegate, self).__init__(parent)
+        self.model = model
+        self.main_window = parent
+
+    def paint(self, painter, option, index):
+        item = self.model.getItem(index)
+        db_item = self.model.db[item.id]
+        document = QTextDocument()
+        shortcut = db_item[SHORTCUT]
+        if shortcut.startswith('Ctrl+'):
+            shortcut = shortcut.replace('Ctrl+', '')
+        if shortcut != '':
+            shortcut += ' '
+        document.setPlainText(shortcut + db_item[TEXT])
+        if option.state & QStyle.State_Selected:
+            color = self.main_window.palette().highlight().color()
+        else:
+            color = BACKGROUND_GRAY
+        painter.save()
+        painter.fillRect(option.rect, color)
+        painter.translate(option.rect.x() - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
+        document.drawContents(painter)
+        painter.restore()
+
+
 class EscCalendarWidget(QCalendarWidget):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
