@@ -779,6 +779,12 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
             self._completer.completionModel().index(0, 0))
 
 
+ORDER = 'order='
+MANUALLY= 'manually'
+ESTIMATE='estimate'
+STARTDATE='startdate'
+ASC='_ascending'
+DESC='_descending'
 ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
 SELECTION_GRAY = QColor(65, 65, 65)

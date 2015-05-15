@@ -27,8 +27,66 @@ class MainWindow(QMainWindow):
         self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.mainSplitter = QSplitter(Qt.Horizontal)
-        self.setCentralWidget(self.mainSplitter)
+        mainSplitter = QSplitter(Qt.Horizontal)
+
+        # first column
+
+        self.bookmarks_view = QTreeView()
+        self.bookmarks_view.setModel(self.bookmark_model)
+        self.bookmarks_view.setItemDelegate(item_model.BookmarkDelegate(self, self.bookmark_model))
+        self.bookmarks_view.clicked.connect(self.filter_bookmark_click)
+        self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
+        self.bookmarks_view.hideColumn(1)
+        self.bookmarks_view.hideColumn(2)
+
+        self.root_view = QTreeView()
+        self.root_view.setModel(self.model)
+        # self.root_view.clicked.connect(self.filter_bookmark) # todo
+        self.root_view.setHeader(CustomHeaderView('Root'))
+        self.root_view.hideColumn(1)
+        self.root_view.hideColumn(2)
+
+        first_column = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(self.bookmarks_view)
+        layout.addWidget(self.root_view)
+        first_column.setLayout(layout)
+
+        # second column
+
+        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
+        self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
+        self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+
+        self.focus_button = QPushButton(item_model.FOCUS_TEXT)
+        self.focus_button.setCheckable(True)
+        self.focus_button.setStyleSheet('QPushButton { padding: 4px; }')
+        self.focus_button.clicked.connect(self.focus)
+
+        self.tag_view = QTreeView()
+        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
+        # self.tag_view.setSizePolicy(QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding))  # horizontal, vertical
+        self.tag_view.setModel(tag_model.TagModel())
+        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+
+        second_column = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(self.task_dropdown)
+        layout.addWidget(self.estimate_dropdown)
+        layout.addWidget(self.color_dropdown)
+        layout.addWidget(self.focus_button)
+        layout.addWidget(self.tag_view)
+        second_column.setLayout(layout)
+
+        # third column
+        self.item_views_splitter = QSplitter(Qt.Horizontal)
+
+        mainSplitter.addWidget(first_column)
+        mainSplitter.addWidget(second_column)
+        mainSplitter.addWidget(self.item_views_splitter)
+        self.setCentralWidget(mainSplitter)
 
         self.actions = list()
 
@@ -59,8 +117,8 @@ class MainWindow(QMainWindow):
         add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
         add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
-        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.grid_holder().tag_view.currentIndex().data()).exec_()))
-        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.grid_holder().bookmarks_view.selectionModel().currentIndex()).exec_()))
+        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()))
+        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()))
         add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
         add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
         add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeBookmarkSelection))
@@ -136,7 +194,7 @@ class MainWindow(QMainWindow):
                 action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
-        self.grid_holder().view.setFocus()
+        self.focused_column().view.setFocus()
         self.updateActions()
 
         settings = QSettings()
@@ -195,31 +253,33 @@ class MainWindow(QMainWindow):
         # local_server.replicate(db_name, server_url + db_name, continuous=True)
         # local_server.replicate(server_url + db_name, db_name, continuous=True)
 
-    def grid_holder(self):  # returns focused grid_holder
-        for i in range(0, self.mainSplitter.count()):
-            if self.mainSplitter.widget(i).hasFocus():
-                return self.mainSplitter.widget(i)
-        return self.mainSplitter.widget(0)
+    def focused_column(self):  # returns focused grid_holder
+        for i in range(0, self.item_views_splitter.count()):
+            if self.item_views_splitter.widget(i).hasFocus():
+                return self.item_views_splitter.widget(i)
+        return self.item_views_splitter.widget(0)
 
     def setup_tag_model(self):
-        self.grid_holder().tag_view.model().setupModelData(self.model.get_tags_set())
+        self.tag_view.model().setupModelData(self.model.get_tags_set())
 
         def expand_node(parent_index, bool_expand):
-            self.grid_holder().tag_view.setExpanded(parent_index, bool_expand)
-            for row_num in range(self.grid_holder().tag_view.model().rowCount(parent_index)):
-                child_index = self.grid_holder().tag_view.model().index(row_num, 0, parent_index)
-                self.grid_holder().tag_view.setExpanded(parent_index, bool_expand)
+            self.tag_view.setExpanded(parent_index, bool_expand)
+            for row_num in range(self.tag_view.model().rowCount(parent_index)):
+                child_index = self.tag_view.model().index(row_num, 0, parent_index)
+                self.tag_view.setExpanded(parent_index, bool_expand)
                 expand_node(child_index, bool_expand)
 
-        expand_node(self.grid_holder().tag_view.selectionModel().currentIndex(), True)
+        expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
     def closeEvent(self, event):
         settings = QSettings()
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
         self.model.updater.terminate()
-        if sys.platform == "darwin":
-            subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
+
+        # todo enable for production
+        # if sys.platform == "darwin":
+        # subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
         print(len(self.model.pointer_set))  # for debugging: is the len == #rows + root?
 
@@ -234,32 +294,44 @@ class MainWindow(QMainWindow):
         # todo rename tag action just when a tag is selected
 
     def toggle_sorting(self, column):
-        if column == 0:
-            self.grid_holder().view.sortByColumn(-1, Qt.AscendingOrder)
-            self.grid_holder().view.setSortingEnabled(False)
-            self.grid_holder().view.header().setSectionsClickable(True)
-        else:
-            if not self.grid_holder().view.isSortingEnabled():
-                self.grid_holder().view.setSortingEnabled(True)
+        if column == 0:  # order manually
+            self.append_replace_to_searchbar(item_model.ORDER, item_model.MANUALLY)
+            self.focused_column().view.sortByColumn(-1, Qt.AscendingOrder)
+            self.focused_column().view.setSortingEnabled(False)
+            self.focused_column().view.header().setSectionsClickable(True)
+        elif column == 1:
+            order = item_model.ASC
+            self.append_replace_to_searchbar(item_model.ORDER, item_model.STARTDATE + order)
+        elif column == 2:
+            self.append_replace_to_searchbar(item_model.ORDER_MANUALLY)
+            if not self.focused_column().view.isSortingEnabled():
+                self.focused_column().view.setSortingEnabled(True)
+
+    def append_replace_to_searchbar(self, key, value):
+        search_bar_text = self.focused_column().search_bar.text()
+        new_text = re.sub(r'key(\w)* ', value + ' ', search_bar_text)
+        if key not in search_bar_text:
+            new_text += ' ' + key + value + ' '
+        self.focused_column().search_bar.setText(new_text)
 
     def filter_tag(self):
-        current_index = self.grid_holder().tag_view.selectionModel().currentIndex()
-        current_tag = self.grid_holder().tag_view.model().data(current_index, tag_model.FULL_PATH)
+        current_index = self.tag_view.selectionModel().currentIndex()
+        current_tag = self.tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
-            search_bar_text = self.grid_holder().search_bar.text()
+            search_bar_text = self.focused_column().search_bar.text()
             new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text)  # matches a tag
             if ':' not in search_bar_text:
                 new_text += ' ' + current_tag + ' '
-            self.grid_holder().search_bar.setText(new_text)
+            self.focused_column().search_bar.setText(new_text)
 
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, item_id):
         new_search_bar_text = self.bookmark_model.db[item_id][item_model.SEARCH_TEXT]
-        self.grid_holder().search_bar.setText(new_search_bar_text)
+        self.focused_column().search_bar.setText(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
         index = self.bookmark_model.id_index_dict[item_id]
         self.set_selection(index, index)
-        self.grid_holder().view.setFocus()
+        self.focused_column().view.setFocus()
 
     def filter_bookmark_click(self, index):
         item_id = self.bookmark_model.getItem(index).id
@@ -267,7 +339,7 @@ class MainWindow(QMainWindow):
 
     def filter(self, key, value):
         character = value[0]
-        search_bar_text = self.grid_holder().search_bar.text()
+        search_bar_text = self.focused_column().search_bar.text()
         # 'all' selected: remove existing same filter
         if character == 'a':
             search_bar_text = re.sub(key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
@@ -282,7 +354,7 @@ class MainWindow(QMainWindow):
             else:
                 # add filter
                 search_bar_text += ' ' + key + character + ' '
-        self.grid_holder().search_bar.setText(search_bar_text)
+        self.focused_column().search_bar.setText(search_bar_text)
 
     def db_change_signal(self, db_item, model):
         change_dict = db_item['change']
@@ -316,11 +388,11 @@ class MainWindow(QMainWindow):
                 model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
-            sorted_column = self.grid_holder().view.header().sortIndicatorSection()
+            sorted_column = self.focused_column().view.header().sortIndicatorSection()
             if sorted_column == 1 or sorted_column == 2:
-                order = self.grid_holder().view.header().sortIndicatorOrder()
-                self.grid_holder().view.sortByColumn(sorted_column, 1 - order)
-                self.grid_holder().view.sortByColumn(sorted_column, order)
+                order = self.focused_column().view.header().sortIndicatorOrder()
+                self.focused_column().view.sortByColumn(sorted_column, 1 - order)
+                self.focused_column().view.sortByColumn(sorted_column, order)
 
         elif method == 'added':
             id_list = change_dict['id_list']
@@ -335,11 +407,11 @@ class MainWindow(QMainWindow):
                     self.set_selection(index_first_added, index_last_added)
                 else:  # update selection_and_edit
                     if index_first_added.model() is self.model:
-                        index_first_added = self.grid_holder().proxy.mapFromSource(index_first_added)
+                        index_first_added = self.focused_column().proxy.mapFromSource(index_first_added)
                         self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
                         self.focusWidget().edit(index_first_added)
                     else:  # bookmark
-                        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
+                        self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
         elif method == 'removed':
             model.beginRemoveRows(index, position, position + count - 1)
@@ -379,43 +451,43 @@ class MainWindow(QMainWindow):
 
 
     def set_selection(self, index_from, index_to):
-        if self.grid_holder().view.state() != QAbstractItemView.EditingState:
+        if self.focused_column().view.state() != QAbstractItemView.EditingState:
             if index_from.model() is self.model:
-                index_to = self.grid_holder().proxy.mapFromSource(index_to)
-                index_from = self.grid_holder().proxy.mapFromSource(index_from)
+                index_to = self.focused_column().proxy.mapFromSource(index_to)
+                index_from = self.focused_column().proxy.mapFromSource(index_from)
             else:
-                self.grid_holder().bookmarks_view.setFocus()
+                self.bookmarks_view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
             index_to = index_to.sibling(index_to.row(), self.model.columnCount() - 1)
             self.focusWidget().selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
             self.focusWidget().selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
     def reset_view(self):
-        self.grid_holder().task.comboBox.setCurrentIndex(0)
-        self.grid_holder().estimate.comboBox.setCurrentIndex(0)
-        self.grid_holder().color.comboBox.setCurrentIndex(0)
-        self.grid_holder().search_bar.setText('')
-        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
+        self.task_dropdown.comboBox.setCurrentIndex(0)
+        self.estimate_dropdown.comboBox.setCurrentIndex(0)
+        self.color_dropdown.comboBox.setCurrentIndex(0)
+        self.focused_column().search_bar.setText('')
+        top_most_index = self.focused_column().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
-        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
-        self.grid_holder().view.setRootIndex(QModelIndex())
-        self.grid_holder().focus_button.setChecked(False)
+        self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
+        self.focused_column().view.setRootIndex(QModelIndex())
+        self.focus_button.setChecked(False)
 
     def search(self, search_text):
-        self.grid_holder().proxy.filter = search_text
-        self.grid_holder().proxy.invalidateFilter()
+        self.focused_column().proxy.filter = search_text
+        self.focused_column().proxy.invalidateFilter()
         # deselect tag if user changes the search string
-        selected_tags = self.grid_holder().tag_view.selectionModel().selectedRows()
+        selected_tags = self.tag_view.selectionModel().selectedRows()
         if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
-            self.grid_holder().tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
+            self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
             # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
 
     def expand_node(self, parent_index, bool_expand):
-        self.grid_holder().view.setExpanded(parent_index, bool_expand)
-        for row_num in range(self.grid_holder().proxy.rowCount(parent_index)):
-            child_index = self.grid_holder().proxy.index(row_num, 0, parent_index)
-            self.grid_holder().view.setExpanded(parent_index, bool_expand)
+        self.focused_column().view.setExpanded(parent_index, bool_expand)
+        for row_num in range(self.focused_column().proxy.rowCount(parent_index)):
+            child_index = self.focused_column().proxy.index(row_num, 0, parent_index)
+            self.focused_column().view.setExpanded(parent_index, bool_expand)
             self.expand_node(child_index, bool_expand)
 
     def rename_tag(self, tag, new_name):
@@ -432,25 +504,25 @@ class MainWindow(QMainWindow):
 
 
     def open_rename_tag_contextmenu(self, point):
-        index = self.grid_holder().tag_view.indexAt(point)
-        if not index.isValid(): # show context menu only when clicked on an item, not when clicked on empty space
+        index = self.tag_view.indexAt(point)
+        if not index.isValid():  # show context menu only when clicked on an item, not when clicked on empty space
             return
         menu = QMenu()
         renameTagAction = menu.addAction(self.tr("Rename tag"))
-        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
+        action = menu.exec_(self.tag_view.viewport().mapToGlobal(point))
         if action is not renameTagAction:
             return
         tag = index.data()
         RenameTagDialog(self, tag).exec_()
 
     def open_edit_bookmark_contextmenu(self, point):
-        index = self.grid_holder().bookmarks_view.indexAt(point)
+        index = self.bookmarks_view.indexAt(point)
         if not index.isValid():
             return
         menu = QMenu()
         editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
         deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
-        action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
+        action = menu.exec_(self.bookmarks_view.viewport().mapToGlobal(point))
         if action is editBookmarkAction:
             BookmarkDialog(self, index=index).exec_()
         elif action is deleteBookmarkAction:
@@ -459,10 +531,10 @@ class MainWindow(QMainWindow):
     # structure menu actions
 
     def expand_all_children(self):
-        self.expand_node(self.grid_holder().view.selectionModel().selectedRows()[0], True)
+        self.expand_node(self.focused_column().view.selectionModel().selectedRows()[0], True)
 
     def collapse_all_children(self):
-        self.expand_node(self.grid_holder().view.selectionModel().selectedRows()[0], False)
+        self.expand_node(self.focused_column().view.selectionModel().selectedRows()[0], False)
 
     def move_up(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
@@ -473,86 +545,86 @@ class MainWindow(QMainWindow):
         indexes[0].model().move_vertical(indexes, +1)
 
     def move_left(self):
-        if self.focusWidget() is self.grid_holder().view:
-            self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), -1)
+        if self.focusWidget() is self.focused_column().view:
+            self.focused_column().proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), -1)
 
     def move_right(self):
-        if self.focusWidget() is self.grid_holder().view:
-            self.grid_holder().proxy.move_horizontal(self.grid_holder().view.selectionModel().selectedRows(), +1)
+        if self.focusWidget() is self.focused_column().view:
+            self.focused_column().proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
-        index = self.grid_holder().view.selectionModel().currentIndex()
-        if self.grid_holder().view.state() == QAbstractItemView.EditingState:
+        index = self.focused_column().view.selectionModel().currentIndex()
+        if self.focused_column().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection # todo doku
-            self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
-        self.grid_holder().proxy.insertRow(0, index)
+            self.focused_column().view.selectionModel().currentChanged.emit(index, index)
+        self.focused_column().proxy.insertRow(0, index)
 
     def insert_row(self):
-        index = self.grid_holder().view.selectionModel().currentIndex()
-        if self.grid_holder().view.hasFocus():
-            self.grid_holder().proxy.insertRow(index.row() + 1, index.parent())
-        elif self.grid_holder().view.state() == QAbstractItemView.EditingState:
+        index = self.focused_column().view.selectionModel().currentIndex()
+        if self.focused_column().view.hasFocus():
+            self.focused_column().proxy.insertRow(index.row() + 1, index.parent())
+        elif self.focused_column().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
-            self.grid_holder().view.selectionModel().currentChanged.emit(index, index)
+            self.focused_column().view.selectionModel().currentChanged.emit(index, index)
 
     def removeSelection(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
-        self.grid_holder().proxy.removeRows(indexes)
+        self.focused_column().proxy.removeRows(indexes)
 
 
     def removeBookmarkSelection(self):
-        self.grid_holder().bookmarks_view.setFocus()
+        self.bookmarks_view.setFocus()
         indexes = self.focusWidget().selectionModel().selectedRows()
         self.bookmark_model.insert_remove_rows(indexes=indexes)
 
     # task menu actions
 
     def edit_row(self):
-        current_index = self.grid_holder().view.selectionModel().currentIndex()
-        if self.grid_holder().view.state() == QAbstractItemView.EditingState:  # change column with tab key
+        current_index = self.focused_column().view.selectionModel().currentIndex()
+        if self.focused_column().view.state() == QAbstractItemView.EditingState:  # change column with tab key
             next_column_number = (current_index.column() + 1) % 3
             sibling_index = current_index.sibling(current_index.row(), next_column_number)
-            self.grid_holder().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
-            self.grid_holder().view.edit(sibling_index)
-        elif self.grid_holder().view.hasFocus():
-            self.grid_holder().view.edit(current_index)
+            self.focused_column().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
+            self.focused_column().view.edit(sibling_index)
+        elif self.focused_column().view.hasFocus():
+            self.focused_column().view.edit(current_index)
         else:
-            self.grid_holder().view.setFocus()
+            self.focused_column().view.setFocus()
 
     def toggle_task(self):
-        if self.grid_holder().view.hasFocus():
-            for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.toggle_task(row_index)
+        if self.focused_column().view.hasFocus():
+            for row_index in self.focused_column().view.selectionModel().selectedRows():
+                self.focused_column().proxy.toggle_task(row_index)
 
     def toggle_project(self):
-        if self.grid_holder().view.hasFocus():
-            for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.toggle_project(row_index)
+        if self.focused_column().view.hasFocus():
+            for row_index in self.focused_column().view.selectionModel().selectedRows():
+                self.focused_column().proxy.toggle_project(row_index)
 
     def append_repeat(self):
-        current_index = self.grid_holder().view.selectionModel().currentIndex()
-        self.grid_holder().proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
+        current_index = self.focused_column().view.selectionModel().currentIndex()
+        self.focused_column().proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
     def color_row(self, color_character):
-        if self.grid_holder().view.hasFocus():  # todo not needed if action is only available when row selected
-            for row_index in self.grid_holder().view.selectionModel().selectedRows():
-                self.grid_holder().proxy.setData(item_model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+        if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
+            for row_index in self.focused_column().view.selectionModel().selectedRows():
+                self.focused_column().proxy.setData(item_model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 
     def focus_search_bar(self):
-        self.grid_holder().search_bar.setFocus()
+        self.focused_column().search_bar.setFocus()
 
     def focus(self):
-        search_bar_text = self.grid_holder().search_bar.text()
-        idx = self.grid_holder().view.selectionModel().currentIndex()
+        search_bar_text = self.focused_column().search_bar.text()
+        idx = self.focused_column().view.selectionModel().currentIndex()
         item_id = idx.model().get_db_item_id(idx)
-        self.grid_holder().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + item_id)
-        self.grid_holder().view.setRootIndex(idx)
+        self.focused_column().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + item_id)
+        self.focused_column().view.setRootIndex(idx)
 
     def open_links(self):
-        for row_index in self.grid_holder().view.selectionModel().selectedRows():
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
             url_regex = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""  # source: http://daringfireball.net/2010/07/improved_regex_for_matching_urls
             url_list = re.findall(url_regex, row_index.data())
             for url in url_list:
@@ -560,45 +632,12 @@ class MainWindow(QMainWindow):
                     url = 'http://' + url
                 webbrowser.open(url)
 
-    def split_window(self):  # creates the view, too
-        grid_holder = QWidget()
+    def split_window(self):  # creates another item_view
+        new_column = QWidget()
 
-        grid_holder.bookmarks_view = QTreeView()
-        grid_holder.bookmarks_view.setModel(self.bookmark_model)
-        grid_holder.bookmarks_view.setItemDelegate(item_model.BookmarkDelegate(self, self.bookmark_model))
-        grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark_click)
-        grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
-        grid_holder.bookmarks_view.hideColumn(1)
-        grid_holder.bookmarks_view.hideColumn(2)
-
-        grid_holder.root_view = QTreeView()
-        grid_holder.root_view.setModel(self.model)
-        # grid_holder.root_view.clicked.connect(self.filter_bookmark) # todo
-        grid_holder.root_view.setHeader(CustomHeaderView('Root'))
-        grid_holder.root_view.hideColumn(1)
-        grid_holder.root_view.hideColumn(2)
-
-        grid_holder.view = QTreeView()
-        size_policy_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size_policy_view.setHorizontalStretch(2)  # 2/3
-        grid_holder.view.setSizePolicy(size_policy_view)
-        grid_holder.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        grid_holder.proxy = item_model.FilterProxyModel()
-        grid_holder.proxy.setSourceModel(self.model)
-        grid_holder.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
-        grid_holder.proxy.filter = ''
-        grid_holder.view.setModel(grid_holder.proxy)
-        grid_holder.view.setItemDelegate(item_model.Delegate(self, grid_holder.proxy))
-        grid_holder.view.selectionModel().selectionChanged.connect(self.updateActions)
-        grid_holder.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
-        grid_holder.view.setColumnWidth(1, 100)
-        grid_holder.view.header().sectionClicked[int].connect(self.toggle_sorting)
-        grid_holder.view.header().setSectionsClickable(True)
-
-        grid_holder.search_bar = MyQLineEdit(self)
-        grid_holder.search_bar.textChanged[str].connect(self.search)
-        grid_holder.search_bar.setPlaceholderText(self.tr('Filter'))
+        new_column.search_bar = MyQLineEdit(self)
+        new_column.search_bar.textChanged[str].connect(self.search)
+        new_column.search_bar.setPlaceholderText(self.tr('Filter'))
 
         bookmark_button = QPushButton()
         bookmark_button.setIcon(QIcon(':/star'))
@@ -610,64 +649,48 @@ class MainWindow(QMainWindow):
         bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=grid_holder.search_bar.text()).exec_())
 
         search_holder = QWidget()
-        layout = QBoxLayout(QBoxLayout.LeftToRight)
-        layout.addWidget(grid_holder.search_bar)
+        layout = QHBoxLayout()
+        layout.addWidget(new_column.search_bar)
         layout.addWidget(bookmark_button)
         layout.setContentsMargins(0, 0, 0, 0)
         search_holder.setLayout(layout)
 
-        grid_holder.task = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
-        grid_holder.estimate = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        grid_holder.color = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+        new_column.view = QTreeView()
+        new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        grid_holder.focus_button = QPushButton(item_model.FOCUS_TEXT)
-        grid_holder.focus_button.setCheckable(True)
-        grid_holder.focus_button.setStyleSheet('QPushButton { padding: 4px; }')
-        grid_holder.focus_button.clicked.connect(self.focus)
+        new_column.proxy = item_model.FilterProxyModel()
+        new_column.proxy.setSourceModel(self.model)
+        new_column.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
+        new_column.proxy.filter = ''
 
-        grid_holder.tag_view = QTreeView()
-        grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
-        size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        size_policy_tag_view.setHorizontalStretch(1 / 2)  # smaller
-        size_policy_tag_view.setVerticalStretch(1)  # bigger
-        grid_holder.tag_view.setSizePolicy(size_policy_tag_view)
-        grid_holder.tag_view.setModel(tag_model.TagModel())
-        grid_holder.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+        new_column.view.setModel(new_column.proxy)
+        new_column.view.setItemDelegate(item_model.Delegate(self, new_column.proxy))
+        new_column.view.selectionModel().selectionChanged.connect(self.updateActions)
+        new_column.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
+        new_column.view.setColumnWidth(1, 100)
+        new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
+        new_column.view.header().setSectionsClickable(True)
 
-        grid = QGridLayout()
-        grid.setSpacing(11)  # space between contained widgets
-        grid.setContentsMargins(0, 0, 11, 0)  # left, top, right, bottom
+        layout = QVBoxLayout()
+        layout.addWidget(search_holder)
+        layout.addWidget(new_column.view)
+        new_column.setLayout(layout)
 
-        grid.addWidget(grid_holder.bookmarks_view, 0, 0, 4, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
-        grid.addWidget(grid_holder.root_view, 4, 0, 4, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
-
-        grid.addWidget(grid_holder.view, 0, 1, 8, 1)  # fromRow, fromColumn, rowSpan, columnSpan.
-
-        grid.addWidget(search_holder, 0, 2, 1, 1)
-        grid.addWidget(QLabel(self.tr('')), 1, 2, 1, 1, Qt.AlignCenter)  # or QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        grid.addWidget(QLabel(self.tr('Add filters:')), 2, 2, 1, 1, Qt.AlignCenter)
-        grid.addWidget(grid_holder.task, 3, 2, 1, 1)
-        grid.addWidget(grid_holder.estimate, 4, 2, 1, 1)
-        grid.addWidget(grid_holder.color, 5, 2, 1, 1)
-        grid.addWidget(grid_holder.focus_button, 6, 2, 1, 1, Qt.AlignLeft)
-        grid.addWidget(grid_holder.tag_view, 7, 2, 1, 1)
-        grid_holder.setLayout(grid)
-        self.mainSplitter.addWidget(grid_holder)
+        self.item_views_splitter.addWidget(new_column)
         self.setup_tag_model()
 
-        grid_holder.view.setFocus()
-        top_most_index = self.grid_holder().proxy.index(0, 0, QModelIndex())
+        self.focused_column().view.setFocus()
+        top_most_index = self.focused_column().proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
-        self.grid_holder().bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
+        self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
         self.unsplitWindowAct.setEnabled(True)
 
 
     def unsplit_window(self):
-        index_last_widget = self.mainSplitter.count() - 1
-        self.mainSplitter.widget(index_last_widget).setParent(None)
-        if self.mainSplitter.count() == 1:
+        index_last_widget = self.item_views_splitter.count() - 1
+        self.item_views_splitter.widget(index_last_widget).setParent(None)
+        if self.item_views_splitter.count() == 1:
             self.unsplitWindowAct.setEnabled(False)
 
     # help menu actions
@@ -695,7 +718,7 @@ class MyQLineEdit(QLineEdit):
     def keyPressEvent(self, event):
         # arror key down: select first child
         if event.key() == Qt.Key_Down:
-            index = self.main.grid_holder().proxy.index(0, 0, QModelIndex())
+            index = self.main.focused_column().proxy.index(0, 0, QModelIndex())
             self.main.set_selection(index, index)
             self.main.focusNextChild()
         else:
@@ -723,8 +746,9 @@ class BookmarkDialog(QDialog):
         self.search_bar_text_edit = QLineEdit(search_bar_text)
 
         shortcut = '' if index is None else db_item[item_model.SHORTCUT]
-        self.shortcut_edit = QLineEdit(shortcut)
-        self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
+        self.shortcut_edit = QKeySequenceEdit()
+        self.shortcut_edit.setKeySequence(QKeySequence(shortcut))
+        # self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -754,7 +778,7 @@ class BookmarkDialog(QDialog):
             item_id = self.parent.bookmark_model.get_db_item_id(self.index)
         self.parent.bookmark_model.setData(self.name_edit.text(), item_id=item_id, column=0, field='text')
         self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=item_model.SEARCH_TEXT)
-        self.parent.bookmark_model.setData(self.shortcut_edit.text(), item_id=item_id, column=0, field=item_model.SHORTCUT)
+        self.parent.bookmark_model.setData(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=item_model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
