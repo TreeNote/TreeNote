@@ -15,6 +15,7 @@ import couchdb
 
 EDIT_BOOKMARK = 'Edit bookmark'
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -59,9 +60,9 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
         add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=self.open_edit_bookmark_dialog))
-        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W',triggered=self.move_up))
-        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S',triggered=self.move_down))
-        add_action('moveBookmarkDownAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete',triggered=self.removeSelection))
+        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
+        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
+        add_action('moveBookmarkDownAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeSelection))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -111,6 +112,9 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.resetViewAction)
 
+        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
+        self.fill_bookmarkShortcutsMenu()
+
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
 
@@ -118,7 +122,7 @@ class MainWindow(QMainWindow):
         self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
         self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
         for action in self.actions:
-            if action is self.moveBookmarkUpAction or action is self.moveBookmarkDownAction: # the shortcuts of these are already used by move row
+            if action is self.moveBookmarkUpAction or action is self.moveBookmarkDownAction:  # the shortcuts of these are already used by move row
                 continue
             keySequence = action.shortcut()
             if keySequence.count() == 1:
@@ -134,6 +138,16 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         self.resize(settings.value('size', QSize(400, 400)))
         self.move(settings.value('pos', QPoint(200, 200)))
+
+    def fill_bookmarkShortcutsMenu(self):
+        self.bookmarkShortcutsMenu.clear()
+        map = "function(doc) { emit(doc, null); }"  # all items
+        res = self.bookmark_model.db.query(map)
+        for row in res:
+            db_item = self.bookmark_model.db[row.id]
+            if row.id != item_model.ROOT_ID:
+                self.bookmarkShortcutsMenu.addAction(QAction(db_item[item_model.TEXT], self, shortcut=db_item[item_model.SHORTCUT],
+                                                             triggered=lambda: self.filter_bookmark(new_search_bar_text=db_item[item_model.SEARCH_TEXT])))
 
     def get_db(self, db_name):
         if sys.platform == "darwin":
@@ -234,10 +248,10 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.grid_holder().search_bar.setText(new_text)
 
-    def filter_bookmark(self):  # set the search bar text according to the selected bookmark
-        current_index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
-        item = self.bookmark_model.getItem(current_index)
-        new_search_bar_text = self.bookmark_model.db[item.id][item_model.SEARCH_TEXT]
+    def filter_bookmark(self, current_index=None, new_search_bar_text=None):  # set the search bar text according to the selected bookmark
+        if new_search_bar_text is None:
+            item = self.bookmark_model.getItem(current_index)
+            new_search_bar_text = self.bookmark_model.db[item.id][item_model.SEARCH_TEXT]
         self.grid_holder().search_bar.setText(new_search_bar_text)
         self.grid_holder().view.setFocus()
 
@@ -523,7 +537,8 @@ class MainWindow(QMainWindow):
     def focus(self):
         search_bar_text = self.grid_holder().search_bar.text()
         idx = self.grid_holder().view.selectionModel().currentIndex()
-        self.grid_holder().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + idx.data())
+        item_id = idx.model().get_db_item_id(idx)
+        self.grid_holder().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + item_id)
         self.grid_holder().view.setRootIndex(idx)
 
     def open_links(self):
@@ -728,6 +743,7 @@ class BookmarkDialog(QDialog):
         self.parent.bookmark_model.setData(self.name_edit.text(), item_id=item_id, column=0, field='text')
         self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=item_model.SEARCH_TEXT)
         self.parent.bookmark_model.setData(self.shortcut_edit.text(), item_id=item_id, column=0, field=item_model.SHORTCUT)
+        self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
 
@@ -792,6 +808,7 @@ class LabelledButtonGroup(QWidget):
             layout.addWidget(button)
         self.setLayout(layout)
 
+
 # changes the header text
 class CustomHeaderView(QHeaderView):
     def __init__(self, text):
@@ -804,6 +821,7 @@ class CustomHeaderView(QHeaderView):
         opt.rect = rect
         opt.text = self.text
         QApplication.style().drawControl(QStyle.CE_Header, opt, painter, self)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -161,7 +161,7 @@ class TreeModel(QAbstractItemModel):
             return QModelIndex()
 
         parentItem = self.getItem(parent)
-        if row >= len(parentItem.childItems): # bugfix
+        if row >= len(parentItem.childItems):  # bugfix
             return QModelIndex()
 
         childItem = parentItem.childItems[row]
@@ -584,6 +584,9 @@ class FilterProxyModel(QSortFilterProxyModel):
     def is_task_available(self, index):
         return self.sourceModel().is_task_available(self.mapToSource(index))
 
+    def get_db_item_id(self, index):
+        return self.sourceModel().get_db_item_id(self.mapToSource(index))
+
 
 class Delegate(QStyledItemDelegate):
     def __init__(self, parent, model):
@@ -747,6 +750,7 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.setCompletionPrefix(completionPrefix)
         self._completer.popup().setCurrentIndex(
             self._completer.completionModel().index(0, 0))
+
 
 ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
