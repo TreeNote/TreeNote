@@ -59,11 +59,11 @@ class MainWindow(QMainWindow):
         add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
         add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
-        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=self.open_rename_tag_dialog))
-        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=self.open_edit_bookmark_dialog))
+        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.grid_holder().tag_view.currentIndex().data()).exec_()))
+        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.grid_holder().bookmarks_view.selectionModel().currentIndex()).exec_()))
         add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
         add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
-        add_action('moveBookmarkDownAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeSelection))
+        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeBookmarkSelection))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -79,6 +79,7 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.editBookmarkAction)
         self.fileMenu.addAction(self.moveBookmarkUpAction)
         self.fileMenu.addAction(self.moveBookmarkDownAction)
+        self.fileMenu.addAction(self.deleteBookmarkAction)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -123,7 +124,9 @@ class MainWindow(QMainWindow):
         self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
         self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
         for action in self.actions:
-            if action is self.moveBookmarkUpAction or action is self.moveBookmarkDownAction:  # the shortcuts of these are already used by move row
+            if action is self.moveBookmarkUpAction or \
+                            action is self.moveBookmarkDownAction or \
+                            action is self.deleteBookmarkAction:  # the shortcuts of these are already used
                 continue
             keySequence = action.shortcut()
             if keySequence.count() == 1:
@@ -428,34 +431,30 @@ class MainWindow(QMainWindow):
             self.model.db[row.id] = db_item
 
 
-    def open_rename_tag_dialog(self, point=False):
-        if not point:  # called from menubar
-            tag = self.grid_holder().tag_view.currentIndex().data()
-        else:  # called from context menu
-            index = self.grid_holder().tag_view.indexAt(point)
-            if not index.isValid():
-                return
-            menu = QMenu()
-            renameTagAction = menu.addAction(self.tr("Rename tag"))
-            action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
-            if action is renameTagAction:
-                RenameTagDialog(self, index.data()).exec_()
+    def open_rename_tag_contextmenu(self, point):
+        index = self.grid_holder().tag_view.indexAt(point)
+        if not index.isValid(): # show context menu only when clicked on an item, not when clicked on empty space
+            return
+        menu = QMenu()
+        renameTagAction = menu.addAction(self.tr("Rename tag"))
+        action = menu.exec_(self.grid_holder().tag_view.viewport().mapToGlobal(point))
+        if action is not renameTagAction:
+            return
+        tag = index.data()
+        RenameTagDialog(self, tag).exec_()
 
-    def open_edit_bookmark_dialog(self, point=False):
-        if not point:  # called from menubar
-            index = self.grid_holder().bookmarks_view.selectionModel().currentIndex()
-        else:  # called from context menu
-            index = self.grid_holder().bookmarks_view.indexAt(point)
-            if not index.isValid():
-                return
-            menu = QMenu()
-            editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
-            deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
-            action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
-            if action is editBookmarkAction:
-                BookmarkDialog(self, index=index).exec_()
-            elif action is deleteBookmarkAction:
-                self.removeSelection()
+    def open_edit_bookmark_contextmenu(self, point):
+        index = self.grid_holder().bookmarks_view.indexAt(point)
+        if not index.isValid():
+            return
+        menu = QMenu()
+        editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
+        deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
+        action = menu.exec_(self.grid_holder().bookmarks_view.viewport().mapToGlobal(point))
+        if action is editBookmarkAction:
+            BookmarkDialog(self, index=index).exec_()
+        elif action is deleteBookmarkAction:
+            self.removeBookmarkSelection()
 
     # structure menu actions
 
@@ -498,10 +497,13 @@ class MainWindow(QMainWindow):
 
     def removeSelection(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
-        if self.focusWidget() is self.grid_holder().view:
-            self.grid_holder().proxy.removeRows(indexes)
-        else:
-            self.bookmark_model.insert_remove_rows(indexes=indexes)
+        self.grid_holder().proxy.removeRows(indexes)
+
+
+    def removeBookmarkSelection(self):
+        self.grid_holder().bookmarks_view.setFocus()
+        indexes = self.focusWidget().selectionModel().selectedRows()
+        self.bookmark_model.insert_remove_rows(indexes=indexes)
 
     # task menu actions
 
@@ -566,7 +568,7 @@ class MainWindow(QMainWindow):
         grid_holder.bookmarks_view.setItemDelegate(item_model.BookmarkDelegate(self, self.bookmark_model))
         grid_holder.bookmarks_view.clicked.connect(self.filter_bookmark_click)
         grid_holder.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_dialog)
+        grid_holder.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
         grid_holder.bookmarks_view.hideColumn(1)
         grid_holder.bookmarks_view.hideColumn(2)
 
@@ -625,7 +627,7 @@ class MainWindow(QMainWindow):
 
         grid_holder.tag_view = QTreeView()
         grid_holder.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_dialog)
+        grid_holder.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
         size_policy_tag_view = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size_policy_tag_view.setHorizontalStretch(1 / 2)  # smaller
         size_policy_tag_view.setVerticalStretch(1)  # bigger
