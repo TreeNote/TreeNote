@@ -28,8 +28,14 @@ class MainWindow(QMainWindow):
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         mainSplitter = QSplitter(Qt.Horizontal)
+        mainSplitter.setHandleWidth(0) # thing to grab the splitter
 
         # first column
+
+        self.item_views_splitter = QSplitter(Qt.Horizontal)
+        self.item_views_splitter.setHandleWidth(0) # thing to grab the splitter
+
+        # second column
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
@@ -46,14 +52,21 @@ class MainWindow(QMainWindow):
         self.root_view.setHeader(CustomHeaderView('Root'))
         self.root_view.hideColumn(1)
         self.root_view.hideColumn(2)
-
-        first_column = QWidget()
+        holder = QWidget() # needed to add space
         layout = QVBoxLayout()
-        layout.addWidget(self.bookmarks_view)
+        layout.setContentsMargins(0,11,0,0) # left, top, right, bottom
         layout.addWidget(self.root_view)
-        first_column.setLayout(layout)
+        holder.setLayout(layout)
 
-        # second column
+        second_column = QSplitter(Qt.Vertical)
+        second_column.setHandleWidth(0)
+        second_column.addWidget(self.bookmarks_view)
+        second_column.addWidget(holder)
+        second_column.setContentsMargins(6,11,6,0) # left, top, right, bottom
+
+        # third column
+
+        filter_label = QLabel(self.tr('ADD FILTERS'))
 
         self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
         self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
@@ -61,8 +74,18 @@ class MainWindow(QMainWindow):
 
         self.focus_button = QPushButton(item_model.FOCUS_TEXT)
         self.focus_button.setCheckable(True)
-        self.focus_button.setStyleSheet('QPushButton { padding: 4px; }')
+        self.focus_button.setStyleSheet('padding: 4px')
         self.focus_button.clicked.connect(self.focus)
+
+        holder = QWidget() # needed to add space
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,4,6,0) # left, top, right, bottom
+        layout.addWidget(filter_label)
+        layout.addWidget(self.task_dropdown)
+        layout.addWidget(self.estimate_dropdown)
+        layout.addWidget(self.color_dropdown)
+        layout.addWidget(self.focus_button)
+        holder.setLayout(layout)
 
         self.tag_view = QTreeView()
         self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -71,21 +94,21 @@ class MainWindow(QMainWindow):
         self.tag_view.setModel(tag_model.TagModel())
         self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        second_column = QWidget()
+        third_column = QWidget()
         layout = QVBoxLayout()
-        layout.addWidget(self.task_dropdown)
-        layout.addWidget(self.estimate_dropdown)
-        layout.addWidget(self.color_dropdown)
-        layout.addWidget(self.focus_button)
+        layout.setContentsMargins(6,6,0,0) # left, top, right, bottom
+        layout.addWidget(holder)
         layout.addWidget(self.tag_view)
-        second_column.setLayout(layout)
+        third_column.setLayout(layout)
 
-        # third column
-        self.item_views_splitter = QSplitter(Qt.Horizontal)
+        # add columns to main
 
-        mainSplitter.addWidget(first_column)
-        mainSplitter.addWidget(second_column)
         mainSplitter.addWidget(self.item_views_splitter)
+        mainSplitter.addWidget(second_column)
+        mainSplitter.addWidget(third_column)
+        mainSplitter.setStretchFactor(0, 5) # first column has a share of 2
+        mainSplitter.setStretchFactor(1, 2)
+        mainSplitter.setStretchFactor(2, 2)
         self.setCentralWidget(mainSplitter)
 
         self.actions = list()
@@ -197,8 +220,9 @@ class MainWindow(QMainWindow):
         self.focused_column().view.setFocus()
         self.updateActions()
 
+        # restore previous position etc
         settings = QSettings()
-        self.resize(settings.value('size', QSize(400, 400)))
+        self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
     def fill_bookmarkShortcutsMenu(self):
@@ -253,7 +277,7 @@ class MainWindow(QMainWindow):
         # local_server.replicate(db_name, server_url + db_name, continuous=True)
         # local_server.replicate(server_url + db_name, db_name, continuous=True)
 
-    def focused_column(self):  # returns focused grid_holder
+    def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
             if self.item_views_splitter.widget(i).hasFocus():
                 return self.item_views_splitter.widget(i)
@@ -643,16 +667,16 @@ class MainWindow(QMainWindow):
         bookmark_button.setIcon(QIcon(':/star'))
         bookmark_button.setStyleSheet('QPushButton {\
             margin-top: 11px;\
-            width: 20px;\
-            height: 20px;\
+            width: 22px;\
+            height: 22px;\
             padding: 2px; }')
-        bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=grid_holder.search_bar.text()).exec_())
+        bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
         search_holder = QWidget()
         layout = QHBoxLayout()
         layout.addWidget(new_column.search_bar)
         layout.addWidget(bookmark_button)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(6, 0, 0, 0)
         search_holder.setLayout(layout)
 
         new_column.view = QTreeView()
@@ -666,12 +690,17 @@ class MainWindow(QMainWindow):
         new_column.view.setModel(new_column.proxy)
         new_column.view.setItemDelegate(item_model.Delegate(self, new_column.proxy))
         new_column.view.selectionModel().selectionChanged.connect(self.updateActions)
-        new_column.view.setColumnWidth(0, 300)  # todo update ratio when window size changes
-        new_column.view.setColumnWidth(1, 100)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
+        new_column.view.header().setStretchLastSection(False)
+        new_column.view.setColumnWidth(1, 105)
+        new_column.view.setColumnWidth(2, 68)
+        new_column.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        new_column.view.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        new_column.view.header().setSectionResizeMode(2, QHeaderView.Fixed)
         new_column.view.header().setSectionsClickable(True)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,6,0) # left, top, right, bottom
         layout.addWidget(search_holder)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
