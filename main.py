@@ -381,19 +381,19 @@ class MainWindow(QMainWindow):
         character = value[0]
         search_bar_text = self.focused_column().search_bar.text()
         # 'all' selected: remove existing same filter
-        if character == 'a':
+        if value == 'all':
             search_bar_text = re.sub(key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
         else:
-            # key is a compare operator
+            # key is a compare operator. estimate parameters are 'e' and '<20' instead of 't=' and 'n'
             if len(key) == 1:
                 key += value[0]
-                character = value[1:]
+                value = value[1:]
             # filter is already in the search bar: replace existing same filter
             if re.search(key[0] + r'(<|>|=)', search_bar_text):
-                search_bar_text = re.sub(key[0] + r'(<|>|=|\w|\d)* ', key + character + ' ', search_bar_text)
+                search_bar_text = re.sub(key[0] + r'(<|>|=|\w|\d)* ', key + value + ' ', search_bar_text)
             else:
                 # add filter
-                search_bar_text += ' ' + key + character + ' '
+                search_bar_text += ' ' + key + value + ' '
         self.focused_column().search_bar.setText(search_bar_text)
 
     def db_change_signal(self, db_item, source_model):
@@ -426,6 +426,13 @@ class MainWindow(QMainWindow):
             available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             if isinstance(available_index, QModelIndex):
                 source_model.dataChanged.emit(available_index, available_index)
+            # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
+            # if isinstance(available_index, QModelIndex):
+            #     available_id = source_model.get_db_item_id(available_index)
+            #     available_db_item = source_model.db[available_id]
+            #     available_db_item['type'] = model.NOT_AVAILABLE_TASK
+            #     source_model.db[available_id] = available_db_item
+            #     source_model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.focused_column().view.header().sortIndicatorSection()

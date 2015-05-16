@@ -203,6 +203,7 @@ class TreeModel(QAbstractItemModel):
             return item.estimate
 
     # pass either index or item_id + column
+    # the item_id + column version is used by the bookmark dialog # todo make two methods
     def setData(self, value, index=None, item_id=None, column=None, field='text'):
 
         class SetDataCommand(QUndoCommandStructure):
@@ -435,7 +436,8 @@ class TreeModel(QAbstractItemModel):
         """
         item = self.getItem(index)
         db_item = self.db[item.id]
-        if db_item['type'] != TASK:
+
+        if db_item['type'] == NOTE:
             return True
 
         project_db_item = self.db[item.parentItem.id]
@@ -486,7 +488,11 @@ class FilterProxyModel(QSortFilterProxyModel):
                     continue
             elif token.startswith('t='):
                 task_character = token[2:3]
-                if db_item['type'] == CHAR_TYPE_DICT.get(task_character):
+                type = CHAR_TYPE_DICT.get(task_character)
+                if db_item['type'] == type:
+                    # just available tasks
+                    if type == TASK and not self.sourceModel().is_task_available(index):
+                        break
                     continue
             elif re.match(r'e(<|>|=)', token):
                 if db_item['estimate'] == '':
@@ -610,7 +616,8 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
-        if type == DONE_TASK or not self.model.is_task_available(index):  # not available tasks in a sequential project are grey
+        is_not_available = type == TASK and not self.model.is_task_available(index)
+        if type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         # font = QFont()
         # font.setPixelSize(20)
@@ -630,6 +637,8 @@ class Delegate(QStyledItemDelegate):
 
         if type != NOTE and index.column() == 0:  # set icon of task or project
             painter.save()
+            if is_not_available:
+                type = NOT_AVAILABLE_TASK
             icon = QIcon(':/' + type)
             iconsize = option.decorationSize
             painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
@@ -807,6 +816,7 @@ DELIMITER = ':'
 DONE_TASK = 'done'  # same as icon file names
 TASK = 'todo'
 NOTE = 'note'
+NOT_AVAILABLE_TASK = 'not_available_todo'
 SEQ = 'sequential'
 PAR = 'parallel'
 PAUSED = 'paused'
