@@ -15,6 +15,7 @@ import couchdb
 from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
+EDIT_SORTCUT = 'Edit shortcut'
 
 
 class MainWindow(QMainWindow):
@@ -48,6 +49,9 @@ class MainWindow(QMainWindow):
 
         self.root_view = QTreeView()
         self.root_view.setModel(self.item_model)
+        self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
+        self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
         self.root_view.clicked.connect(self.focus)
         self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.hideColumn(1)
@@ -236,6 +240,16 @@ class MainWindow(QMainWindow):
             if row.id != model.ROOT_ID:
                 self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
                                                              triggered=partial(self.filter_bookmark, row.id)))
+
+        map = "function(doc) { \
+                    if (doc." + model.SHORTCUT + " != '') \
+                        emit(doc, null); \
+                }"
+        res = self.item_model.db.query(map)
+        for row in res:
+            db_item = self.item_model.db[row.id]
+            self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
+                                                         triggered=partial(self.focus, row.id)))
 
     def get_db(self, db_name):
         if sys.platform == "darwin":
@@ -520,10 +534,10 @@ class MainWindow(QMainWindow):
 
         # focus
         if model.FOCUS in search_text:
-            item_id_with_space_behind = search_text.split(model.FOCUS)[1] # second item is the one behind FOCUS
+            item_id_with_space_behind = search_text.split(model.FOCUS)[1]  # second item is the one behind FOCUS
             item_id_with_equalsign_before = item_id_with_space_behind.split()
             item_id = item_id_with_equalsign_before[0][1:]
-            idx = QModelIndex(self.item_model.id_index_dict[item_id]) # convert QPersistentModelIndex
+            idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
             proxy_idx = self.focused_column().proxy.mapFromSource(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
 
@@ -581,6 +595,16 @@ class MainWindow(QMainWindow):
             BookmarkDialog(self, index=index).exec_()
         elif action is deleteBookmarkAction:
             self.removeBookmarkSelection()
+
+    def open_edit_shortcut_contextmenu(self, point):
+        index = self.root_view.indexAt(point)
+        if not index.isValid():
+            return
+        menu = QMenu()
+        editShortcutAction = menu.addAction(self.tr(EDIT_SORTCUT))
+        action = menu.exec_(self.root_view.viewport().mapToGlobal(point))
+        if action is editShortcutAction:
+            ShortcutDialog(self, index=index).exec_()
 
     # structure menu actions
 
@@ -670,13 +694,14 @@ class MainWindow(QMainWindow):
     def focus_search_bar(self):
         self.focused_column().search_bar.setFocus()
 
-    def focus(self):
+    def focus(self, item_id=None):
         search_bar_text = self.focused_column().search_bar.text()
-        if self.focusWidget() is self.root_view:
-            idx = self.root_view.selectionModel().currentIndex()
-        else: # focus button presses to focus on current index of item_view
-            idx = self.focused_column().view.selectionModel().currentIndex()
-        item_id = idx.model().get_db_item_id(idx)
+        if item_id is None: # this was not called from the menu
+            if self.focusWidget() is self.root_view:
+                idx = self.root_view.selectionModel().currentIndex()
+            else:  # focus button presses to focus on current index of item_view
+                idx = self.focused_column().view.selectionModel().currentIndex()
+            item_id = idx.model().get_db_item_id(idx)
         self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
 
     def open_links(self):
@@ -810,7 +835,6 @@ class BookmarkDialog(QDialog):
         shortcut = '' if index is None else db_item[model.SHORTCUT]
         self.shortcut_edit = QKeySequenceEdit()
         self.shortcut_edit.setKeySequence(QKeySequence(shortcut))
-        # self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -843,6 +867,31 @@ class BookmarkDialog(QDialog):
         self.parent.bookmark_model.setData(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
+
+
+class ShortcutDialog(QDialog):
+    def __init__(self, parent, index):
+        super(QDialog, self).__init__(parent)
+        self.parent = parent
+        self.item = parent.item_model.getItem(index)
+        db_item = parent.item_model.db[self.item.id]
+        self.shortcut_edit = QKeySequenceEdit()
+        self.shortcut_edit.setKeySequence(QKeySequence(db_item[model.SHORTCUT]))
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel('Shortcut:'), 0, 0)  # row, column
+        grid.addWidget(self.shortcut_edit, 0, 1)
+        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
+        self.setLayout(grid)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        self.setWindowTitle("Edit quick link shortcut")
+
+    def apply(self):
+        self.parent.item_model.setData(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
+        self.parent.fill_bookmarkShortcutsMenu()
+        super(ShortcutDialog, self).accept()
 
 
 class RenameTagDialog(QDialog):
