@@ -15,7 +15,7 @@ import couchdb
 from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
-EDIT_SORTCUT = 'Edit shortcut'
+EDIT_QUICKLINK = 'Edit quick link shortcut'
 
 
 class MainWindow(QMainWindow):
@@ -151,6 +151,7 @@ class MainWindow(QMainWindow):
         add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
         add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
         add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeBookmarkSelection))
+        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.root_view.selectionModel().currentIndex()).exec_()))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -167,6 +168,7 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.moveBookmarkUpAction)
         self.fileMenu.addAction(self.moveBookmarkDownAction)
         self.fileMenu.addAction(self.deleteBookmarkAction)
+        self.fileMenu.addAction(self.editShortcutAction)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -369,7 +371,6 @@ class MainWindow(QMainWindow):
         # if shortcut was used: select bookmarks row for visual highlight
         index = self.bookmark_model.id_index_dict[item_id]
         self.set_selection(index, index)
-        self.focused_column().view.setFocus()
 
     def filter_bookmark_click(self, index):
         item_id = self.bookmark_model.getItem(index).id
@@ -600,7 +601,7 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             return
         menu = QMenu()
-        editShortcutAction = menu.addAction(self.tr(EDIT_SORTCUT))
+        editShortcutAction = menu.addAction(self.tr('Edit shortcut'))
         action = menu.exec_(self.root_view.viewport().mapToGlobal(point))
         if action is editShortcutAction:
             ShortcutDialog(self, index=index).exec_()
@@ -889,7 +890,7 @@ class ShortcutDialog(QDialog):
         grid.addWidget(clearButton, 0, 2)
         grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-        self.setWindowTitle("Edit quick link shortcut")
+        self.setWindowTitle(EDIT_QUICKLINK)
 
     def apply(self):
         self.parent.item_model.setData(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
