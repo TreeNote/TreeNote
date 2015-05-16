@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets
 import sys
 from PyQt5.QtCore import *
+from PyQt5.QtCore import QModelIndex
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
@@ -52,7 +53,7 @@ class MainWindow(QMainWindow):
         self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.root_view.clicked.connect(self.focus)
+        self.root_view.clicked.connect(self.focus_from_viewclick)
         self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.hideColumn(1)
         self.root_view.hideColumn(2)
@@ -76,7 +77,7 @@ class MainWindow(QMainWindow):
         self.focus_button = QPushButton(model.FOCUS_TEXT)
         self.focus_button.setCheckable(True)
         self.focus_button.setStyleSheet('padding: 4px')
-        self.focus_button.clicked.connect(self.focus)
+        self.focus_button.clicked.connect(self.focus_button_clicked)
 
         self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
@@ -249,7 +250,7 @@ class MainWindow(QMainWindow):
         for row in res:
             db_item = self.item_model.db[row.id]
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                         triggered=partial(self.focus, row.id)))
+                                                         triggered=partial(self.focus_from_menu, row.id)))
 
     def get_db(self, db_name):
         if sys.platform == "darwin":
@@ -694,15 +695,21 @@ class MainWindow(QMainWindow):
     def focus_search_bar(self):
         self.focused_column().search_bar.setFocus()
 
-    def focus(self, item_id=None):
+    def focus_from_menu(self, item_id):
         search_bar_text = self.focused_column().search_bar.text()
-        if item_id is None: # this was not called from the menu
-            if self.focusWidget() is self.root_view:
-                idx = self.root_view.selectionModel().currentIndex()
-            else:  # focus button presses to focus on current index of item_view
-                idx = self.focused_column().view.selectionModel().currentIndex()
-            item_id = idx.model().get_db_item_id(idx)
         self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
+
+    def focus_from_viewclick(self, index):
+        search_bar_text = self.focused_column().search_bar.text()
+        item_id = index.model().get_db_item_id(index)
+        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
+
+    def focus_button_clicked(self):
+        search_bar_text = self.focused_column().search_bar.text()
+        idx = self.focused_column().view.selectionModel().currentIndex()
+        item_id = idx.model().get_db_item_id(idx)
+        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
+
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -817,7 +824,7 @@ class BookmarkDialog(QDialog):
     # index is set: edit existing bookmark
     def __init__(self, parent, search_bar_text=None, index=None):
         super(BookmarkDialog, self).__init__(parent)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(600)
         self.parent = parent
         self.search_bar_text = search_bar_text
         self.index = index
@@ -835,6 +842,8 @@ class BookmarkDialog(QDialog):
         shortcut = '' if index is None else db_item[model.SHORTCUT]
         self.shortcut_edit = QKeySequenceEdit()
         self.shortcut_edit.setKeySequence(QKeySequence(shortcut))
+        clearButton = QPushButton('Clear')
+        clearButton.clicked.connect(self.shortcut_edit.clear)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -845,6 +854,7 @@ class BookmarkDialog(QDialog):
         grid.addWidget(self.name_edit, 0, 1)
         grid.addWidget(self.search_bar_text_edit, 1, 1)
         grid.addWidget(self.shortcut_edit, 2, 1)
+        grid.addWidget(clearButton, 2, 2)
         grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
@@ -877,15 +887,18 @@ class ShortcutDialog(QDialog):
         db_item = parent.item_model.db[self.item.id]
         self.shortcut_edit = QKeySequenceEdit()
         self.shortcut_edit.setKeySequence(QKeySequence(db_item[model.SHORTCUT]))
+        clearButton = QPushButton('Clear')
+        clearButton.clicked.connect(self.shortcut_edit.clear)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
 
         grid = QGridLayout()
         grid.addWidget(QLabel('Shortcut:'), 0, 0)  # row, column
         grid.addWidget(self.shortcut_edit, 0, 1)
+        grid.addWidget(clearButton, 0, 2)
         grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
-        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.setWindowTitle("Edit quick link shortcut")
 
     def apply(self):
