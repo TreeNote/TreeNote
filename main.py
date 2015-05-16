@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
 
         self.root_view = QTreeView()
         self.root_view.setModel(self.item_model)
-        # self.root_view.clicked.connect(self.filter_bookmark) # todo
+        self.root_view.clicked.connect(self.focus)
         self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.hideColumn(1)
         self.root_view.hideColumn(2)
@@ -501,7 +501,7 @@ class MainWindow(QMainWindow):
         self.focus_button.setChecked(False)
 
     def search(self, search_text):
-        # ordering
+        # sort
         if model.SORT in search_text:
             if model.ASC in search_text:
                 order = Qt.DescendingOrder  # it's somehow reverted :/
@@ -518,7 +518,16 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setSortingEnabled(False)
             self.focused_column().view.header().setSectionsClickable(True)
 
-        # filtering
+        # focus
+        if model.FOCUS in search_text:
+            item_id_with_space_behind = search_text.split(model.FOCUS)[1] # second item is the one behind FOCUS
+            item_id_with_equalsign_before = item_id_with_space_behind.split()
+            item_id = item_id_with_equalsign_before[0][1:]
+            idx = QModelIndex(self.item_model.id_index_dict[item_id]) # convert QPersistentModelIndex
+            proxy_idx = self.focused_column().proxy.mapFromSource(idx)
+            self.focused_column().view.setRootIndex(proxy_idx)
+
+        # filter
         self.focused_column().proxy.filter = search_text
         self.focused_column().proxy.invalidateFilter()
         # deselect tag if user changes the search string
@@ -663,10 +672,12 @@ class MainWindow(QMainWindow):
 
     def focus(self):
         search_bar_text = self.focused_column().search_bar.text()
-        idx = self.focused_column().view.selectionModel().currentIndex()
+        if self.focusWidget() is self.root_view:
+            idx = self.root_view.selectionModel().currentIndex()
+        else: # focus button presses to focus on current index of item_view
+            idx = self.focused_column().view.selectionModel().currentIndex()
         item_id = idx.model().get_db_item_id(idx)
         self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
-        self.focused_column().view.setRootIndex(idx)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -781,6 +792,7 @@ class BookmarkDialog(QDialog):
     # index is set: edit existing bookmark
     def __init__(self, parent, search_bar_text=None, index=None):
         super(BookmarkDialog, self).__init__(parent)
+        self.setMinimumWidth(400)
         self.parent = parent
         self.search_bar_text = search_bar_text
         self.index = index
