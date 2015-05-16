@@ -7,7 +7,7 @@ import sys
 import subprocess
 import threading
 import socket
-import item_model
+import model
 
 FULL_PATH = 'FULL_PATH'
 
@@ -136,10 +136,10 @@ class TagModel(QAbstractItemModel):
         self.beginResetModel()
         self.rootItem.childItems = []
         for whole_tag in sorted(tags_set, key=str.lower):
-            splitted_tag = whole_tag.split(item_model.DELIMITER)
+            splitted_tag = whole_tag.split(model.DELIMITER)
 
             def add_below(parent, remaining_tags):
-                new_item = parent.add_and_return_child(TagTreeItem(item_model.DELIMITER + remaining_tags[0], parent))
+                new_item = parent.add_and_return_child(TagTreeItem(model.DELIMITER + remaining_tags[0], parent))
                 del remaining_tags[0]
                 if len(remaining_tags) > 0:
                     add_below(new_item, remaining_tags)

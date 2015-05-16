@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
-import item_model
+import model
 import tag_model
 import subprocess
 import socket
@@ -21,10 +21,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.model = item_model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
-        self.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
+        self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
+        self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.bookmark_model = item_model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
+        self.bookmark_model = model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         mainSplitter = QSplitter(Qt.Horizontal)
@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
-        self.bookmarks_view.setItemDelegate(item_model.BookmarkDelegate(self, self.bookmark_model))
+        self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
         self.bookmarks_view.clicked.connect(self.filter_bookmark_click)
         self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.hideColumn(2)
 
         self.root_view = QTreeView()
-        self.root_view.setModel(self.model)
+        self.root_view.setModel(self.item_model)
         # self.root_view.clicked.connect(self.filter_bookmark) # todo
         self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.hideColumn(1)
@@ -69,12 +69,12 @@ class MainWindow(QMainWindow):
         filter_label = QLabel(self.tr('ADD FILTERS'))
         sort_label = QLabel(self.tr('Sort: Click a column'))
 
-        self.focus_button = QPushButton(item_model.FOCUS_TEXT)
+        self.focus_button = QPushButton(model.FOCUS_TEXT)
         self.focus_button.setCheckable(True)
         self.focus_button.setStyleSheet('padding: 4px')
         self.focus_button.clicked.connect(self.focus)
 
-        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
+        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
@@ -150,9 +150,9 @@ class MainWindow(QMainWindow):
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
-        add_action('undoAction', self.model.undoStack.createUndoAction(self))
+        add_action('undoAction', self.item_model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
-        add_action('redoAction', self.model.undoStack.createRedoAction(self))
+        add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
         self.redoAction.setShortcut('CTRL+Shift+Z')
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
@@ -233,8 +233,8 @@ class MainWindow(QMainWindow):
         res = self.bookmark_model.db.query(map)
         for row in res:
             db_item = self.bookmark_model.db[row.id]
-            if row.id != item_model.ROOT_ID:
-                self.bookmarkShortcutsMenu.addAction(QAction(db_item[item_model.TEXT], self, shortcut=db_item[item_model.SHORTCUT],
+            if row.id != model.ROOT_ID:
+                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
                                                              triggered=partial(self.filter_bookmark, row.id)))
 
     def get_db(self, db_name):
@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db[item_model.ROOT_ID] = (item_model.NEW_DB_ITEM.copy())
+                new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         return self.item_views_splitter.widget(0)
 
     def setup_tag_model(self):
-        self.tag_view.model().setupModelData(self.model.get_tags_set())
+        self.tag_view.model().setupModelData(self.item_model.get_tags_set())
 
         def expand_node(parent_index, bool_expand):
             self.tag_view.setExpanded(parent_index, bool_expand)
@@ -301,13 +301,13 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
-        self.model.updater.terminate()
+        self.item_model.updater.terminate()
 
         # todo enable for production
         # if sys.platform == "darwin":
         # subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
-        print(len(self.model.pointer_set))  # for debugging: is the len == #rows + root?
+        print(len(self.item_model.pointer_set))  # for debugging: is the len == #rows + root?
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
@@ -321,17 +321,17 @@ class MainWindow(QMainWindow):
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
-            self.filter(item_model.SORT, 'all')
+            self.filter(model.SORT, 'all')
         elif column == 1:  # order by start date
-            order = item_model.DESC  # toggle between ASC and DESC
-            if item_model.DESC in self.focused_column().search_bar.text():
-                order = item_model.ASC
-            self.append_replace_to_searchbar(item_model.SORT, item_model.STARTDATE + order)
+            order = model.DESC  # toggle between ASC and DESC
+            if model.DESC in self.focused_column().search_bar.text():
+                order = model.ASC
+            self.append_replace_to_searchbar(model.SORT, model.STARTDATE + order)
         elif column == 2:  # order by estimate
-            order = item_model.DESC
-            if item_model.DESC in self.focused_column().search_bar.text():
-                order = item_model.ASC
-            self.append_replace_to_searchbar(item_model.SORT, item_model.ESTIMATE + order)
+            order = model.DESC
+            if model.DESC in self.focused_column().search_bar.text():
+                order = model.ASC
+            self.append_replace_to_searchbar(model.SORT, model.ESTIMATE + order)
 
     def append_replace_to_searchbar(self, key, value):
         search_bar_text = self.focused_column().search_bar.text()
@@ -352,7 +352,7 @@ class MainWindow(QMainWindow):
 
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, item_id):
-        new_search_bar_text = self.bookmark_model.db[item_id][item_model.SEARCH_TEXT]
+        new_search_bar_text = self.bookmark_model.db[item_id][model.SEARCH_TEXT]
         self.focused_column().search_bar.setText(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
         index = self.bookmark_model.id_index_dict[item_id]
@@ -433,7 +433,7 @@ class MainWindow(QMainWindow):
                 if not change_dict['set_edit_focus']:
                     self.set_selection(index_first_added, index_last_added)
                 else:  # update selection_and_edit
-                    if index_first_added.model() is self.model:
+                    if index_first_added.model() is self.item_model:
                         index_first_added = self.focused_column().proxy.mapFromSource(index_first_added)
                         self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
                         self.focusWidget().edit(index_first_added)
@@ -469,8 +469,8 @@ class MainWindow(QMainWindow):
             if my_edit:
                 self.set_selection(index_first_moved_item, index_moved_item)
 
-        elif method == item_model.DELETED:
-            if model.db[item_id][item_model.DELETED] == '':
+        elif method == model.DELETED:
+            if model.db[item_id][model.DELETED] == '':
                 model.pointer_set.add(index.internalId())
             else:
                 model.pointer_set.remove(index.internalId())
@@ -479,13 +479,13 @@ class MainWindow(QMainWindow):
 
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
-            if index_from.model() is self.model:
+            if index_from.model() is self.item_model:
                 index_to = self.focused_column().proxy.mapFromSource(index_to)
                 index_from = self.focused_column().proxy.mapFromSource(index_from)
             else:
                 self.bookmarks_view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
-            index_to = index_to.sibling(index_to.row(), self.model.columnCount() - 1)
+            index_to = index_to.sibling(index_to.row(), self.item_model.columnCount() - 1)
             self.focusWidget().selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
             self.focusWidget().selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
@@ -502,14 +502,14 @@ class MainWindow(QMainWindow):
 
     def search(self, search_text):
         # ordering
-        if item_model.SORT in search_text:
-            if item_model.ASC in search_text:
+        if model.SORT in search_text:
+            if model.ASC in search_text:
                 order = Qt.DescendingOrder  # it's somehow reverted :/
-            elif item_model.DESC in search_text:
+            elif model.DESC in search_text:
                 order = Qt.AscendingOrder
-            if item_model.STARTDATE in search_text:
+            if model.STARTDATE in search_text:
                 column = 1
-            elif item_model.ESTIMATE in search_text:
+            elif model.ESTIMATE in search_text:
                 column = 2
             self.focused_column().view.setSortingEnabled(True)
             self.focused_column().view.sortByColumn(column, order)
@@ -540,12 +540,12 @@ class MainWindow(QMainWindow):
                     if (doc.text.indexOf('{}') != -1 ) \
                         emit(doc, null); \
                 }}".format(tag)
-        res = self.model.db.query(map)
+        res = self.item_model.db.query(map)
         for row in res:
-            db_item = self.model.db[row.id]
+            db_item = self.item_model.db[row.id]
             db_item['text'] = db_item['text'].replace(tag, new_name)
             db_item['change'] = dict(method='updated', user=socket.gethostname())
-            self.model.db[row.id] = db_item
+            self.item_model.db[row.id] = db_item
 
 
     def open_rename_tag_contextmenu(self, point):
@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
     def color_row(self, color_character):
         if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().proxy.setData(item_model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+                self.focused_column().proxy.setData(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 
@@ -665,7 +665,7 @@ class MainWindow(QMainWindow):
         search_bar_text = self.focused_column().search_bar.text()
         idx = self.focused_column().view.selectionModel().currentIndex()
         item_id = idx.model().get_db_item_id(idx)
-        self.focused_column().search_bar.setText(search_bar_text + ' ' + item_model.FOCUS + '=' + item_id)
+        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
         self.focused_column().view.setRootIndex(idx)
 
     def open_links(self):
@@ -703,13 +703,13 @@ class MainWindow(QMainWindow):
         new_column.view = QTreeView()
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        new_column.proxy = item_model.FilterProxyModel()
-        new_column.proxy.setSourceModel(self.model)
+        new_column.proxy = model.FilterProxyModel()
+        new_column.proxy.setSourceModel(self.item_model)
         new_column.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
         new_column.proxy.filter = ''
 
         new_column.view.setModel(new_column.proxy)
-        new_column.view.setItemDelegate(item_model.Delegate(self, new_column.proxy))
+        new_column.view.setItemDelegate(model.Delegate(self, new_column.proxy))
         new_column.view.selectionModel().selectionChanged.connect(self.updateActions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
@@ -788,14 +788,14 @@ class BookmarkDialog(QDialog):
             item = parent.bookmark_model.getItem(index)
             db_item = parent.bookmark_model.db[item.id]
 
-        name = '' if index is None else db_item[item_model.TEXT]
+        name = '' if index is None else db_item[model.TEXT]
         self.name_edit = QLineEdit(name)
 
         if search_bar_text is None:
-            search_bar_text = db_item[item_model.SEARCH_TEXT]
+            search_bar_text = db_item[model.SEARCH_TEXT]
         self.search_bar_text_edit = QLineEdit(search_bar_text)
 
-        shortcut = '' if index is None else db_item[item_model.SHORTCUT]
+        shortcut = '' if index is None else db_item[model.SHORTCUT]
         self.shortcut_edit = QKeySequenceEdit()
         self.shortcut_edit.setKeySequence(QKeySequence(shortcut))
         # self.shortcut_edit.setPlaceholderText('e.g. Ctrl+1')
@@ -821,14 +821,14 @@ class BookmarkDialog(QDialog):
     def apply(self):
         if self.index is None:
             new_item_position = len(self.parent.bookmark_model.rootItem.childItems)
-            self.parent.bookmark_model.insert_remove_rows(new_item_position, item_model.ROOT_ID)
-            children_list = self.parent.bookmark_model.db[item_model.ROOT_ID]['children'].split()
+            self.parent.bookmark_model.insert_remove_rows(new_item_position, model.ROOT_ID)
+            children_list = self.parent.bookmark_model.db[model.ROOT_ID]['children'].split()
             item_id = children_list[-1]
         else:
             item_id = self.parent.bookmark_model.get_db_item_id(self.index)
         self.parent.bookmark_model.setData(self.name_edit.text(), item_id=item_id, column=0, field='text')
-        self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=item_model.SEARCH_TEXT)
-        self.parent.bookmark_model.setData(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=item_model.SHORTCUT)
+        self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
+        self.parent.bookmark_model.setData(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
@@ -916,19 +916,19 @@ if __name__ == '__main__':
 
     app.setStyle("Fusion")
     dark_palette = QPalette()
-    dark_palette.setColor(QPalette.Window, item_model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.WindowText, item_model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Base, item_model.BACKGROUND_GRAY)
-    dark_palette.setColor(QPalette.AlternateBase, item_model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ToolTipBase, item_model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.ToolTipText, item_model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Text, item_model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Button, item_model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ButtonText, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
+    dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
     dark_palette.setColor(QPalette.BrightText, Qt.red)
     dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, item_model.SELECTION_GRAY)
-    dark_palette.setColor(QPalette.HighlightedText, item_model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
+    dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
     app.setPalette(dark_palette)
     app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
                       QHeaderView::section { padding-bottom: 5px;  padding-top: 2px;}')
