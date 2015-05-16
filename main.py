@@ -82,6 +82,11 @@ class MainWindow(QMainWindow):
         self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
+        self.hasStartdateCheckBox = QCheckBox('Has a start date')
+        self.hasStartdateCheckBox.clicked.connect(self.filter_has_start_date)
+        self.showParentsCheckBox = QCheckBox('Show parents')
+        self.showParentsCheckBox.clicked.connect(self.filter_show_parents)
+
         holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
@@ -91,6 +96,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.task_dropdown)
         layout.addWidget(self.estimate_dropdown)
         layout.addWidget(self.color_dropdown)
+        layout.addWidget(self.hasStartdateCheckBox)
+        layout.addWidget(self.showParentsCheckBox)
         holder.setLayout(layout)
 
         self.tag_view = QTreeView()
@@ -225,6 +232,7 @@ class MainWindow(QMainWindow):
                 action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
+        self.reset_view() # inits checkboxes
         self.focused_column().view.setFocus()
         self.updateActions()
 
@@ -347,12 +355,28 @@ class MainWindow(QMainWindow):
                 order = model.ASC
             self.append_replace_to_searchbar(model.SORT, model.ESTIMATE + order)
 
+
+
+
     def append_replace_to_searchbar(self, key, value):
         search_bar_text = self.focused_column().search_bar.text()
         new_text = re.sub(key + r'(\w|=)* ', key + '=' + value + ' ', search_bar_text)
         if key not in search_bar_text:
             new_text += ' ' + key + '=' + value + ' '
         self.focused_column().search_bar.setText(new_text)
+
+    def filter_has_start_date(self, has_start_date):
+        if has_start_date:
+            self.append_replace_to_searchbar(model.HAS_STARTDATE , 'yes')
+        else:
+            self.filter(model.HAS_STARTDATE , 'all') # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
+
+
+    def filter_show_parents(self, show_parents):
+        if not show_parents:
+            self.append_replace_to_searchbar(model.NOT_SHOW_PARENTS , 'no')
+        else:
+            self.filter(model.NOT_SHOW_PARENTS , 'all')
 
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
@@ -503,14 +527,19 @@ class MainWindow(QMainWindow):
             if index_from.model() is self.item_model:
                 index_to = self.focused_column().proxy.mapFromSource(index_to)
                 index_from = self.focused_column().proxy.mapFromSource(index_from)
+                view = self.focused_column().view
             else:
-                self.bookmarks_view.setFocus()
+                view = self.bookmarks_view
+                view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
             index_to = index_to.sibling(index_to.row(), self.item_model.columnCount() - 1)
-            self.focusWidget().selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
-            self.focusWidget().selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
+            view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+            view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
+
 
     def reset_view(self):
+        self.hasStartdateCheckBox.setChecked(False)
+        self.showParentsCheckBox.setChecked(True)
         self.task_dropdown.comboBox.setCurrentIndex(0)
         self.estimate_dropdown.comboBox.setCurrentIndex(0)
         self.color_dropdown.comboBox.setCurrentIndex(0)

@@ -503,6 +503,11 @@ class FilterProxyModel(QSortFilterProxyModel):
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue
+            elif token.startswith(HAS_STARTDATE):
+                if db_item['date'] != '':
+                    continue
+            elif token.startswith(NOT_SHOW_PARENTS + '='):  # ignore
+                continue
             elif token.startswith(FOCUS + '='):  # ignore
                 continue
             elif token.startswith(SORT + '='):  # ignore
@@ -513,10 +518,11 @@ class FilterProxyModel(QSortFilterProxyModel):
         else:  # just executed when not breaked
             return True  # all tokens are in the row
 
-        # return True if a child row is accepted
-        for row in range(self.sourceModel().rowCount(index)):
-            if self.filterAcceptsRow(row, index):
-                return True;
+        # if show parents: return True if a child row is accepted
+        if NOT_SHOW_PARENTS not in self.filter:
+            for row in range(self.sourceModel().rowCount(index)):
+                if self.filterAcceptsRow(row, index):
+                    return True;
 
         return False
 
@@ -790,7 +796,8 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.popup().setCurrentIndex(
             self._completer.completionModel().index(0, 0))
 
-
+HAS_STARTDATE = 'has_date'
+NOT_SHOW_PARENTS= 'show_parents'
 SORT = 'sort'
 ESTIMATE='estimate'
 STARTDATE='startdate'
