@@ -28,12 +28,12 @@ class MainWindow(QMainWindow):
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         mainSplitter = QSplitter(Qt.Horizontal)
-        mainSplitter.setHandleWidth(0) # thing to grab the splitter
+        mainSplitter.setHandleWidth(0)  # thing to grab the splitter
 
         # first column
 
         self.item_views_splitter = QSplitter(Qt.Horizontal)
-        self.item_views_splitter.setHandleWidth(0) # thing to grab the splitter
+        self.item_views_splitter.setHandleWidth(0)  # thing to grab the splitter
 
         # second column
 
@@ -49,12 +49,12 @@ class MainWindow(QMainWindow):
         self.root_view = QTreeView()
         self.root_view.setModel(self.model)
         # self.root_view.clicked.connect(self.filter_bookmark) # todo
-        self.root_view.setHeader(CustomHeaderView('Root'))
+        self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.hideColumn(1)
         self.root_view.hideColumn(2)
-        holder = QWidget() # needed to add space
+        holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,11,0,0) # left, top, right, bottom
+        layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.root_view)
         holder.setLayout(layout)
 
@@ -62,29 +62,31 @@ class MainWindow(QMainWindow):
         second_column.setHandleWidth(0)
         second_column.addWidget(self.bookmarks_view)
         second_column.addWidget(holder)
-        second_column.setContentsMargins(6,11,6,0) # left, top, right, bottom
+        second_column.setContentsMargins(6, 11, 6, 0)  # left, top, right, bottom
 
         # third column
 
         filter_label = QLabel(self.tr('ADD FILTERS'))
-
-        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
-        self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+        sort_label = QLabel(self.tr('Sort: Click a column'))
 
         self.focus_button = QPushButton(item_model.FOCUS_TEXT)
         self.focus_button.setCheckable(True)
         self.focus_button.setStyleSheet('padding: 4px')
         self.focus_button.clicked.connect(self.focus)
 
-        holder = QWidget() # needed to add space
+        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), item_model.NOTE, item_model.TASK, item_model.DONE_TASK)
+        self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
+        self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+
+        holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,4,6,0) # left, top, right, bottom
+        layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
         layout.addWidget(filter_label)
+        layout.addWidget(sort_label)
+        layout.addWidget(self.focus_button)
         layout.addWidget(self.task_dropdown)
         layout.addWidget(self.estimate_dropdown)
         layout.addWidget(self.color_dropdown)
-        layout.addWidget(self.focus_button)
         holder.setLayout(layout)
 
         self.tag_view = QTreeView()
@@ -96,7 +98,7 @@ class MainWindow(QMainWindow):
 
         third_column = QWidget()
         layout = QVBoxLayout()
-        layout.setContentsMargins(6,6,0,0) # left, top, right, bottom
+        layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
         layout.addWidget(holder)
         layout.addWidget(self.tag_view)
         third_column.setLayout(layout)
@@ -106,7 +108,7 @@ class MainWindow(QMainWindow):
         mainSplitter.addWidget(self.item_views_splitter)
         mainSplitter.addWidget(second_column)
         mainSplitter.addWidget(third_column)
-        mainSplitter.setStretchFactor(0, 5) # first column has a share of 2
+        mainSplitter.setStretchFactor(0, 5)  # first column has a share of 2
         mainSplitter.setStretchFactor(1, 2)
         mainSplitter.setStretchFactor(2, 2)
         self.setCentralWidget(mainSplitter)
@@ -319,23 +321,23 @@ class MainWindow(QMainWindow):
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
-            self.append_replace_to_searchbar(item_model.ORDER, item_model.MANUALLY)
-            self.focused_column().view.sortByColumn(-1, Qt.AscendingOrder)
-            self.focused_column().view.setSortingEnabled(False)
-            self.focused_column().view.header().setSectionsClickable(True)
-        elif column == 1:
-            order = item_model.ASC
-            self.append_replace_to_searchbar(item_model.ORDER, item_model.STARTDATE + order)
-        elif column == 2:
-            self.append_replace_to_searchbar(item_model.ORDER_MANUALLY)
-            if not self.focused_column().view.isSortingEnabled():
-                self.focused_column().view.setSortingEnabled(True)
+            self.filter(item_model.SORT, 'all')
+        elif column == 1:  # order by start date
+            order = item_model.DESC  # toggle between ASC and DESC
+            if item_model.DESC in self.focused_column().search_bar.text():
+                order = item_model.ASC
+            self.append_replace_to_searchbar(item_model.SORT, item_model.STARTDATE + order)
+        elif column == 2:  # order by estimate
+            order = item_model.DESC
+            if item_model.DESC in self.focused_column().search_bar.text():
+                order = item_model.ASC
+            self.append_replace_to_searchbar(item_model.SORT, item_model.ESTIMATE + order)
 
     def append_replace_to_searchbar(self, key, value):
         search_bar_text = self.focused_column().search_bar.text()
-        new_text = re.sub(r'key(\w)* ', value + ' ', search_bar_text)
+        new_text = re.sub(key + r'(\w|=)* ', key + '=' + value + ' ', search_bar_text)
         if key not in search_bar_text:
-            new_text += ' ' + key + value + ' '
+            new_text += ' ' + key + '=' + value + ' '
         self.focused_column().search_bar.setText(new_text)
 
     def filter_tag(self):
@@ -361,6 +363,7 @@ class MainWindow(QMainWindow):
         item_id = self.bookmark_model.getItem(index).id
         self.filter_bookmark(item_id)
 
+    # just for one character filters
     def filter(self, key, value):
         character = value[0]
         search_bar_text = self.focused_column().search_bar.text()
@@ -498,6 +501,24 @@ class MainWindow(QMainWindow):
         self.focus_button.setChecked(False)
 
     def search(self, search_text):
+        # ordering
+        if item_model.SORT in search_text:
+            if item_model.ASC in search_text:
+                order = Qt.DescendingOrder  # it's somehow reverted :/
+            elif item_model.DESC in search_text:
+                order = Qt.AscendingOrder
+            if item_model.STARTDATE in search_text:
+                column = 1
+            elif item_model.ESTIMATE in search_text:
+                column = 2
+            self.focused_column().view.setSortingEnabled(True)
+            self.focused_column().view.sortByColumn(column, order)
+        else:  # reset sorting
+            self.focused_column().view.sortByColumn(-1, Qt.AscendingOrder)
+            self.focused_column().view.setSortingEnabled(False)
+            self.focused_column().view.header().setSectionsClickable(True)
+
+        # filtering
         self.focused_column().proxy.filter = search_text
         self.focused_column().proxy.invalidateFilter()
         # deselect tag if user changes the search string
@@ -693,14 +714,14 @@ class MainWindow(QMainWindow):
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
         new_column.view.setColumnWidth(1, 105)
-        new_column.view.setColumnWidth(2, 68)
+        new_column.view.setColumnWidth(2, 85)
         new_column.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
         new_column.view.header().setSectionResizeMode(1, QHeaderView.Fixed)
         new_column.view.header().setSectionResizeMode(2, QHeaderView.Fixed)
         new_column.view.header().setSectionsClickable(True)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,6,0) # left, top, right, bottom
+        layout.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
         layout.addWidget(search_holder)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)

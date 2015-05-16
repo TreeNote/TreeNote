@@ -498,6 +498,8 @@ class FilterProxyModel(QSortFilterProxyModel):
                     continue
             elif token.startswith(FOCUS + '='):  # ignore
                 continue
+            elif token.startswith(SORT + '='):  # ignore
+                continue
             elif token in index.data():
                 continue
             break
@@ -523,7 +525,7 @@ class FilterProxyModel(QSortFilterProxyModel):
         elif column == 2:
             new_left_data = int(left_data) if left_data != '' else 0
             new_right_data = int(right_data) if right_data != '' else 0
-        return new_left_data < new_right_data
+        return new_left_data > new_right_data
 
     def insertRow(self, position, parent):
         self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
@@ -779,8 +781,7 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
             self._completer.completionModel().index(0, 0))
 
 
-ORDER = 'order='
-MANUALLY= 'manually'
+SORT = 'sort'
 ESTIMATE='estimate'
 STARTDATE='startdate'
 ASC='_ascending'
