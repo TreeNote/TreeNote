@@ -1,7 +1,6 @@
 from PyQt5 import QtWidgets
 import sys
 from PyQt5.QtCore import *
-from PyQt5.QtCore import QModelIndex
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
@@ -138,7 +137,7 @@ class MainWindow(QMainWindow):
         add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
         add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Shift+Right', triggered=self.expand_all_children))
         add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
-        add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=self.focus_search_bar))
+        add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda:self.focused_column().search_bar.setFocus()))
         add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
         add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
         add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')))
@@ -250,7 +249,7 @@ class MainWindow(QMainWindow):
         for row in res:
             db_item = self.item_model.db[row.id]
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                         triggered=partial(self.focus_from_menu, row.id)))
+                                                         triggered=partial(self.append_replace_to_searchbar, model.FOCUS, row.id)))
 
     def get_db(self, db_name):
         if sys.platform == "darwin":
@@ -692,24 +691,16 @@ class MainWindow(QMainWindow):
 
     # view menu actions
 
-    def focus_search_bar(self):
-        self.focused_column().search_bar.setFocus()
-
-    def focus_from_menu(self, item_id):
-        search_bar_text = self.focused_column().search_bar.text()
-        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
-
     def focus_from_viewclick(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item_id(index)
-        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
+        self.append_replace_to_searchbar(model.FOCUS,item_id)
 
     def focus_button_clicked(self):
         search_bar_text = self.focused_column().search_bar.text()
         idx = self.focused_column().view.selectionModel().currentIndex()
         item_id = idx.model().get_db_item_id(idx)
-        self.focused_column().search_bar.setText(search_bar_text + ' ' + model.FOCUS + '=' + item_id)
-
+        self.append_replace_to_searchbar(model.FOCUS,item_id)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
