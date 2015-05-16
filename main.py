@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
         add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Shift+Right', triggered=self.expand_all_children))
         add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
-        add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda:self.focused_column().search_bar.setFocus()))
+        add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
         add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
         add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
         add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')))
@@ -233,18 +233,16 @@ class MainWindow(QMainWindow):
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
-        map = "function(doc) { emit(doc, null); }"  # all items
+        map = "function(doc) { \
+                    if (doc." + model.SHORTCUT + " != '' && doc." + model.DELETED + " == '') \
+                        emit(doc, null); \
+                }"
         res = self.bookmark_model.db.query(map)
         for row in res:
             db_item = self.bookmark_model.db[row.id]
-            if row.id != model.ROOT_ID:
-                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                             triggered=partial(self.filter_bookmark, row.id)))
+            self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
+                                                         triggered=partial(self.filter_bookmark, row.id)))
 
-        map = "function(doc) { \
-                    if (doc." + model.SHORTCUT + " != '') \
-                        emit(doc, null); \
-                }"
         res = self.item_model.db.query(map)
         for row in res:
             db_item = self.item_model.db[row.id]
@@ -397,7 +395,7 @@ class MainWindow(QMainWindow):
                 search_bar_text += ' ' + key + character + ' '
         self.focused_column().search_bar.setText(search_bar_text)
 
-    def db_change_signal(self, db_item, model):
+    def db_change_signal(self, db_item, source_model):
         change_dict = db_item['change']
         my_edit = change_dict['user'] == socket.gethostname()
         method = change_dict['method']
@@ -406,11 +404,11 @@ class MainWindow(QMainWindow):
         item_id = db_item['_id']
 
         # ignore cases when the 'update delete marker' change comes before the corresponding item is created
-        if item_id not in model.id_index_dict:
+        if item_id not in source_model.id_index_dict:
             return
-        index = QModelIndex(model.id_index_dict[item_id])
+        index = QModelIndex(source_model.id_index_dict[item_id])
 
-        item = model.getItem(index)
+        item = source_model.getItem(index)
 
         if method == 'updated':
             item.text = db_item['text']
@@ -419,14 +417,14 @@ class MainWindow(QMainWindow):
             if my_edit:
                 self.set_selection(index, index)
             self.setup_tag_model()
-            model.dataChanged.emit(index, index)
+            source_model.dataChanged.emit(index, index)
 
             # update next available task in a sequential project
-            project_index = model.parent(index)
-            project_parent_index = model.parent(project_index)
-            available_index = model.get_next_available_task(project_index.row(), project_parent_index)
+            project_index = source_model.parent(index)
+            project_parent_index = source_model.parent(project_index)
+            available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             if isinstance(available_index, QModelIndex):
-                model.dataChanged.emit(available_index, available_index)
+                source_model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.focused_column().view.header().sortIndicatorSection()
@@ -437,13 +435,13 @@ class MainWindow(QMainWindow):
 
         elif method == 'added':
             id_list = change_dict['id_list']
-            model.beginInsertRows(index, position, position + len(id_list) - 1)
+            source_model.beginInsertRows(index, position, position + len(id_list) - 1)
             for i, added_item_id in enumerate(id_list):
                 item.add_child(position + i, added_item_id, index)
-            model.endInsertRows()
+            source_model.endInsertRows()
             if my_edit:
-                index_first_added = model.index(position, 0, index)
-                index_last_added = model.index(position + len(id_list) - 1, 0, index)
+                index_first_added = source_model.index(position, 0, index)
+                index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
                 if not change_dict['set_edit_focus']:
                     self.set_selection(index_first_added, index_last_added)
                 else:  # update selection_and_edit
@@ -455,15 +453,16 @@ class MainWindow(QMainWindow):
                         self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
         elif method == 'removed':
-            model.beginRemoveRows(index, position, position + count - 1)
+            source_model.beginRemoveRows(index, position, position + count - 1)
             item.childItems[position:position + count] = []
-            model.endRemoveRows()
+            source_model.endRemoveRows()
+            self.fill_bookmarkShortcutsMenu()
             if my_edit:
                 # select the item below
                 if position == len(item.childItems):  # there is no item below, so select the one above
                     position -= 1
                 if len(item.childItems) > 0:
-                    index_next_child = model.index(position, 0, index)
+                    index_next_child = source_model.index(position, 0, index)
                     self.set_selection(index_next_child, index_next_child)
                 else:  # all childs deleted, select parent
                     self.set_selection(index, index)
@@ -476,7 +475,7 @@ class MainWindow(QMainWindow):
             elif up_or_down == +1:
                 item.childItems.insert(position, item.childItems.pop(position + count))
             for i in range(count):
-                index_moved_item = model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
+                index_moved_item = source_model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
                 if i == 0:
                     index_first_moved_item = index_moved_item
             index_first_moved_item.model().layoutChanged.emit()
@@ -484,10 +483,10 @@ class MainWindow(QMainWindow):
                 self.set_selection(index_first_moved_item, index_moved_item)
 
         elif method == model.DELETED:
-            if model.db[item_id][model.DELETED] == '':
-                model.pointer_set.add(index.internalId())
+            if source_model.db[item_id][model.DELETED] == '':
+                source_model.pointer_set.add(index.internalId())
             else:
-                model.pointer_set.remove(index.internalId())
+                source_model.pointer_set.remove(index.internalId())
             self.setup_tag_model()
 
 
@@ -694,13 +693,13 @@ class MainWindow(QMainWindow):
     def focus_from_viewclick(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item_id(index)
-        self.append_replace_to_searchbar(model.FOCUS,item_id)
+        self.append_replace_to_searchbar(model.FOCUS, item_id)
 
     def focus_button_clicked(self):
         search_bar_text = self.focused_column().search_bar.text()
         idx = self.focused_column().view.selectionModel().currentIndex()
         item_id = idx.model().get_db_item_id(idx)
-        self.append_replace_to_searchbar(model.FOCUS,item_id)
+        self.append_replace_to_searchbar(model.FOCUS, item_id)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():

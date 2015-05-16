@@ -7,6 +7,7 @@ import subprocess
 import threading
 import socket
 import re
+from pprint import pprint
 
 
 class QUndoCommandStructure(QUndoCommand):
@@ -39,7 +40,7 @@ class Updater(QThread):
         changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
             if 'doc' in line:
-                print(line)
+                pprint(line)
                 db_item = line['doc']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
