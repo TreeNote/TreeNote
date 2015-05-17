@@ -40,7 +40,7 @@ class Updater(QThread):
         changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
         for line in changes_list:
             if 'doc' in line:
-                pprint(line)
+                # pprint(line)
                 db_item = line['doc']
                 # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
@@ -635,56 +635,68 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
     def sourceDataChanged(self, topLeft, bottomRight):
         self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
 
+    @pyqtSlot(QModelIndex, int, int)
+    def sourceRowsInserted(self, parent, start, end):
+        print("aa")
+        self.buildMap(self.sourceModel())
+        # this is cpu hungry
+        # but in the following solution, child rows get moved when insetering, too
+        # self.columns_list[0].insert(start, self.sourceModel().index(start, 0, parent))
+        # self.columns_list[1].insert(start, self.sourceModel().index(start, 1, parent))
+        # self.columns_list[2].insert(start, self.sourceModel().index(start, 2, parent))
+
     # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
     # but we have more than one column and therefore need to build a matrix instead of a list
+    # and we need to listen to changes of the source model and edit our matrixes accordingly
     def buildMap(self, model, parent=QModelIndex(), row=0):
         if row == 0:
-            self.m_rowMap = {}  # use: row, column = m_rowMap[index]
-            self.m_indexMap = {}  # use: index = m_indexMap[row, col]
+            # self.m_rowMap = {}  # use: row, column = m_rowMap[index]
+            # self.m_indexMap = {}  # use: index = m_indexMap[row, col]
+            self.columns_list = [[], [], []]
         rows = model.rowCount(parent)
         for r in range(rows):
             index_0 = model.index(r, 0, parent)
-            index_1 = model.index(r, 1, parent)
-            index_2 = model.index(r, 2, parent)
-            # print('row', row, 'item', model.data(index))
-            self.m_rowMap[index_0] = row, 0
-            self.m_rowMap[index_1] = row, 1
-            self.m_rowMap[index_2] = row, 2
-            self.m_indexMap[row, 0] = index_0
-            self.m_indexMap[row, 1] = index_1
-            self.m_indexMap[row, 2] = index_2
+            self.columns_list[0].append(index_0)
+            self.columns_list[1].append(model.index(r, 1, parent))
+            self.columns_list[2].append(model.index(r, 2, parent))
+            # self.m_rowMap[index_0] = row, 0
+            # self.m_rowMap[index_1] = row, 1
+            # self.m_rowMap[index_2] = row, 2
+            # self.m_indexMap[row, 0] = index_0
+            # self.m_indexMap[row, 1] = index_1
+            # self.m_indexMap[row, 2] = index_2
             row = row + 1
             if model.hasChildren(index_0):
+                # add rows of children
                 row = self.buildMap(model, index_0, row)
         return row
 
     def setSourceModel(self, model):
         QAbstractProxyModel.setSourceModel(self, model)
         self.buildMap(model)
-        print(flush=True)
         model.dataChanged.connect(self.sourceDataChanged)
+        model.rowsInserted.connect(self.sourceRowsInserted)
+        model.rowsRemoved.connect(self.sourceRowsInserted)
 
     def mapFromSource(self, index):
-        if index not in self.m_rowMap: return QModelIndex()
-        # print('mapping to row', self.m_rowMap[index], flush = True)
-        row, column = self.m_rowMap[index]
+        column = index.column()
+        if index not in self.columns_list[column]: return QModelIndex()
+        row = self.columns_list[column].index(index)
         return self.createIndex(row, column)
 
     def mapToSource(self, index):
-        if not index.isValid() or (index.row(), index.column()) not in self.m_indexMap:
-            return QModelIndex()
-        # print('mapping from row', index.row(), flush = True)
-        return self.m_indexMap[index.row(), index.column()]
+        column = index.column()
+        row = index.row()
+        if not index.isValid() or row == -1 or row >= len(self.columns_list[column]): return QModelIndex()
+        return self.columns_list[column][row]
 
     def columnCount(self, parent):
         return QAbstractProxyModel.sourceModel(self).columnCount(self.mapToSource(parent))
 
     def rowCount(self, parent):
-        # print('rows:', len(self.m_rowMap), flush=True)
-        return len(self.m_rowMap) / self.columnCount(parent) if not parent.isValid() else 0
+        return len(self.columns_list[0]) if not parent.isValid() else 0
 
     def index(self, row, column, parent):
-        # print('index for:', row, column, flush=True)
         if parent.isValid(): return QModelIndex()
         return self.createIndex(row, column)
 
