@@ -146,6 +146,10 @@ class TreeModel(QAbstractItemModel):
         db_item = self.db[item.id]
         return db_item['_id']
 
+    def get_db_item(self, index):
+        item = self.getItem(index)
+        return self.db[item.id]
+
     def getItem(self, index):
         if index.isValid():
             item = index.internalPointer()
@@ -204,7 +208,7 @@ class TreeModel(QAbstractItemModel):
 
     # pass either index or item_id + column
     # the item_id + column version is used by the bookmark dialog # todo make two methods
-    def setData(self, value, index=None, item_id=None, column=None, field='text'):
+    def set_data(self, value, index=None, item_id=None, column=None, field='text'):
 
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
@@ -465,10 +469,27 @@ class TreeModel(QAbstractItemModel):
                 return self.index(row, 0, index)
         return False
 
+    def setData(self, index, value, role=None, field='text'):
+        return self.set_data(value, index=index, field=field)
+
+    def remove_rows(self, indexes):
+        self.insert_remove_rows(indexes=indexes)
+
 
 class ProxyTools():
+    # when the editor commits it's data, it calls this method
+    # it is overwritten from QAbstractProxyModel
+    def setData(self, index, value, role=None, field='text'):
+        return self.sourceModel().setData(self.mapToSource(index), value, role=None, field=field)
+
+    def remove_rows(self, indexes):
+        self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
+
     def get_db_item_id(self, index):
         return self.sourceModel().get_db_item_id(self.mapToSource(index))
+
+    def get_db_item(self, index):
+        return self.sourceModel().get_db_item(self.mapToSource(index))
 
     def is_task_available(self, index):
         return self.sourceModel().is_task_available(self.mapToSource(index))
@@ -502,8 +523,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # todo tokenize, but not in "", and ignore tags in ""
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            item = self.sourceModel().getItem(index)
-            db_item = self.sourceModel().sourceModel().db[item.id]
+            db_item = self.sourceModel().get_db_item(index)
             if token.startswith('c='):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
@@ -599,22 +619,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         elif type == PAUSED:
             self.setData(index, NOTE, field='type')
 
-    # when the editor commits it's data, it calls this method
-    # it is overwritten from QAbstractProxyModel
-    def setData(self, index, value, role=None, field='text'):
-        return self.sourceModel().setData(self.mapToSource(index), value, role=None, field=field)
-
-    def remove_rows(self, indexes):
-        self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
-
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
-
-    def setData(self, index, value, role=None, field='text'):
-        return self.sourceModel().setData(value, index=self.mapToSource(index), field=field)
-
-    def remove_rows(self, indexes):
-        self.sourceModel().insert_remove_rows(indexes=[self.mapToSource(index) for index in indexes])
 
     # todo pyside ? @Slot(QModelIndex, QModelIndex)
     def sourceDataChanged(self, topLeft, bottomRight):
@@ -720,7 +726,7 @@ class Delegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
-            suggestions_model = self.model.sourceModel().sourceModel().get_tags_set(cut_delimiter=False)
+            suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False)
             edit = AutoCompleteEdit(parent, list(suggestions_model))
             edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
             return edit

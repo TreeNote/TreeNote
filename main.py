@@ -419,8 +419,9 @@ class MainWindow(QMainWindow):
         self.focused_column().search_bar.setText(search_bar_text)
 
     def filter_proxy_index_from_model_index(self, model_index):
-        flat_proxy_index = self.focused_column().flat_proxy.mapFromSource(model_index)
-        return self.focused_column().filter_proxy.mapFromSource(flat_proxy_index)
+        if self.focused_column().filter_proxy.sourceModel() == self.focused_column().flat_proxy:
+            model_index = self.focused_column().flat_proxy.mapFromSource(model_index)
+        return self.focused_column().filter_proxy.mapFromSource(model_index)
 
     def db_change_signal(self, db_item, source_model):
         change_dict = db_item['change']
@@ -480,7 +481,7 @@ class MainWindow(QMainWindow):
                     self.set_selection(index_first_added, index_last_added)
                 else:  # update selection_and_edit
                     if index_first_added.model() is self.item_model:
-                        index_first_added = filter_proxy_index_from_model_index(index_first_added)
+                        index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
                         self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
                         self.focusWidget().edit(index_first_added)
                     else:  # bookmark
@@ -578,6 +579,13 @@ class MainWindow(QMainWindow):
             idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
             proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
+
+        # flatten (just when not already flattened)
+        sourceModel = self.focused_column().filter_proxy.sourceModel()
+        if model.NOT_SHOW_PARENTS in search_text and sourceModel != self.focused_column().flat_proxy:
+            self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
+        elif sourceModel != self.item_model:
+            self.focused_column().filter_proxy.setSourceModel(self.item_model)
 
         # filter
         self.focused_column().filter_proxy.filter = search_text
@@ -779,7 +787,7 @@ class MainWindow(QMainWindow):
         new_column.flat_proxy.setSourceModel(self.item_model)
 
         new_column.filter_proxy = model.FilterProxyModel()
-        new_column.filter_proxy.setSourceModel(new_column.flat_proxy)
+        new_column.filter_proxy.setSourceModel(self.item_model)
         new_column.filter_proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
         new_column.filter_proxy.filter = ''
 
@@ -904,9 +912,9 @@ class BookmarkDialog(QDialog):
             item_id = children_list[-1]
         else:
             item_id = self.parent.bookmark_model.get_db_item_id(self.index)
-        self.parent.bookmark_model.setData(self.name_edit.text(), item_id=item_id, column=0, field='text')
-        self.parent.bookmark_model.setData(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
-        self.parent.bookmark_model.setData(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
+        self.parent.bookmark_model.set_data(self.name_edit.text(), item_id=item_id, column=0, field='text')
+        self.parent.bookmark_model.set_data(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
+        self.parent.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
@@ -934,7 +942,7 @@ class ShortcutDialog(QDialog):
         self.setWindowTitle(EDIT_QUICKLINK)
 
     def apply(self):
-        self.parent.item_model.setData(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
+        self.parent.item_model.set_data(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(ShortcutDialog, self).accept()
 
