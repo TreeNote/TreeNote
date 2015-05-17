@@ -580,11 +580,11 @@ class MainWindow(QMainWindow):
             proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
 
-        # flatten (just when not already flattened)
+        # show parents / flatten (just when not already flattened)
         sourceModel = self.focused_column().filter_proxy.sourceModel()
         if model.NOT_SHOW_PARENTS in search_text and sourceModel != self.focused_column().flat_proxy:
             self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
-        elif sourceModel != self.item_model:
+        elif model.NOT_SHOW_PARENTS not in search_text and sourceModel != self.item_model:
             self.focused_column().filter_proxy.setSourceModel(self.item_model)
 
         # filter
@@ -727,13 +727,13 @@ class MainWindow(QMainWindow):
 
     def append_repeat(self):
         current_index = self.focused_column().view.selectionModel().currentIndex()
-        self.focused_column().filter_proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
+        self.focused_column().filter_proxy.set_data(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
     def color_row(self, color_character):
         if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().filter_proxy.setData(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+                self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 

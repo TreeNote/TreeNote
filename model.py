@@ -469,6 +469,42 @@ class TreeModel(QAbstractItemModel):
                 return self.index(row, 0, index)
         return False
 
+    def toggle_task(self, index):
+        db_item = self.get_db_item(index)
+        type = db_item['type']
+        if type != TASK and type != DONE_TASK:  # type is NOTE or a project
+            self.setData(index, TASK, field='type')
+        elif type == TASK:
+            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
+            if len(repeat_in_list) == 1:
+                repeat_in = repeat_in_list[0]
+                old_qdate = QDate.fromString(db_item['date'], 'dd.MM.yy')
+                if repeat_in[1] == 'd':
+                    new_qdate = old_qdate.addDays(int(repeat_in[0]))
+                elif repeat_in[1] == 'w':
+                    new_qdate = old_qdate.addDays(7 * int(repeat_in[0]))
+                elif repeat_in[1] == 'm':
+                    new_qdate = old_qdate.addMonths(int(repeat_in[0]))
+                elif repeat_in[1] == 'y':
+                    new_qdate = old_qdate.addYears(int(repeat_in[0]))
+                self.setData(index, new_qdate.toString('dd.MM.yy'), field='date')
+            else:
+                self.setData(index, DONE_TASK, field='type')
+        elif type == DONE_TASK:
+            self.setData(index, NOTE, field='type')
+
+    def toggle_project(self, index):
+        db_item = self.get_db_item(index)
+        type = db_item['type']
+        if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
+            self.setData(index, SEQ, field='type')
+        elif type == SEQ:
+            self.setData(index, PAR, field='type')
+        elif type == PAR:
+            self.setData(index, PAUSED, field='type')
+        elif type == PAUSED:
+            self.setData(index, NOTE, field='type')
+
     def setData(self, index, value, role=None, field='text'):
         return self.set_data(value, index=index, field=field)
 
@@ -482,8 +518,17 @@ class ProxyTools():
     def setData(self, index, value, role=None, field='text'):
         return self.sourceModel().setData(self.mapToSource(index), value, role=None, field=field)
 
+    def set_data(self, value, index=None, field='text'):
+        return self.sourceModel().set_data(value, index=self.mapToSource(index), field=field)
+
     def remove_rows(self, indexes):
         self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
+
+    def toggle_task(self, index):
+        self.sourceModel().toggle_task(self.mapToSource(index))
+
+    def toggle_project(self, index):
+        self.sourceModel().toggle_project(self.mapToSource(index))
 
     def get_db_item_id(self, index):
         return self.sourceModel().get_db_item_id(self.mapToSource(index))
@@ -507,6 +552,8 @@ class ProxyTools():
 
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))
+
+
 
 
 class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
@@ -560,11 +607,10 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         else:  # just executed when not breaked
             return True  # all tokens are in the row
 
-        # if show parents: return True if a child row is accepted
-        if NOT_SHOW_PARENTS not in self.filter:
-            for row in range(self.sourceModel().rowCount(index)):
-                if self.filterAcceptsRow(row, index):
-                    return True;
+        # return True if a child row is accepted
+        for row in range(self.sourceModel().rowCount(index)):
+            if self.filterAcceptsRow(row, index):
+                return True;
 
         return False
 
@@ -583,41 +629,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         return new_left_data > new_right_data
 
 
-    def toggle_task(self, index):
-        db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
-        type = db_item['type']
-        if type != TASK and type != DONE_TASK:  # type is NOTE or a project
-            self.setData(index, TASK, field='type')
-        elif type == TASK:
-            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
-            if len(repeat_in_list) == 1:
-                repeat_in = repeat_in_list[0]
-                old_qdate = QDate.fromString(db_item['date'], 'dd.MM.yy')
-                if repeat_in[1] == 'd':
-                    new_qdate = old_qdate.addDays(int(repeat_in[0]))
-                elif repeat_in[1] == 'w':
-                    new_qdate = old_qdate.addDays(7 * int(repeat_in[0]))
-                elif repeat_in[1] == 'm':
-                    new_qdate = old_qdate.addMonths(int(repeat_in[0]))
-                elif repeat_in[1] == 'y':
-                    new_qdate = old_qdate.addYears(int(repeat_in[0]))
-                self.setData(index, new_qdate.toString('dd.MM.yy'), field='date')
-            else:
-                self.setData(index, DONE_TASK, field='type')
-        elif type == DONE_TASK:
-            self.setData(index, NOTE, field='type')
 
-    def toggle_project(self, index):
-        db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
-        type = db_item['type']
-        if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
-            self.setData(index, SEQ, field='type')
-        elif type == SEQ:
-            self.setData(index, PAR, field='type')
-        elif type == PAR:
-            self.setData(index, PAUSED, field='type')
-        elif type == PAUSED:
-            self.setData(index, NOTE, field='type')
 
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
