@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
                 action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
-        self.reset_view() # inits checkboxes
+        self.reset_view()  # inits checkboxes
         self.focused_column().view.setFocus()
         self.updateActions()
 
@@ -356,8 +356,6 @@ class MainWindow(QMainWindow):
             self.append_replace_to_searchbar(model.SORT, model.ESTIMATE + order)
 
 
-
-
     def append_replace_to_searchbar(self, key, value):
         search_bar_text = self.focused_column().search_bar.text()
         new_text = re.sub(key + r'(\w|=)* ', key + '=' + value + ' ', search_bar_text)
@@ -367,16 +365,16 @@ class MainWindow(QMainWindow):
 
     def filter_has_start_date(self, has_start_date):
         if has_start_date:
-            self.append_replace_to_searchbar(model.HAS_STARTDATE , 'yes')
+            self.append_replace_to_searchbar(model.HAS_STARTDATE, 'yes')
         else:
-            self.filter(model.HAS_STARTDATE , 'all') # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
+            self.filter(model.HAS_STARTDATE, 'all')  # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
 
 
     def filter_show_parents(self, show_parents):
         if not show_parents:
-            self.append_replace_to_searchbar(model.NOT_SHOW_PARENTS , 'no')
+            self.append_replace_to_searchbar(model.NOT_SHOW_PARENTS, 'no')
         else:
-            self.filter(model.NOT_SHOW_PARENTS , 'all')
+            self.filter(model.NOT_SHOW_PARENTS, 'all')
 
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
@@ -420,6 +418,10 @@ class MainWindow(QMainWindow):
                 search_bar_text += ' ' + key + value + ' '
         self.focused_column().search_bar.setText(search_bar_text)
 
+    def filter_proxy_index_from_model_index(self, model_index):
+        flat_proxy_index = self.focused_column().flat_proxy.mapFromSource(model_index)
+        return self.focused_column().filter_proxy.mapFromSource(flat_proxy_index)
+
     def db_change_signal(self, db_item, source_model):
         change_dict = db_item['change']
         my_edit = change_dict['user'] == socket.gethostname()
@@ -452,7 +454,7 @@ class MainWindow(QMainWindow):
                 source_model.dataChanged.emit(available_index, available_index)
             # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             # if isinstance(available_index, QModelIndex):
-            #     available_id = source_model.get_db_item_id(available_index)
+            # available_id = source_model.get_db_item_id(available_index)
             #     available_db_item = source_model.db[available_id]
             #     available_db_item['type'] = model.NOT_AVAILABLE_TASK
             #     source_model.db[available_id] = available_db_item
@@ -478,7 +480,7 @@ class MainWindow(QMainWindow):
                     self.set_selection(index_first_added, index_last_added)
                 else:  # update selection_and_edit
                     if index_first_added.model() is self.item_model:
-                        index_first_added = self.focused_column().proxy.mapFromSource(index_first_added)
+                        index_first_added = filter_proxy_index_from_model_index(index_first_added)
                         self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
                         self.focusWidget().edit(index_first_added)
                     else:  # bookmark
@@ -525,8 +527,8 @@ class MainWindow(QMainWindow):
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
             if index_from.model() is self.item_model:
-                index_to = self.focused_column().proxy.mapFromSource(index_to)
-                index_from = self.focused_column().proxy.mapFromSource(index_from)
+                index_to = self.filter_proxy_index_from_model_index(index_to)
+                index_from = self.filter_proxy_index_from_model_index(index_from)
                 view = self.focused_column().view
             else:
                 view = self.bookmarks_view
@@ -544,7 +546,7 @@ class MainWindow(QMainWindow):
         self.estimate_dropdown.comboBox.setCurrentIndex(0)
         self.color_dropdown.comboBox.setCurrentIndex(0)
         self.focused_column().search_bar.setText('')
-        top_most_index = self.focused_column().proxy.index(0, 0, QModelIndex())
+        top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
@@ -574,12 +576,12 @@ class MainWindow(QMainWindow):
             item_id_with_equalsign_before = item_id_with_space_behind.split()
             item_id = item_id_with_equalsign_before[0][1:]
             idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
-            proxy_idx = self.focused_column().proxy.mapFromSource(idx)
+            proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
 
         # filter
-        self.focused_column().proxy.filter = search_text
-        self.focused_column().proxy.invalidateFilter()
+        self.focused_column().filter_proxy.filter = search_text
+        self.focused_column().filter_proxy.invalidateFilter()
         # deselect tag if user changes the search string
         selected_tags = self.tag_view.selectionModel().selectedRows()
         if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
@@ -589,8 +591,8 @@ class MainWindow(QMainWindow):
 
     def expand_node(self, parent_index, bool_expand):
         self.focused_column().view.setExpanded(parent_index, bool_expand)
-        for row_num in range(self.focused_column().proxy.rowCount(parent_index)):
-            child_index = self.focused_column().proxy.index(row_num, 0, parent_index)
+        for row_num in range(self.focused_column().filter_proxy.rowCount(parent_index)):
+            child_index = self.focused_column().filter_proxy.index(row_num, 0, parent_index)
             self.focused_column().view.setExpanded(parent_index, bool_expand)
             self.expand_node(child_index, bool_expand)
 
@@ -660,30 +662,30 @@ class MainWindow(QMainWindow):
 
     def move_left(self):
         if self.focusWidget() is self.focused_column().view:
-            self.focused_column().proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), -1)
+            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), -1)
 
     def move_right(self):
         if self.focusWidget() is self.focused_column().view:
-            self.focused_column().proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), +1)
+            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
         index = self.focused_column().view.selectionModel().currentIndex()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection # todo doku
             self.focused_column().view.selectionModel().currentChanged.emit(index, index)
-        self.focused_column().proxy.insertRow(0, index)
+        self.focused_column().filter_proxy.insert_row(0, index)
 
     def insert_row(self):
         index = self.focused_column().view.selectionModel().currentIndex()
         if self.focused_column().view.hasFocus():
-            self.focused_column().proxy.insertRow(index.row() + 1, index.parent())
+            self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
         elif self.focused_column().view.state() == QAbstractItemView.EditingState:
             # commit data by changing the current selection
             self.focused_column().view.selectionModel().currentChanged.emit(index, index)
 
     def removeSelection(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
-        self.focused_column().proxy.removeRows(indexes)
+        self.focused_column().filter_proxy.remove_rows(indexes)
 
 
     def removeBookmarkSelection(self):
@@ -708,22 +710,22 @@ class MainWindow(QMainWindow):
     def toggle_task(self):
         if self.focused_column().view.hasFocus():
             for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().proxy.toggle_task(row_index)
+                self.focused_column().filter_proxy.toggle_task(row_index)
 
     def toggle_project(self):
         if self.focused_column().view.hasFocus():
             for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().proxy.toggle_project(row_index)
+                self.focused_column().filter_proxy.toggle_project(row_index)
 
     def append_repeat(self):
         current_index = self.focused_column().view.selectionModel().currentIndex()
-        self.focused_column().proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
+        self.focused_column().filter_proxy.setData(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
     def color_row(self, color_character):
         if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().proxy.setData(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+                self.focused_column().filter_proxy.setData(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 
@@ -773,13 +775,16 @@ class MainWindow(QMainWindow):
         new_column.view = QTreeView()
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        new_column.proxy = model.FilterProxyModel()
-        new_column.proxy.setSourceModel(self.item_model)
-        new_column.proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
-        new_column.proxy.filter = ''
+        new_column.flat_proxy = model.FlatProxyModel()
+        new_column.flat_proxy.setSourceModel(self.item_model)
 
-        new_column.view.setModel(new_column.proxy)
-        new_column.view.setItemDelegate(model.Delegate(self, new_column.proxy))
+        new_column.filter_proxy = model.FilterProxyModel()
+        new_column.filter_proxy.setSourceModel(new_column.flat_proxy)
+        new_column.filter_proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
+        new_column.filter_proxy.filter = ''
+
+        new_column.view.setModel(new_column.filter_proxy)
+        new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy))
         new_column.view.selectionModel().selectionChanged.connect(self.updateActions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
@@ -800,7 +805,7 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         self.focused_column().view.setFocus()
-        top_most_index = self.focused_column().proxy.index(0, 0, QModelIndex())
+        top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
@@ -838,7 +843,7 @@ class MyQLineEdit(QLineEdit):
     def keyPressEvent(self, event):
         # arror key down: select first child
         if event.key() == Qt.Key_Down:
-            index = self.main.focused_column().proxy.index(0, 0, QModelIndex())
+            index = self.main.focused_column().filter_proxy.index(0, 0, QModelIndex())
             self.main.set_selection(index, index)
             self.main.focusNextChild()
         else:

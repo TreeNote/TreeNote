@@ -466,7 +466,29 @@ class TreeModel(QAbstractItemModel):
         return False
 
 
-class FilterProxyModel(QSortFilterProxyModel):
+class ProxyTools():
+    def get_db_item_id(self, index):
+        return self.sourceModel().get_db_item_id(self.mapToSource(index))
+
+    def is_task_available(self, index):
+        return self.sourceModel().is_task_available(self.mapToSource(index))
+
+    def insert_row(self, position, parent):
+        self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
+
+    def move_horizontal(self, indexes, direction):
+        if len(indexes) > 0:
+            self.sourceModel().move_horizontal([self.mapToSource(index) for index in indexes], direction)
+
+    def move_vertical(self, indexes, up_or_down):
+        if len(indexes) > 0:
+            self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
+
+    def getItem(self, index):
+        return self.sourceModel().getItem(self.mapToSource(index))
+
+
+class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
     # The QSortFilterProxyModel acts as a wrapper for the original model. If you need to convert source QModelIndexes to sorted/filtered model indexes or vice versa, use mapToSource(), mapFromSource(), mapSelectionToSource(), and mapSelectionFromSource().
@@ -481,7 +503,7 @@ class FilterProxyModel(QSortFilterProxyModel):
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
             item = self.sourceModel().getItem(index)
-            db_item = self.sourceModel().db[item.id]
+            db_item = self.sourceModel().sourceModel().db[item.id]
             if token.startswith('c='):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
@@ -540,25 +562,6 @@ class FilterProxyModel(QSortFilterProxyModel):
             new_right_data = int(right_data) if right_data != '' else 0
         return new_left_data > new_right_data
 
-    def insertRow(self, position, parent):
-        self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
-
-    def removeRows(self, indexes):
-        self.sourceModel().insert_remove_rows(indexes=[self.mapToSource(index) for index in indexes])
-
-    def move_horizontal(self, indexes, direction):
-        if len(indexes) > 0:
-            self.sourceModel().move_horizontal([self.mapToSource(index) for index in indexes], direction)
-
-    def move_vertical(self, indexes, up_or_down):
-        if len(indexes) > 0:
-            self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
-
-    def getItem(self, index):
-        return self.sourceModel().getItem(self.mapToSource(index))
-
-    def setData(self, index, value, role=None, field='text'):
-        return self.sourceModel().setData(value, index=self.mapToSource(index), field=field)
 
     def toggle_task(self, index):
         db_item = self.sourceModel().db[self.sourceModel().getItem(self.mapToSource(index)).id]
@@ -596,11 +599,76 @@ class FilterProxyModel(QSortFilterProxyModel):
         elif type == PAUSED:
             self.setData(index, NOTE, field='type')
 
-    def is_task_available(self, index):
-        return self.sourceModel().is_task_available(self.mapToSource(index))
+    # when the editor commits it's data, it calls this method
+    # it is overwritten from QAbstractProxyModel
+    def setData(self, index, value, role=None, field='text'):
+        return self.sourceModel().setData(self.mapToSource(index), value, role=None, field=field)
 
-    def get_db_item_id(self, index):
-        return self.sourceModel().get_db_item_id(self.mapToSource(index))
+    def remove_rows(self, indexes):
+        self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
+
+
+class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
+
+    def setData(self, index, value, role=None, field='text'):
+        return self.sourceModel().setData(value, index=self.mapToSource(index), field=field)
+
+    def remove_rows(self, indexes):
+        self.sourceModel().insert_remove_rows(indexes=[self.mapToSource(index) for index in indexes])
+
+    # todo pyside ? @Slot(QModelIndex, QModelIndex)
+    def sourceDataChanged(self, topLeft, bottomRight):
+        self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
+
+    def buildMap(self, model, parent=QModelIndex(), row=0):
+        if row == 0:
+            self.m_rowMap = {}
+            self.m_indexMap = {}
+        rows = model.rowCount(parent)
+        for r in range(rows):
+            index = model.index(r, 0, parent)
+            # print('row', row, 'item', model.data(index))
+            self.m_rowMap[index] = row
+            self.m_indexMap[row] = index
+            row = row + 1
+            if model.hasChildren(index):
+                row = self.buildMap(model, index, row)
+        return row
+
+    def setSourceModel(self, model):
+        QAbstractProxyModel.setSourceModel(self, model)
+        self.buildMap(model)
+        print(flush=True)
+        model.dataChanged.connect(self.sourceDataChanged)
+
+    def mapFromSource(self, index):
+        if index not in self.m_rowMap: return QModelIndex()
+        # print('mapping to row', self.m_rowMap[index], flush = True)
+        return self.createIndex(self.m_rowMap[index], index.column())
+
+    def mapToSource(self, index):
+        if not index.isValid() or index.row() not in self.m_indexMap:
+            return QModelIndex()
+        # print('mapping from row', index.row(), flush = True)
+        return self.m_indexMap[index.row()]
+
+    def columnCount(self, parent):
+        return QAbstractProxyModel.sourceModel(self).columnCount(self.mapToSource(parent))
+
+    def rowCount(self, parent):
+        # print('rows:', len(self.m_rowMap), flush=True)
+        return len(self.m_rowMap) if not parent.isValid() else 0
+
+    def index(self, row, column, parent):
+        # print('index for:', row, column, flush=True)
+        if parent.isValid(): return QModelIndex()
+        return self.createIndex(row, column)
+
+    def parent(self, index):
+        return QModelIndex()
+
+    def __init__(self, parent=None):
+        super(FlatProxyModel, self).__init__(parent)
 
 
 class Delegate(QStyledItemDelegate):
@@ -611,7 +679,7 @@ class Delegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
-        db_item = self.model.sourceModel().db[item.id]
+        db_item = self.main_window.item_model.db[item.id]
         type = db_item['type']
 
         word_list = index.data().split()
@@ -652,7 +720,7 @@ class Delegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
-            suggestions_model = self.model.sourceModel().get_tags_set(cut_delimiter=False)
+            suggestions_model = self.model.sourceModel().sourceModel().get_tags_set(cut_delimiter=False)
             edit = AutoCompleteEdit(parent, list(suggestions_model))
             edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
             return edit
@@ -796,13 +864,14 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.popup().setCurrentIndex(
             self._completer.completionModel().index(0, 0))
 
+
 HAS_STARTDATE = 'has_date'
-NOT_SHOW_PARENTS= 'show_parents'
+NOT_SHOW_PARENTS = 'show_parents'
 SORT = 'sort'
-ESTIMATE='estimate'
-STARTDATE='startdate'
-ASC='_ascending'
-DESC='_descending'
+ESTIMATE = 'estimate'
+STARTDATE = 'startdate'
+ASC = '_ascending'
+DESC = '_descending'
 ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
 SELECTION_GRAY = QColor(65, 65, 65)
