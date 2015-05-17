@@ -473,7 +473,7 @@ class TreeModel(QAbstractItemModel):
         db_item = self.get_db_item(index)
         type = db_item['type']
         if type != TASK and type != DONE_TASK:  # type is NOTE or a project
-            self.setData(index, TASK, field='type')
+            self.set_data(TASK, index=index, field='type')
         elif type == TASK:
             repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
             if len(repeat_in_list) == 1:
@@ -487,26 +487,26 @@ class TreeModel(QAbstractItemModel):
                     new_qdate = old_qdate.addMonths(int(repeat_in[0]))
                 elif repeat_in[1] == 'y':
                     new_qdate = old_qdate.addYears(int(repeat_in[0]))
-                self.setData(index, new_qdate.toString('dd.MM.yy'), field='date')
+                self.set_data(new_qdate.toString('dd.MM.yy'), index=index, field='date')
             else:
-                self.setData(index, DONE_TASK, field='type')
+                self.set_data(DONE_TASK, index=index, field='type')
         elif type == DONE_TASK:
-            self.setData(index, NOTE, field='type')
+            self.set_data(NOTE, index=index, field='type')
 
     def toggle_project(self, index):
         db_item = self.get_db_item(index)
         type = db_item['type']
         if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
-            self.setData(index, SEQ, field='type')
+            self.set_data(SEQ, index=index, field='type')
         elif type == SEQ:
-            self.setData(index, PAR, field='type')
+            self.set_data(PAR, index=index, field='type')
         elif type == PAR:
-            self.setData(index, PAUSED, field='type')
+            self.set_data(PAUSED, index=index, field='type')
         elif type == PAUSED:
-            self.setData(index, NOTE, field='type')
+            self.set_data(NOTE, index=index, field='type')
 
-    def setData(self, index, value, role=None, field='text'):
-        return self.set_data(value, index=index, field=field)
+    def setData(self, index, value, role=None):
+        return self.set_data(value, index=index, field='text')
 
     def remove_rows(self, indexes):
         self.insert_remove_rows(indexes=indexes)
@@ -515,8 +515,8 @@ class TreeModel(QAbstractItemModel):
 class ProxyTools():
     # when the editor commits it's data, it calls this method
     # it is overwritten from QAbstractProxyModel
-    def setData(self, index, value, role=None, field='text'):
-        return self.sourceModel().setData(self.mapToSource(index), value, role=None, field=field)
+    def setData(self, index, value, role=None):
+        return self.sourceModel().setData(self.mapToSource(index), value, role=role)
 
     def set_data(self, value, index=None, field='text'):
         return self.sourceModel().set_data(value, index=self.mapToSource(index), field=field)
