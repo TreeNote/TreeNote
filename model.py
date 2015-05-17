@@ -554,8 +554,6 @@ class ProxyTools():
         return self.sourceModel().getItem(self.mapToSource(index))
 
 
-
-
 class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
     # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
     # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
@@ -629,28 +627,35 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         return new_left_data > new_right_data
 
 
+class FlatProxyModel(QAbstractProxyModel, ProxyTools):
+    def __init__(self, parent=None):
+        super(FlatProxyModel, self).__init__(parent)
 
-
-
-class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
-
-    # todo pyside ? @Slot(QModelIndex, QModelIndex)
+    @pyqtSlot(QModelIndex, QModelIndex)
     def sourceDataChanged(self, topLeft, bottomRight):
         self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
 
+    # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
+    # but we have more than one column and therefore need to build a matrix instead of a list
     def buildMap(self, model, parent=QModelIndex(), row=0):
         if row == 0:
-            self.m_rowMap = {}
-            self.m_indexMap = {}
+            self.m_rowMap = {}  # use: row, column = m_rowMap[index]
+            self.m_indexMap = {}  # use: index = m_indexMap[row, col]
         rows = model.rowCount(parent)
         for r in range(rows):
-            index = model.index(r, 0, parent)
+            index_0 = model.index(r, 0, parent)
+            index_1 = model.index(r, 1, parent)
+            index_2 = model.index(r, 2, parent)
             # print('row', row, 'item', model.data(index))
-            self.m_rowMap[index] = row
-            self.m_indexMap[row] = index
+            self.m_rowMap[index_0] = row, 0
+            self.m_rowMap[index_1] = row, 1
+            self.m_rowMap[index_2] = row, 2
+            self.m_indexMap[row, 0] = index_0
+            self.m_indexMap[row, 1] = index_1
+            self.m_indexMap[row, 2] = index_2
             row = row + 1
-            if model.hasChildren(index):
-                row = self.buildMap(model, index, row)
+            if model.hasChildren(index_0):
+                row = self.buildMap(model, index_0, row)
         return row
 
     def setSourceModel(self, model):
@@ -662,20 +667,21 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackov
     def mapFromSource(self, index):
         if index not in self.m_rowMap: return QModelIndex()
         # print('mapping to row', self.m_rowMap[index], flush = True)
-        return self.createIndex(self.m_rowMap[index], index.column())
+        row, column = self.m_rowMap[index]
+        return self.createIndex(row, column)
 
     def mapToSource(self, index):
-        if not index.isValid() or index.row() not in self.m_indexMap:
+        if not index.isValid() or (index.row(), index.column()) not in self.m_indexMap:
             return QModelIndex()
         # print('mapping from row', index.row(), flush = True)
-        return self.m_indexMap[index.row()]
+        return self.m_indexMap[index.row(), index.column()]
 
     def columnCount(self, parent):
         return QAbstractProxyModel.sourceModel(self).columnCount(self.mapToSource(parent))
 
     def rowCount(self, parent):
         # print('rows:', len(self.m_rowMap), flush=True)
-        return len(self.m_rowMap) if not parent.isValid() else 0
+        return len(self.m_rowMap) / self.columnCount(parent) if not parent.isValid() else 0
 
     def index(self, row, column, parent):
         # print('index for:', row, column, flush=True)
@@ -684,9 +690,6 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):  # source: http://stackov
 
     def parent(self, index):
         return QModelIndex()
-
-    def __init__(self, parent=None):
-        super(FlatProxyModel, self).__init__(parent)
 
 
 class Delegate(QStyledItemDelegate):

@@ -369,13 +369,14 @@ class MainWindow(QMainWindow):
         else:
             self.filter(model.HAS_STARTDATE, 'all')  # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
 
-
+    @pyqtSlot(bool)
     def filter_show_parents(self, show_parents):
         if not show_parents:
             self.append_replace_to_searchbar(model.NOT_SHOW_PARENTS, 'no')
         else:
             self.filter(model.NOT_SHOW_PARENTS, 'all')
 
+    @pyqtSlot()
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
         current_tag = self.tag_view.model().data(current_index, tag_model.FULL_PATH)
@@ -456,7 +457,7 @@ class MainWindow(QMainWindow):
             # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             # if isinstance(available_index, QModelIndex):
             # available_id = source_model.get_db_item_id(available_index)
-            #     available_db_item = source_model.db[available_id]
+            # available_db_item = source_model.db[available_id]
             #     available_db_item['type'] = model.NOT_AVAILABLE_TASK
             #     source_model.db[available_id] = available_db_item
             #     source_model.dataChanged.emit(available_index, available_index)
