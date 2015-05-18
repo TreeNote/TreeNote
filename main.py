@@ -91,14 +91,14 @@ class MainWindow(QMainWindow):
         holder = QWidget()  # needed to add space
         layout = QGridLayout()
         layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
-        layout.addWidget(filter_label, 0, 0, 1, 2) # fromRow, fromColumn, rowSpan, columnSpan.
-        layout.addWidget(QLabel('Tasks:'), 1,0,1,1)
-        layout.addWidget(self.task_dropdown, 1,1,1,1)
-        layout.addWidget(QLabel('Estimate:'), 2,0,1,1)
-        layout.addWidget(self.estimate_dropdown,2,1,1,1)
-        layout.addWidget(QLabel('Color:'), 3,0,1,1)
-        layout.addWidget(self.color_dropdown, 3,1,1,1)
-        layout.addWidget(self.hasStartdateCheckBox,4, 0, 1, 2)
+        layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan.
+        layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
+        layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
+        layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
+        layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
+        layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
+        layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
+        layout.addWidget(self.hasStartdateCheckBox, 4, 0, 1, 2)
         layout.addWidget(self.showParentsCheckBox, 5, 0, 1, 2)
         layout.setColumnStretch(1, 10)
         holder.setLayout(layout)
@@ -244,6 +244,7 @@ class MainWindow(QMainWindow):
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
+
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
         map = "function(doc) { \
@@ -379,7 +380,7 @@ class MainWindow(QMainWindow):
         else:
             self.filter(model.NOT_SHOW_PARENTS, 'all')
 
-    @pyqtSlot()
+
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
         current_tag = self.tag_view.model().data(current_index, tag_model.FULL_PATH)
@@ -398,6 +399,7 @@ class MainWindow(QMainWindow):
         index = self.bookmark_model.id_index_dict[item_id]
         self.set_selection(index, index)
 
+    @pyqtSlot(QModelIndex)
     def filter_bookmark_click(self, index):
         item_id = self.bookmark_model.getItem(index).id
         self.filter_bookmark(item_id)
@@ -427,6 +429,7 @@ class MainWindow(QMainWindow):
             model_index = self.focused_column().flat_proxy.mapFromSource(model_index)
         return self.focused_column().filter_proxy.mapFromSource(model_index)
 
+    @pyqtSlot(dict, QAbstractItemModel)
     def db_change_signal(self, db_item, source_model):
         change_dict = db_item['change']
         my_edit = change_dict['user'] == socket.gethostname()
@@ -463,7 +466,7 @@ class MainWindow(QMainWindow):
             # available_db_item = source_model.db[available_id]
             # available_db_item['type'] = model.NOT_AVAILABLE_TASK
             # source_model.db[available_id] = available_db_item
-            #     source_model.dataChanged.emit(available_index, available_index)
+            # source_model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.focused_column().view.header().sortIndicatorSection()
@@ -556,6 +559,7 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
+    @pyqtSlot(str)
     def search(self, search_text):
         # sort
         if model.SORT in search_text:
@@ -571,7 +575,7 @@ class MainWindow(QMainWindow):
             self.focused_column().view.sortByColumn(column, order)
         else:  # reset sorting
             self.focused_column().view.sortByColumn(-1, Qt.AscendingOrder)
-            self.focused_column().view.setSortingEnabled(False) # prevent sorting by text
+            self.focused_column().view.setSortingEnabled(False)  # prevent sorting by text
             self.focused_column().view.header().setSectionsClickable(True)
 
         # focus
@@ -619,7 +623,7 @@ class MainWindow(QMainWindow):
             db_item['change'] = dict(method='updated', user=socket.gethostname())
             self.item_model.db[row.id] = db_item
 
-
+    @pyqtSlot(QPoint)
     def open_rename_tag_contextmenu(self, point):
         index = self.tag_view.indexAt(point)
         if not index.isValid():  # show context menu only when clicked on an item, not when clicked on empty space
@@ -632,6 +636,7 @@ class MainWindow(QMainWindow):
         tag = index.data()
         RenameTagDialog(self, tag).exec_()
 
+    @pyqtSlot(QPoint)
     def open_edit_bookmark_contextmenu(self, point):
         index = self.bookmarks_view.indexAt(point)
         if not index.isValid():
@@ -645,6 +650,7 @@ class MainWindow(QMainWindow):
         elif action is deleteBookmarkAction:
             self.removeBookmarkSelection()
 
+    @pyqtSlot(QPoint)
     def open_edit_shortcut_contextmenu(self, point):
         index = self.root_view.indexAt(point)
         if not index.isValid():
@@ -733,6 +739,7 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.set_data(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
+    @pyqtSlot(str)
     def color_row(self, color_character):
         if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
             for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -740,6 +747,7 @@ class MainWindow(QMainWindow):
 
     # view menu actions
 
+    @pyqtSlot(QModelIndex)
     def focus_from_viewclick(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item_id(index)
