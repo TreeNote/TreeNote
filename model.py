@@ -637,7 +637,6 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
     @pyqtSlot(QModelIndex, int, int)
     def sourceRowsInserted(self, parent, start, end):
-        print("aa")
         self.buildMap(self.sourceModel())
         # this is cpu hungry
         # but in the following solution, child rows get moved when insetering, too
@@ -726,9 +725,6 @@ class Delegate(QStyledItemDelegate):
         is_not_available = type == TASK and not self.model.is_task_available(index)
         if type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
-        # font = QFont()
-        # font.setPixelSize(20)
-        # document.setDefaultFont(font)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
@@ -916,7 +912,7 @@ REPEAT_COLOR = QColor('#CF4573')  # red
 CHAR_QCOLOR_DICT = {
     'g': QColor('#85E326').name(),  # green
     'y': QColor('#EEEF22').name(),  # yellow
-    'b': QColor('#6177D7').name(),  # blue
+    'b': QColor('#8A9ADD').name(),  # blue
     'r': QColor('#CE3535').name(),  # red
     'o': QColor('#DFBC30').name(),  # orange
     'n': TEXT_GRAY.name()

@@ -33,10 +33,16 @@ class MainWindow(QMainWindow):
 
         # first column
 
-        self.item_views_splitter = QSplitter(Qt.Horizontal)
-        self.item_views_splitter.setHandleWidth(0)  # thing to grab the splitter
-
-        # second column
+        self.root_view = QTreeView()
+        self.root_view.setModel(self.item_model)
+        self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
+        self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
+        self.root_view.clicked.connect(self.focus_from_viewclick)
+        self.root_view.setHeader(CustomHeaderView('Quick links'))
+        self.root_view.header().setToolTip('Focus on the clicked row')
+        self.root_view.hideColumn(1)
+        self.root_view.hideColumn(2)
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
@@ -46,58 +52,55 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
         self.bookmarks_view.hideColumn(1)
         self.bookmarks_view.hideColumn(2)
-
-        self.root_view = QTreeView()
-        self.root_view.setModel(self.item_model)
-        self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
-        self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.root_view.clicked.connect(self.focus_from_viewclick)
-        self.root_view.setHeader(CustomHeaderView('Quick links'))
-        self.root_view.hideColumn(1)
-        self.root_view.hideColumn(2)
         holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.root_view)
+        layout.addWidget(self.bookmarks_view)
         holder.setLayout(layout)
 
-        second_column = QSplitter(Qt.Vertical)
-        second_column.setHandleWidth(0)
-        second_column.addWidget(self.bookmarks_view)
-        second_column.addWidget(holder)
-        second_column.setContentsMargins(6, 11, 6, 0)  # left, top, right, bottom
+        first_column = QSplitter(Qt.Vertical)
+        first_column.setHandleWidth(0)
+        first_column.addWidget(self.root_view)
+        first_column.addWidget(holder)
+        first_column.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
+
+        # second column
+
+        self.item_views_splitter = QSplitter(Qt.Horizontal)
+        self.item_views_splitter.setHandleWidth(0)  # thing to grab the splitter
 
         # third column
 
         filter_label = QLabel(self.tr('ADD FILTERS'))
-        sort_label = QLabel(self.tr('Sort: Click a column'))
 
-        self.focus_button = QPushButton(model.FOCUS_TEXT)
-        self.focus_button.setCheckable(True)
-        self.focus_button.setStyleSheet('padding: 4px')
-        self.focus_button.clicked.connect(self.focus_button_clicked)
+        def init_dropdown(key, *item_names):
+            comboBox = QComboBox()
+            comboBox.addItems(item_names)
+            comboBox.currentIndexChanged[str].connect(lambda: self.filter(key, comboBox.currentText()))
+            return comboBox
 
-        self.task_dropdown = LabelledDropDown(self, 't=', self.tr('Task:'), self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
-        self.estimate_dropdown = LabelledDropDown(self, 'e', self.tr('Estimate:'), self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        self.color_dropdown = LabelledDropDown(self, 'c=', self.tr('Color:'), self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+        self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
+        self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
+        self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        self.hasStartdateCheckBox = QCheckBox('Has a start date')
+        self.hasStartdateCheckBox = QCheckBox('Has start date')
         self.hasStartdateCheckBox.clicked.connect(self.filter_has_start_date)
         self.showParentsCheckBox = QCheckBox('Show parents')
         self.showParentsCheckBox.clicked.connect(self.filter_show_parents)
 
         holder = QWidget()  # needed to add space
-        layout = QVBoxLayout()
+        layout = QGridLayout()
         layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
-        layout.addWidget(filter_label)
-        layout.addWidget(sort_label)
-        layout.addWidget(self.focus_button)
-        layout.addWidget(self.task_dropdown)
-        layout.addWidget(self.estimate_dropdown)
-        layout.addWidget(self.color_dropdown)
-        layout.addWidget(self.hasStartdateCheckBox)
-        layout.addWidget(self.showParentsCheckBox)
+        layout.addWidget(filter_label, 0, 0, 1, 2) # fromRow, fromColumn, rowSpan, columnSpan.
+        layout.addWidget(QLabel('Tasks:'), 1,0,1,1)
+        layout.addWidget(self.task_dropdown, 1,1,1,1)
+        layout.addWidget(QLabel('Estimate:'), 2,0,1,1)
+        layout.addWidget(self.estimate_dropdown,2,1,1,1)
+        layout.addWidget(QLabel('Color:'), 3,0,1,1)
+        layout.addWidget(self.color_dropdown, 3,1,1,1)
+        layout.addWidget(self.hasStartdateCheckBox,4, 0, 1, 2)
+        layout.addWidget(self.showParentsCheckBox, 5, 0, 1, 2)
+        layout.setColumnStretch(1, 10)
         holder.setLayout(layout)
 
         self.tag_view = QTreeView()
@@ -116,11 +119,11 @@ class MainWindow(QMainWindow):
 
         # add columns to main
 
+        mainSplitter.addWidget(first_column)
         mainSplitter.addWidget(self.item_views_splitter)
-        mainSplitter.addWidget(second_column)
         mainSplitter.addWidget(third_column)
-        mainSplitter.setStretchFactor(0, 5)  # first column has a share of 2
-        mainSplitter.setStretchFactor(1, 2)
+        mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
+        mainSplitter.setStretchFactor(1, 6)
         mainSplitter.setStretchFactor(2, 2)
         self.setCentralWidget(mainSplitter)
 
@@ -458,8 +461,8 @@ class MainWindow(QMainWindow):
             # if isinstance(available_index, QModelIndex):
             # available_id = source_model.get_db_item_id(available_index)
             # available_db_item = source_model.db[available_id]
-            #     available_db_item['type'] = model.NOT_AVAILABLE_TASK
-            #     source_model.db[available_id] = available_db_item
+            # available_db_item['type'] = model.NOT_AVAILABLE_TASK
+            # source_model.db[available_id] = available_db_item
             #     source_model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
@@ -544,15 +547,14 @@ class MainWindow(QMainWindow):
     def reset_view(self):
         self.hasStartdateCheckBox.setChecked(False)
         self.showParentsCheckBox.setChecked(True)
-        self.task_dropdown.comboBox.setCurrentIndex(0)
-        self.estimate_dropdown.comboBox.setCurrentIndex(0)
-        self.color_dropdown.comboBox.setCurrentIndex(0)
+        self.task_dropdown.setCurrentIndex(0)
+        self.estimate_dropdown.setCurrentIndex(0)
+        self.color_dropdown.setCurrentIndex(0)
         self.focused_column().search_bar.setText('')
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
-        self.focus_button.setChecked(False)
 
     def search(self, search_text):
         # sort
@@ -569,7 +571,7 @@ class MainWindow(QMainWindow):
             self.focused_column().view.sortByColumn(column, order)
         else:  # reset sorting
             self.focused_column().view.sortByColumn(-1, Qt.AscendingOrder)
-            self.focused_column().view.setSortingEnabled(False)
+            self.focused_column().view.setSortingEnabled(False) # prevent sorting by text
             self.focused_column().view.header().setSectionsClickable(True)
 
         # focus
@@ -761,14 +763,23 @@ class MainWindow(QMainWindow):
     def split_window(self):  # creates another item_view
         new_column = QWidget()
 
-        new_column.search_bar = MyQLineEdit(self)
+        focus_button = QPushButton()
+        focus_button.setToolTip('Focus on current row')
+        focus_button.setIcon(QIcon(':/focus'))
+        focus_button.setStyleSheet('QPushButton {\
+            width: 22px;\
+            height: 22px;\
+            padding: 2px; }')
+        focus_button.clicked.connect(self.focus_button_clicked)
+
+        new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.textChanged[str].connect(self.search)
-        new_column.search_bar.setPlaceholderText(self.tr('Filter'))
+        new_column.search_bar.setPlaceholderText(self.tr('Search'))
 
         bookmark_button = QPushButton()
+        bookmark_button.setToolTip('Bookmark current filters')
         bookmark_button.setIcon(QIcon(':/star'))
         bookmark_button.setStyleSheet('QPushButton {\
-            margin-top: 11px;\
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
@@ -776,12 +787,14 @@ class MainWindow(QMainWindow):
 
         search_holder = QWidget()
         layout = QHBoxLayout()
+        layout.addWidget(focus_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(bookmark_button)
-        layout.setContentsMargins(6, 0, 0, 0)
+        layout.setContentsMargins(0, 11, 0, 0)
         search_holder.setLayout(layout)
 
         new_column.view = QTreeView()
+        new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         new_column.flat_proxy = model.FlatProxyModel()
@@ -805,7 +818,7 @@ class MainWindow(QMainWindow):
         new_column.view.header().setSectionsClickable(True)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
+        layout.setContentsMargins(6, 0, 6, 0)  # left, top, right, bottom
         layout.addWidget(search_holder)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
@@ -833,12 +846,11 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, self.tr('About'), self.tr('teeeext'))
 
 
-class MyQLineEdit(QLineEdit):
+class SearchBarQLineEdit(QLineEdit):
     def __init__(self, main):
         super(QLineEdit, self).__init__()
         self.main = main
         self.setStyleSheet('QLineEdit {\
-        margin-top: 11px;\
         padding-left: 20px;\
         padding-top: 3px;\
         padding-right: 3px;\
@@ -846,7 +858,7 @@ class MyQLineEdit(QLineEdit):
         background: url(:/search);\
         background-position: left;\
         background-repeat: no-repeat;\
-        border-radius: 3px;\
+        border-radius: 2px;\
         height: 22px;}')
 
     def keyPressEvent(self, event):
@@ -969,47 +981,6 @@ class RenameTagDialog(QDialog):
         super(RenameTagDialog, self).accept()
 
 
-class LabelledDropDown(QWidget):
-    """
-    parameter: main_window, labelText, *item_names
-    first item will be checked by default
-    """
-
-    def __init__(self, main_window, key, labelText, *item_names, position=Qt.AlignLeft):
-        super(LabelledDropDown, self).__init__(main_window)
-        layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
-        self.label = QLabel(labelText)
-        layout.addWidget(self.label)
-        self.comboBox = QComboBox()
-        self.comboBox.addItems(item_names)
-        self.comboBox.currentIndexChanged[str].connect(lambda: main_window.filter(key, self.comboBox.currentText()))
-        layout.addWidget(self.comboBox, Qt.AlignLeft)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
-
-class LabelledButtonGroup(QWidget):
-    """
-    parameter: labelText, *button_names
-    first button will be checked by default
-    """
-
-    def __init__(self, labelText, *button_names, position=Qt.AlignLeft, parent=None):
-        super(LabelledButtonGroup, self).__init__(parent)
-        layout = QBoxLayout(QBoxLayout.LeftToRight if position == Qt.AlignLeft else QBoxLayout.TopToBottom)
-        self.label = QLabel(labelText)
-        layout.addWidget(self.label)
-        buttonGroup = QButtonGroup()
-        for idx, button_name in enumerate(button_names):
-            button = QRadioButton(button_name)
-            button.setCheckable(True)
-            if idx == 0:
-                button.setChecked(True)  # check first button
-            buttonGroup.addButton(button)
-            layout.addWidget(button)
-        self.setLayout(layout)
-
-
 # changes the header text
 class CustomHeaderView(QHeaderView):
     def __init__(self, text):
@@ -1044,9 +1015,9 @@ if __name__ == '__main__':
     dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
     dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
     dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
+    dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
+    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
     app.setPalette(dark_palette)
-    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }\
-                      QHeaderView::section { padding-bottom: 5px;  padding-top: 2px;}')
 
     font = QFont('Arial', 16)
     app.setFont(font);
