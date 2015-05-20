@@ -564,11 +564,12 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         if not index.isValid():
             return False
 
+        db_item = self.sourceModel().get_db_item(index)
+
         # return True if this row's data is accepted
         # todo tokenize, but not in "", and ignore tags in ""
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            db_item = self.sourceModel().get_db_item(index)
             if token.startswith('c='):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
@@ -590,10 +591,18 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 estimate_search = token[2:]
                 if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
                     continue
-            elif token.startswith(HAS_STARTDATE):
+            elif token.startswith(ONLY_START_DATE):
                 if db_item['date'] != '':
                     continue
-            elif token.startswith(NOT_SHOW_PARENTS + '='):  # ignore
+            elif token.startswith(HIDE_FUTURE_START_DATE):
+                # accept (continue) when no date or date is not in future
+                if db_item['date'] == '' or QDate.fromString(db_item['date'], 'dd.MM.yy') <= QDate.currentDate():
+                    continue
+            elif token.startswith(HIDE_FUTURE_START_DATE):  # todo create an ignore list
+                continue
+            elif token.startswith(ONLY_START_DATE):  # ignore
+                continue
+            elif token.startswith(FLATTEN + '='):  # ignore
                 continue
             elif token.startswith(FOCUS + '='):  # ignore
                 continue
@@ -601,7 +610,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 continue
             elif token in index.data():
                 continue
-            break
+            break  # user type stuff that's not found
         else:  # just executed when not breaked
             return True  # all tokens are in the row
 
@@ -894,8 +903,9 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
             self._completer.completionModel().index(0, 0))
 
 
-HAS_STARTDATE = 'has_date'
-NOT_SHOW_PARENTS = 'show_parents'
+ONLY_START_DATE = 'only_date'
+HIDE_FUTURE_START_DATE = 'hide_future_date'
+FLATTEN = 'flatten'
 SORT = 'sort'
 ESTIMATE = 'estimate'
 STARTDATE = 'startdate'

@@ -83,23 +83,26 @@ class MainWindow(QMainWindow):
         self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        self.hasStartdateCheckBox = QCheckBox('Has start date')
-        self.hasStartdateCheckBox.clicked.connect(self.filter_has_start_date)
-        self.showParentsCheckBox = QCheckBox('Show parents')
-        self.showParentsCheckBox.clicked.connect(self.filter_show_parents)
+        self.flattenViewCheckBox = QCheckBox('Flatten view')
+        self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
+        self.hideFutureStartdateCheckBox = QCheckBox('Hide todos with future start date')
+        self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
+        self.showOnlyStartdateCheckBox = QCheckBox('Show only todos with start date')
+        self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
         holder = QWidget()  # needed to add space
         layout = QGridLayout()
         layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
-        layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan.
+        layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
         layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
         layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
         layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
         layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
         layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
         layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
-        layout.addWidget(self.hasStartdateCheckBox, 4, 0, 1, 2)
-        layout.addWidget(self.showParentsCheckBox, 5, 0, 1, 2)
+        layout.addWidget(self.flattenViewCheckBox, 4, 0, 1, 2)
+        layout.addWidget(self.hideFutureStartdateCheckBox, 5, 0, 1, 2)
+        layout.addWidget(self.showOnlyStartdateCheckBox, 6, 0, 1, 2)
         layout.setColumnStretch(1, 10)
         holder.setLayout(layout)
 
@@ -367,18 +370,26 @@ class MainWindow(QMainWindow):
             new_text += ' ' + key + '=' + value + ' '
         self.focused_column().search_bar.setText(new_text)
 
-    def filter_has_start_date(self, has_start_date):
-        if has_start_date:
-            self.append_replace_to_searchbar(model.HAS_STARTDATE, 'yes')
+    @pyqtSlot(bool)
+    def filter_show_only_startdate(self, only_startdate):
+        if only_startdate:
+            self.append_replace_to_searchbar(model.ONLY_START_DATE, 'yes')
         else:
-            self.filter(model.HAS_STARTDATE, 'all')  # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
+            self.filter(model.ONLY_START_DATE, 'all')  # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
 
     @pyqtSlot(bool)
-    def filter_show_parents(self, show_parents):
-        if not show_parents:
-            self.append_replace_to_searchbar(model.NOT_SHOW_PARENTS, 'no')
+    def filter_hide_future_startdate(self, hide_future_startdate):
+        if hide_future_startdate:
+            self.append_replace_to_searchbar(model.HIDE_FUTURE_START_DATE, 'yes')
         else:
-            self.filter(model.NOT_SHOW_PARENTS, 'all')
+            self.filter(model.HIDE_FUTURE_START_DATE, 'all')
+
+    @pyqtSlot(bool)
+    def filter_flatten_view(self, flatten):
+        if flatten:
+            self.append_replace_to_searchbar(model.FLATTEN, 'yes')
+        else:
+            self.filter(model.FLATTEN, 'all')
 
 
     def filter_tag(self):
@@ -548,8 +559,9 @@ class MainWindow(QMainWindow):
 
 
     def reset_view(self):
-        self.hasStartdateCheckBox.setChecked(False)
-        self.showParentsCheckBox.setChecked(True)
+        self.hideFutureStartdateCheckBox.setChecked(False)
+        self.flattenViewCheckBox.setChecked(False)
+        self.showOnlyStartdateCheckBox.setChecked(False)
         self.task_dropdown.setCurrentIndex(0)
         self.estimate_dropdown.setCurrentIndex(0)
         self.color_dropdown.setCurrentIndex(0)
@@ -589,9 +601,9 @@ class MainWindow(QMainWindow):
 
         # show parents / flatten (just when not already flattened)
         sourceModel = self.focused_column().filter_proxy.sourceModel()
-        if model.NOT_SHOW_PARENTS in search_text and sourceModel != self.focused_column().flat_proxy:
+        if model.FLATTEN in search_text and sourceModel != self.focused_column().flat_proxy:
             self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
-        elif model.NOT_SHOW_PARENTS not in search_text and sourceModel != self.item_model:
+        elif model.FLATTEN not in search_text and sourceModel != self.item_model:
             self.focused_column().filter_proxy.setSourceModel(self.item_model)
 
         # filter
