@@ -85,9 +85,9 @@ class MainWindow(QMainWindow):
 
         self.flattenViewCheckBox = QCheckBox('Flatten view')
         self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
-        self.hideFutureStartdateCheckBox = QCheckBox('Hide todos with future start date')
+        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
-        self.showOnlyStartdateCheckBox = QCheckBox('Show only todos with start date')
+        self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
         self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
         holder = QWidget()  # needed to add space

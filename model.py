@@ -648,13 +648,16 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
     @pyqtSlot(QModelIndex, QModelIndex)
     def sourceDataChanged(self, topLeft, bottomRight):
+        print("aa")
         self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
 
     @pyqtSlot(QModelIndex, int, int)
     def sourceRowsInserted(self, parent, start, end):
+        self.beginResetModel()
         self.buildMap(self.sourceModel())
-        # this is cpu hungry
-        # but in the following solution, child rows get moved when insetering, too
+        self.endResetModel()
+        # the buildMap() method is cpu hungry (really? maybe the usage of the mapping is as hungry)
+        # but in the below solution, child rows get moved when insetering, too
         # self.columns_list[0].insert(start, self.sourceModel().index(start, 0, parent))
         # self.columns_list[1].insert(start, self.sourceModel().index(start, 1, parent))
         # self.columns_list[2].insert(start, self.sourceModel().index(start, 2, parent))
