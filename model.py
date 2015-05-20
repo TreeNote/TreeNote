@@ -10,6 +10,12 @@ import re
 from pprint import pprint
 
 
+def QDateFromString(string):
+    d = QDate.fromString(string, 'dd.MM.yy');
+    d.setDate(2000 + d.year() % 100, d.month(), d.day())
+    return d
+
+
 class QUndoCommandStructure(QUndoCommand):
     # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
     _fields = []  # Class variable that specifies expected fields
@@ -478,7 +484,7 @@ class TreeModel(QAbstractItemModel):
             repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
             if len(repeat_in_list) == 1:
                 repeat_in = repeat_in_list[0]
-                old_qdate = QDate.fromString(db_item['date'], 'dd.MM.yy')
+                old_qdate = QDateFromString(db_item['date'])
                 if repeat_in[1] == 'd':
                     new_qdate = old_qdate.addDays(int(repeat_in[0]))
                 elif repeat_in[1] == 'w':
@@ -596,7 +602,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                     continue
             elif token.startswith(HIDE_FUTURE_START_DATE):
                 # accept (continue) when no date or date is not in future
-                if db_item['date'] == '' or QDate.fromString(db_item['date'], 'dd.MM.yy') <= QDate.currentDate():
+                if db_item['date'] == '' or QDateFromString(db_item['date']) <= QDate.currentDate():
                     continue
             elif token.startswith(HIDE_FUTURE_START_DATE):  # todo create an ignore list
                 continue
@@ -628,8 +634,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         if column == 0:
             return True
         elif column == 1:
-            new_left_data = QDate.fromString(left_data, 'dd.MM.yy')
-            new_right_data = QDate.fromString(right_data, 'dd.MM.yy')
+            new_left_data = QDateFromString(left_data)
+            new_right_data = QDateFromString(right_data)
         elif column == 2:
             new_left_data = int(left_data) if left_data != '' else 0
             new_right_data = int(right_data) if right_data != '' else 0
@@ -764,7 +770,7 @@ class Delegate(QStyledItemDelegate):
             return edit
         if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
-            date = QDate.currentDate() if index.data() == '' else QDate.fromString(index.data(), 'dd.MM.yy')
+            date = QDate.currentDate() if index.data() == '' else QDateFromString(index.data())
             date_edit.setDate(date)
             date_edit.setCalendarPopup(True)
             date_edit.setCalendarWidget(EscCalendarWidget(parent))
@@ -841,7 +847,7 @@ class OpenPopupDateEdit(QDateEdit):
             self.delegate.main_window.edit_row()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
             self.setSpecialValueText(' ')
-            self.setDate(QDate.fromString(EMPTY_DATE, 'dd.MM.yy'))  # workaround to set empty date
+            self.setDate(QDateFromString(EMPTY_DATE))  # workaround to set empty date
             self.commit()
         return False  # don't stop the event being handled further
 
