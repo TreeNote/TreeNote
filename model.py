@@ -300,6 +300,13 @@ class TreeModel(QAbstractItemModel):
                     if self.id_list is None:  # for newly created items. else: add existing item (for move)
                         child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
                         self.id_list = [child_id]
+
+                        # type of new items depends on their parent: note -> note, projekt -> task
+                        parent_type = self.model.db[parent_item_id]['type']
+                        print(parent_type)
+                        child_type = NOTE if parent_type == NOTE else TASK
+                        self.model.set_db_item_field(child_id, 'type', child_type)
+
                     self.set_deleted_marker('', self.id_list[0])  # remove delete marker. just one item is inserted / re-inserted
                     self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
                     self.set_edit_focus = False  # when redo is called the second time (when the user is redoing), he doesn't want edit focus
@@ -505,6 +512,11 @@ class TreeModel(QAbstractItemModel):
             self.set_data(PAUSED, index=index, field='type')
         elif type == PAUSED:
             self.set_data(NOTE, index=index, field='type')
+
+    def set_db_item_field(self, item_id, field, value):
+        db_item = self.db[item_id]
+        db_item[field] = value
+        self.db[item_id] = db_item
 
     def setData(self, index, value, role=None):
         return self.set_data(value, index=index, field='text')

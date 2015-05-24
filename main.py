@@ -957,6 +957,7 @@ class BookmarkDialog(QDialog):
 class ShortcutDialog(QDialog):
     def __init__(self, parent, index):
         super(QDialog, self).__init__(parent)
+        self.setMinimumWidth(340)
         self.parent = parent
         self.item = parent.item_model.getItem(index)
         db_item = parent.item_model.db[self.item.id]
@@ -991,12 +992,13 @@ class RenameTagDialog(QDialog):
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
-        grid.addWidget(self.line_edit, 0, 0)
-        grid.addWidget(buttonBox, 1, 0)
+        grid.addWidget(QLabel('Enter new tag name:'), 0, 0)  # row, column
+        grid.addWidget(self.line_edit, 0, 1)
+        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight) # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        self.setWindowTitle("Enter new name:")
+        self.setWindowTitle(self.tr('Rename tag'))
 
     def apply(self):
         self.parent.rename_tag(self.tag, self.line_edit.text())
