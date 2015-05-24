@@ -147,11 +147,6 @@ class TreeModel(QAbstractItemModel):
 
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def get_db_item_id(self, index):
-        item = self.getItem(index)
-        db_item = self.db[item.id]
-        return db_item['_id']
-
     def get_db_item(self, index):
         item = self.getItem(index)
         return self.db[item.id]
@@ -427,7 +422,7 @@ class TreeModel(QAbstractItemModel):
     def get_tags_set(self, cut_delimiter=True):
         tags_set = set()
         map = "function(doc) { \
-                    if (doc.text && doc.text.indexOf('" + DELIMITER + "') != -1) \
+                    if (doc.text && doc.text.indexOf('" + DELIMITER + "') != -1 && doc." + DELETED + " == '') \
                         emit(doc, null); \
                 }"
         res = self.db.query(map)
@@ -537,7 +532,7 @@ class ProxyTools():
         self.sourceModel().toggle_project(self.mapToSource(index))
 
     def get_db_item_id(self, index):
-        return self.sourceModel().get_db_item_id(self.mapToSource(index))
+        return self.sourceModel().get_db_item(self.mapToSource(index))['_id']
 
     def get_db_item(self, index):
         return self.sourceModel().get_db_item(self.mapToSource(index))

@@ -471,6 +471,7 @@ class MainWindow(QMainWindow):
             available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             if isinstance(available_index, QModelIndex):
                 source_model.dataChanged.emit(available_index, available_index)
+            # todo orphaned code follwing?
             # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             # if isinstance(available_index, QModelIndex):
             # available_id = source_model.get_db_item_id(available_index)
@@ -763,13 +764,13 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_from_viewclick(self, index):
         search_bar_text = self.focused_column().search_bar.text()
-        item_id = index.model().get_db_item_id(index)
+        item_id = index.model().get_db_item(index)['_id']
         self.append_replace_to_searchbar(model.FOCUS, item_id)
 
     def focus_button_clicked(self):
         search_bar_text = self.focused_column().search_bar.text()
         idx = self.focused_column().view.selectionModel().currentIndex()
-        item_id = idx.model().get_db_item_id(idx)
+        item_id = idx.model().get_db_item(idx)['_id']
         self.append_replace_to_searchbar(model.FOCUS, item_id)
 
     def open_links(self):
@@ -945,7 +946,7 @@ class BookmarkDialog(QDialog):
             children_list = self.parent.bookmark_model.db[model.ROOT_ID]['children'].split()
             item_id = children_list[-1]
         else:
-            item_id = self.parent.bookmark_model.get_db_item_id(self.index)
+            item_id = self.parent.bookmark_model.get_db_item(self.index)['_id']
         self.parent.bookmark_model.set_data(self.name_edit.text(), item_id=item_id, column=0, field='text')
         self.parent.bookmark_model.set_data(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
         self.parent.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
