@@ -590,30 +590,31 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setSortingEnabled(False)  # prevent sorting by text
             self.focused_column().view.header().setSectionsClickable(True)
 
+        def apply_filter():
+            self.focused_column().filter_proxy.filter = search_text
+            self.focused_column().filter_proxy.invalidateFilter()
+            # deselect tag if user changes the search string
+            selected_tags = self.tag_view.selectionModel().selectedRows()
+            if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
+                self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
+                # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
+
+        # flatten # todo just when not already flattened
+        if model.FLATTEN in search_text:
+            self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
+            apply_filter()
+        else:
+            apply_filter() # filter must be refreshed before changing the model, otherwise exc because use of wrong model
+            self.focused_column().filter_proxy.setSourceModel(self.item_model)
+
         # focus
-        if model.FOCUS in search_text:
+        if model.FOCUS in search_text and model.FLATTEN not in search_text:
             item_id_with_space_behind = search_text.split(model.FOCUS)[1]  # second item is the one behind FOCUS
             item_id_with_equalsign_before = item_id_with_space_behind.split()
             item_id = item_id_with_equalsign_before[0][1:]
             idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
             proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
-
-        # show parents / flatten (just when not already flattened)
-        sourceModel = self.focused_column().filter_proxy.sourceModel()
-        if model.FLATTEN in search_text and sourceModel != self.focused_column().flat_proxy:
-            self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
-        elif model.FLATTEN not in search_text and sourceModel != self.item_model:
-            self.focused_column().filter_proxy.setSourceModel(self.item_model)
-
-        # filter
-        self.focused_column().filter_proxy.filter = search_text
-        self.focused_column().filter_proxy.invalidateFilter()
-        # deselect tag if user changes the search string
-        selected_tags = self.tag_view.selectionModel().selectedRows()
-        if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
-            self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
-            # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
 
     def expand_node(self, parent_index, bool_expand):

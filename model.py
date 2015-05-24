@@ -610,8 +610,24 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 continue
             elif token.startswith(FLATTEN + '='):  # ignore
                 continue
-            elif token.startswith(FOCUS + '='):  # ignore
-                continue
+            elif token.startswith(FOCUS + '='):
+                if FLATTEN not in self.filter:  # ignore
+                    continue
+                else:
+                    # todo improve performance
+                    # return if somehow_child_id is a child or grandchild etc of parent_id
+                    def is_somehow_child_of_flatten_id(somehow_child_id, parent_id):
+                        if somehow_child_id in self.sourceModel().sourceModel().db[parent_id]['children']:
+                            return True
+                        parameter_children_list = self.sourceModel().sourceModel().db[parent_id]['children'].split()
+                        for child_id in parameter_children_list:
+                            if is_somehow_child_of_flatten_id(somehow_child_id, child_id):
+                                return True
+                        return False
+
+                    flatten_id = token[len(FOCUS + '='):]
+                    if is_somehow_child_of_flatten_id(db_item['_id'], flatten_id):
+                        continue
             elif token.startswith(SORT + '='):  # ignore
                 continue
             elif token in index.data():
@@ -648,7 +664,6 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
     @pyqtSlot(QModelIndex, QModelIndex)
     def sourceDataChanged(self, topLeft, bottomRight):
-        print("aa")
         self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
 
     @pyqtSlot(QModelIndex, int, int)
