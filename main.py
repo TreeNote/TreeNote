@@ -18,6 +18,7 @@ EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
+SELECTED_ID = 'SELECTED_ID'
 
 
 class MainWindow(QMainWindow):
@@ -249,18 +250,20 @@ class MainWindow(QMainWindow):
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
-        for item_id in settings.value(EXPANDED_QUICKLINKS, []):
-            index = self.item_model.id_index_dict[item_id]
-            self.root_view.expand(QModelIndex(index))
-
         # restore expanded states
         for item_id in settings.value(EXPANDED_ITEMS, []):
             index = self.item_model.id_index_dict[item_id]
             proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
             self.focused_column().view.expand(proxy_index)
+        for item_id in settings.value(EXPANDED_QUICKLINKS, []):
+            index = self.item_model.id_index_dict[item_id]
+            self.root_view.expand(QModelIndex(index))
 
-
-
+        # restore selection
+        selection_item_id = settings.value(SELECTED_ID, None)
+        if selection_item_id is not None:
+            index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
+            self.set_selection(index, index)
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -356,6 +359,9 @@ class MainWindow(QMainWindow):
             if self.root_view.isExpanded(index):
                 expanded_quicklinks_id_list.append(self.item_model.getItem(index).id)
         settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
+
+        current_index = self.focused_column().view.selectionModel().currentIndex()
+        settings.setValue(SELECTED_ID, self.focused_column().filter_proxy.getItem(current_index).id)
 
         self.item_model.updater.terminate()
 
