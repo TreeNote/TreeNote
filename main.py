@@ -41,16 +41,16 @@ class MainWindow(QMainWindow):
 
         # first column
 
-        self.root_view = QTreeView()
-        self.root_view.setModel(self.item_model)
-        self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
-        self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.root_view.clicked.connect(self.focus_index)
-        self.root_view.setHeader(CustomHeaderView('Quick links'))
-        self.root_view.header().setToolTip('Focus on the clicked row')
-        self.root_view.hideColumn(1)
-        self.root_view.hideColumn(2)
+        self.quicklinks_view = QTreeView()
+        self.quicklinks_view.setModel(self.item_model)
+        self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
+        self.quicklinks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
+        self.quicklinks_view.clicked.connect(self.focus_index)
+        self.quicklinks_view.setHeader(CustomHeaderView('Quick links'))
+        self.quicklinks_view.header().setToolTip('Focus on the clicked row')
+        self.quicklinks_view.hideColumn(1)
+        self.quicklinks_view.hideColumn(2)
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
 
         first_column = QSplitter(Qt.Vertical)
         first_column.setHandleWidth(0)
-        first_column.addWidget(self.root_view)
+        first_column.addWidget(self.quicklinks_view)
         first_column.addWidget(holder)
         first_column.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
 
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
         add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
         add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeBookmarkSelection))
-        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.root_view.selectionModel().currentIndex()).exec_()))
+        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
         add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
         # restore expanded quick link states
         for item_id in settings.value(EXPANDED_QUICKLINKS, []):
             index = self.item_model.id_index_dict[item_id]
-            self.root_view.expand(QModelIndex(index))
+            self.quicklinks_view.expand(QModelIndex(index))
 
         # restore selection
         selection_item_id = settings.value(SELECTED_ID, None)
@@ -365,7 +365,7 @@ class MainWindow(QMainWindow):
         # save expanded quicklinks
         expanded_quicklinks_id_list = []
         for index in self.item_model.persistentIndexList():
-            if self.root_view.isExpanded(index):
+            if self.quicklinks_view.isExpanded(index):
                 expanded_quicklinks_id_list.append(self.item_model.getItem(index).id)
         settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
 
@@ -633,11 +633,11 @@ class MainWindow(QMainWindow):
 
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
+            view = self.focused_column().view
             if index_from.model() is self.item_model:
                 index_to = self.filter_proxy_index_from_model_index(index_to)
                 index_from = self.filter_proxy_index_from_model_index(index_from)
-                view = self.focused_column().view
-            else:
+            elif index_from.model() is self.bookmark_model:
                 view = self.bookmarks_view
                 view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
@@ -645,6 +645,11 @@ class MainWindow(QMainWindow):
             view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
             view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
+    def set_top_row_selected(self):
+        current_root_index = self.focused_column().view.rootIndex()
+        top_most_index = self.focused_column().filter_proxy.index(0, 0, current_root_index)
+        self.set_selection(top_most_index, top_most_index)
+        self.focused_column().view.setFocus()
 
     def reset_view(self):
         self.hideFutureStartdateCheckBox.setChecked(False)
@@ -654,9 +659,7 @@ class MainWindow(QMainWindow):
         self.estimate_dropdown.setCurrentIndex(0)
         self.color_dropdown.setCurrentIndex(0)
         self.focused_column().search_bar.setText('')
-        top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
-        # self.set_selection(top_most_index, top_most_index)
-        # self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
+        self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
     def save_expanded_state(self):
@@ -726,6 +729,8 @@ class MainWindow(QMainWindow):
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
+        # set selection
+        self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
         self.focused_column().view.setExpanded(parent_index, bool_expand)
@@ -775,12 +780,12 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QPoint)
     def open_edit_shortcut_contextmenu(self, point):
-        index = self.root_view.indexAt(point)
+        index = self.quicklinks_view.indexAt(point)
         if not index.isValid():
             return
         menu = QMenu()
         editShortcutAction = menu.addAction(self.tr('Edit shortcut'))
-        action = menu.exec_(self.root_view.viewport().mapToGlobal(point))
+        action = menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
         if action is editShortcutAction:
             ShortcutDialog(self, index=index).exec_()
 

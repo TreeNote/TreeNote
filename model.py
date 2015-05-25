@@ -196,6 +196,9 @@ class TreeModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
+        if role == Qt.SizeHintRole:
+            return QSize(-1,21) # row height
+
         if role != Qt.DisplayRole and role != Qt.EditRole:
             return None
 
@@ -784,7 +787,7 @@ class Delegate(QStyledItemDelegate):
                 type = NOT_AVAILABLE_TASK
             icon = QIcon(':/' + type)
             iconsize = option.decorationSize
-            painter.drawPixmap(option.rect.x(), option.rect.y() + 2, icon.pixmap(iconsize.width(), iconsize.height()))
+            painter.drawPixmap(option.rect.x(), option.rect.y() + 3, icon.pixmap(iconsize.width(), iconsize.height()))
             painter.restore()
 
     def createEditor(self, parent, option, index):
