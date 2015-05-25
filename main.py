@@ -25,7 +25,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.expanded_items = []
+        self.expanded_items = [] # for restoring the expanded state after a search
+        self.removed_id_expanded_state_dict = {} # remember expanded state when moving horizontally (removing then adding at other place)
 
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
@@ -153,8 +154,8 @@ class MainWindow(QMainWindow):
         add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down))
         add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left))
         add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
-        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children))
-        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children))
+        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows))
+        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows))
         add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
         add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
         add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
@@ -559,7 +560,7 @@ class MainWindow(QMainWindow):
                     child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
                     proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
                     self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-                    save_childs(source_model.getItem(child_item_index), None, None) # save expanded state of all childs
+                    save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
 
             save_childs(item, position, position + count)
 
@@ -656,12 +657,11 @@ class MainWindow(QMainWindow):
         for item_id in self.expanded_items:
             index = self.item_model.id_index_dict[item_id]
             proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-            print(index)
             self.focused_column().view.expand(proxy_index)
 
     @pyqtSlot(str)
     def search(self, search_text):
-        # save expaned state # todo
+        # save expaned state if not already saved
         if search_text != '':
             expanded_id_list = []
             for index in self.focused_column().filter_proxy.persistentIndexList():
@@ -695,7 +695,7 @@ class MainWindow(QMainWindow):
                 self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
                 # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
-        # flatten # todo just when not already flattened
+        # flatten + filter # todo just when not already flattened
         if model.FLATTEN in search_text:
             self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
             apply_filter()
@@ -711,6 +711,10 @@ class MainWindow(QMainWindow):
             idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
             proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
+
+        # expand all items. but not if search is empty or just focus.
+        if not (search_text == '' or re.search('^ ' + model.FOCUS + '\S* ?$', search_text)): # '^ = start of string. '\S*' = any number of not Whitespaces. ' ?' = zero or one whitespace. '$' = end of string
+            self.expand_or_collapse_children(QModelIndex(), True)
 
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
@@ -772,10 +776,10 @@ class MainWindow(QMainWindow):
 
     # structure menu actions
 
-    def expand_all_children(self):
+    def expand_all_children_of_selected_rows(self):
         self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)
 
-    def collapse_all_children(self):
+    def collapse_all_children_of_selected_rows(self):
         self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)
 
     def move_up(self):
