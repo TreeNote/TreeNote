@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.expanded_items = [] # for restoring the expanded state after a search
+        self.expanded_id_list = [] # for restoring the expanded state after a search
         self.removed_id_expanded_state_dict = {} # remember expanded state when moving horizontally (removing then adding at other place)
 
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
@@ -254,10 +254,8 @@ class MainWindow(QMainWindow):
         self.move(settings.value('pos', QPoint(200, 200)))
 
         # restore expanded states
-        for item_id in settings.value(EXPANDED_ITEMS, []):
-            index = self.item_model.id_index_dict[item_id]
-            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-            self.focused_column().view.expand(proxy_index)
+        self.expand_saved_states(settings.value(EXPANDED_ITEMS, []))
+
         for item_id in settings.value(EXPANDED_QUICKLINKS, []):
             index = self.item_model.id_index_dict[item_id]
             self.root_view.expand(QModelIndex(index))
@@ -267,6 +265,12 @@ class MainWindow(QMainWindow):
         if selection_item_id is not None:
             index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
             self.set_selection(index, index)
+
+    def expand_saved_states(self, item_id_list):
+        for item_id in item_id_list:
+            index = self.item_model.id_index_dict[item_id]
+            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+            self.focused_column().view.expand(proxy_index)
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -653,21 +657,16 @@ class MainWindow(QMainWindow):
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
-
-        for item_id in self.expanded_items:
-            index = self.item_model.id_index_dict[item_id]
-            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-            self.focused_column().view.expand(proxy_index)
+        self.expand_saved_states(self.expanded_id_list)
+        self.expanded_id_list = []
 
     @pyqtSlot(str)
     def search(self, search_text):
         # save expaned state if not already saved
-        if search_text != '':
-            expanded_id_list = []
+        if search_text != '' and self.expanded_id_list == []:
             for index in self.focused_column().filter_proxy.persistentIndexList():
                 if self.focused_column().view.isExpanded(index):
-                    expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
-            self.expanded_items = expanded_id_list
+                    self.expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
 
         # sort
         if model.SORT in search_text:
