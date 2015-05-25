@@ -16,6 +16,8 @@ from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
+EXPANDED_ITEMS = 'EXPANDED_ITEMS'
+EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
 
 
 class MainWindow(QMainWindow):
@@ -148,8 +150,8 @@ class MainWindow(QMainWindow):
         add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down))
         add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left))
         add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
-        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Shift+Right', triggered=self.expand_all_children))
-        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Shift+Left', triggered=self.collapse_all_children))
+        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children))
+        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children))
         add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
         add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
         add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
@@ -247,6 +249,18 @@ class MainWindow(QMainWindow):
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
+        for item_id in settings.value(EXPANDED_QUICKLINKS, []):
+            index = self.item_model.id_index_dict[item_id]
+            self.root_view.expand(QModelIndex(index))
+
+        # restore expanded states
+        for item_id in settings.value(EXPANDED_ITEMS, []):
+            index = self.item_model.id_index_dict[item_id]
+            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+            self.focused_column().view.expand(proxy_index)
+
+
+
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -330,6 +344,19 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
+
+        expanded_id_list = []
+        for index in self.focused_column().filter_proxy.persistentIndexList():
+            if self.focused_column().view.isExpanded(index):
+                expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
+        settings.setValue(EXPANDED_ITEMS, expanded_id_list)
+
+        expanded_quicklinks_id_list = []
+        for index in self.item_model.persistentIndexList():
+            if self.root_view.isExpanded(index):
+                expanded_quicklinks_id_list.append(self.item_model.getItem(index).id)
+        settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
+
         self.item_model.updater.terminate()
 
         # todo enable for production
@@ -605,7 +632,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
             apply_filter()
         else:
-            apply_filter() # filter must be refreshed before changing the model, otherwise exc because use of wrong model
+            apply_filter()  # filter must be refreshed before changing the model, otherwise exc because use of wrong model
             self.focused_column().filter_proxy.setSourceModel(self.item_model)
 
         # focus
@@ -618,12 +645,12 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setRootIndex(proxy_idx)
 
 
-    def expand_node(self, parent_index, bool_expand):
+    def expand_or_collapse_children(self, parent_index, bool_expand):
         self.focused_column().view.setExpanded(parent_index, bool_expand)
         for row_num in range(self.focused_column().filter_proxy.rowCount(parent_index)):
             child_index = self.focused_column().filter_proxy.index(row_num, 0, parent_index)
             self.focused_column().view.setExpanded(parent_index, bool_expand)
-            self.expand_node(child_index, bool_expand)
+            self.expand_or_collapse_children(child_index, bool_expand)
 
     def rename_tag(self, tag, new_name):
         map = "function(doc) {{ \
@@ -678,10 +705,10 @@ class MainWindow(QMainWindow):
     # structure menu actions
 
     def expand_all_children(self):
-        self.expand_node(self.focused_column().view.selectionModel().selectedRows()[0], True)
+        self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)
 
     def collapse_all_children(self):
-        self.expand_node(self.focused_column().view.selectionModel().selectedRows()[0], False)
+        self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)
 
     def move_up(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
@@ -994,7 +1021,7 @@ class RenameTagDialog(QDialog):
         grid = QGridLayout()
         grid.addWidget(QLabel('Enter new tag name:'), 0, 0)  # row, column
         grid.addWidget(self.line_edit, 0, 1)
-        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight) # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)

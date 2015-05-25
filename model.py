@@ -784,7 +784,7 @@ class Delegate(QStyledItemDelegate):
                 type = NOT_AVAILABLE_TASK
             icon = QIcon(':/' + type)
             iconsize = option.decorationSize
-            painter.drawPixmap(option.rect.x(), option.rect.y(), icon.pixmap(iconsize.width(), iconsize.height()))
+            painter.drawPixmap(option.rect.x(), option.rect.y() + 2, icon.pixmap(iconsize.width(), iconsize.height()))
             painter.restore()
 
     def createEditor(self, parent, option, index):
@@ -944,7 +944,7 @@ ASC = '_ascending'
 DESC = '_descending'
 ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
-SELECTION_GRAY = QColor(65, 65, 65)
+SELECTION_GRAY = QColor('#555B6E')
 BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
 FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
 HIGHLIGHT_ORANGE = QColor(195, 144, 72)
