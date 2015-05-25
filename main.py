@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         self.root_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.root_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.root_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.root_view.clicked.connect(self.focus_from_viewclick)
+        self.root_view.clicked.connect(self.focus_index)
         self.root_view.setHeader(CustomHeaderView('Quick links'))
         self.root_view.header().setToolTip('Focus on the clicked row')
         self.root_view.hideColumn(1)
@@ -655,8 +655,8 @@ class MainWindow(QMainWindow):
         self.color_dropdown.setCurrentIndex(0)
         self.focused_column().search_bar.setText('')
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
-        self.set_selection(top_most_index, top_most_index)
-        self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
+        # self.set_selection(top_most_index, top_most_index)
+        # self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
     def save_expanded_state(self):
@@ -871,16 +871,10 @@ class MainWindow(QMainWindow):
     # view menu actions
 
     @pyqtSlot(QModelIndex)
-    def focus_from_viewclick(self, index):
+    def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item(index)['_id']
-        self.append_replace_to_searchbar(model.FOCUS, item_id)
-
-    def focus_button_clicked(self):
-        search_bar_text = self.focused_column().search_bar.text()
-        idx = self.focused_column().view.selectionModel().currentIndex()
-        item_id = idx.model().get_db_item(idx)['_id']
-        self.append_replace_to_searchbar(model.FOCUS, item_id)
+        self.focused_column().search_bar.setText(model.FOCUS + '=' +  item_id)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -901,7 +895,7 @@ class MainWindow(QMainWindow):
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        focus_button.clicked.connect(self.focus_button_clicked)
+        focus_button.clicked.connect(lambda: self.focus_index(self.focused_column().view.selectionModel().currentIndex()))
 
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
