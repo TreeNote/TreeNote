@@ -541,7 +541,28 @@ class MainWindow(QMainWindow):
                     else:  # bookmark
                         self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
+                # restore moved items expanded states + expanded states of their childrens
+                # save and restore expanded state not for bookmarks todo
+                for child_id in self.removed_id_expanded_state_dict:
+                    child_index = QModelIndex(source_model.id_index_dict[child_id])
+                    proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                    expanded_state = self.removed_id_expanded_state_dict[child_id]
+                    self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                self.removed_id_expanded_state_dict = {}
+
         elif method == 'removed':
+            # for move horizontally: save expanded states of moved + children of moved
+            self.removed_id_expanded_state_dict = {}
+            # save and restore expanded state not for bookmarks todo
+            def save_childs(parent, from_child, to_child):
+                for child_item in parent.childItems[from_child:to_child]:
+                    child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                    proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                    self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+                    save_childs(source_model.getItem(child_item_index), None, None) # save expanded state of all childs
+
+            save_childs(item, position, position + count)
+
             source_model.beginRemoveRows(index, position, position + count - 1)
             item.childItems[position:position + count] = []
             source_model.endRemoveRows()
@@ -564,7 +585,6 @@ class MainWindow(QMainWindow):
                 child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
                 proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
                 id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-
 
             source_model.layoutAboutToBeChanged.emit()
             up_or_down = change_dict['up_or_down']
