@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
 
         self.expanded_id_list = [] # for restoring the expanded state after a search
         self.removed_id_expanded_state_dict = {} # remember expanded state when moving horizontally (removing then adding at other place)
+        self.old_search_text = '' # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
@@ -355,11 +356,8 @@ class MainWindow(QMainWindow):
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
 
-        expanded_id_list = []
-        for index in self.focused_column().filter_proxy.persistentIndexList():
-            if self.focused_column().view.isExpanded(index):
-                expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
-        settings.setValue(EXPANDED_ITEMS, expanded_id_list)
+        self.save_expanded_state()
+        settings.setValue(EXPANDED_ITEMS, self.expanded_id_list)
 
         expanded_quicklinks_id_list = []
         for index in self.item_model.persistentIndexList():
@@ -657,16 +655,21 @@ class MainWindow(QMainWindow):
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
-        self.expand_saved_states(self.expanded_id_list)
+
+    def save_expanded_state(self):
         self.expanded_id_list = []
+        for index in self.focused_column().filter_proxy.persistentIndexList():
+            if self.focused_column().view.isExpanded(index):
+                self.expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
 
     @pyqtSlot(str)
     def search(self, search_text):
-        # save expaned state if not already saved
-        if search_text != '' and self.expanded_id_list == []:
-            for index in self.focused_column().filter_proxy.persistentIndexList():
-                if self.focused_column().view.isExpanded(index):
-                    self.expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
+        # before doing the search: save expanded states
+        if self.old_search_text == '':
+            self.save_expanded_state()
+        elif re.search('^ ' + model.FOCUS + '\S* *$', self.old_search_text):
+            self.save_expanded_state()
+        self.old_search_text = search_text
 
         # sort
         if model.SORT in search_text:
@@ -711,8 +714,12 @@ class MainWindow(QMainWindow):
             proxy_idx = self.filter_proxy_index_from_model_index(idx)
             self.focused_column().view.setRootIndex(proxy_idx)
 
-        # expand all items. but not if search is empty or just focus.
-        if not (search_text == '' or re.search('^ ' + model.FOCUS + '\S* ?$', search_text)): # '^ = start of string. '\S*' = any number of not Whitespaces. ' ?' = zero or one whitespace. '$' = end of string
+        # expand
+        if search_text == '':
+            self.expand_saved_states(self.expanded_id_list)
+        elif re.search('^ ' + model.FOCUS + '\S* *$', search_text): # '^ = start of string. '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
+            self.expand_saved_states(self.expanded_id_list)
+        else: # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
 
