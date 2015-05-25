@@ -11,7 +11,7 @@ from pprint import pprint
 
 
 def QDateFromString(string):
-    d = QDate.fromString(string, 'dd.MM.yy');
+    d = QDate.fromString(string, 'dd.MM.yy')
     d.setDate(2000 + d.year() % 100, d.month(), d.day())
     return d
 
@@ -646,7 +646,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # return True if a child row is accepted
         for row in range(self.sourceModel().rowCount(index)):
             if self.filterAcceptsRow(row, index):
-                return True;
+                return True
 
         return False
 
@@ -803,7 +803,7 @@ class Delegate(QStyledItemDelegate):
             return date_edit
         else:  # index.column() == 2:
             line_edit = QLineEdit(parent)
-            line_edit.setValidator(QIntValidator(0, 999, self));
+            line_edit.setValidator(QIntValidator(0, 999, self))
             line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
             return line_edit
 

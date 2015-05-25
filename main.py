@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from PyQt5 import QtWidgets
 import sys
 from PyQt5.QtCore import *
@@ -25,9 +26,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.expanded_id_list = [] # for restoring the expanded state after a search
-        self.removed_id_expanded_state_dict = {} # remember expanded state when moving horizontally (removing then adding at other place)
-        self.old_search_text = '' # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
+        self.expanded_id_list = []  # for restoring the expanded state after a search
+        self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
+        self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
@@ -254,9 +255,10 @@ class MainWindow(QMainWindow):
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
-        # restore expanded states
+        # restore expanded item states
         self.expand_saved_states(settings.value(EXPANDED_ITEMS, []))
 
+        # restore expanded quick link states
         for item_id in settings.value(EXPANDED_QUICKLINKS, []):
             index = self.item_model.id_index_dict[item_id]
             self.root_view.expand(QModelIndex(index))
@@ -356,25 +358,26 @@ class MainWindow(QMainWindow):
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
 
+        # save expanded items
         self.save_expanded_state()
         settings.setValue(EXPANDED_ITEMS, self.expanded_id_list)
 
+        # save expanded quicklinks
         expanded_quicklinks_id_list = []
         for index in self.item_model.persistentIndexList():
             if self.root_view.isExpanded(index):
                 expanded_quicklinks_id_list.append(self.item_model.getItem(index).id)
         settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
 
+        # save selection
         current_index = self.focused_column().view.selectionModel().currentIndex()
         settings.setValue(SELECTED_ID, self.focused_column().filter_proxy.getItem(current_index).id)
 
         self.item_model.updater.terminate()
 
-        # todo enable for production
-        # if sys.platform == "darwin":
-        # subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
-
-        print(len(self.item_model.pointer_set))  # for debugging: is the len == #rows + root?
+        if not __debug__:
+            if sys.platform == "darwin":
+                subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
@@ -665,9 +668,10 @@ class MainWindow(QMainWindow):
     @pyqtSlot(str)
     def search(self, search_text):
         # before doing the search: save expanded states
+        focus_pattern = re.compile(' ' + model.FOCUS + '\S* *$')  # '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
         if self.old_search_text == '':
             self.save_expanded_state()
-        elif re.search('^ ' + model.FOCUS + '\S* *$', self.old_search_text):
+        elif focus_pattern.match(self.old_search_text):
             self.save_expanded_state()
         self.old_search_text = search_text
 
@@ -717,9 +721,9 @@ class MainWindow(QMainWindow):
         # expand
         if search_text == '':
             self.expand_saved_states(self.expanded_id_list)
-        elif re.search('^ ' + model.FOCUS + '\S* *$', search_text): # '^ = start of string. '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
+        elif focus_pattern.match(search_text):
             self.expand_saved_states(self.expanded_id_list)
-        else: # expand all items
+        else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
 
@@ -900,8 +904,12 @@ class MainWindow(QMainWindow):
         focus_button.clicked.connect(self.focus_button_clicked)
 
         new_column.search_bar = SearchBarQLineEdit(self)
-        new_column.search_bar.textChanged[str].connect(self.search)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
+
+        # search shall start not before the user completed typing
+        filterDelay = DelayedExecutionTimer(self)
+        new_column.search_bar.textChanged[str].connect(filterDelay.trigger)
+        filterDelay.triggered[str].connect(self.search)
 
         bookmark_button = QPushButton()
         bookmark_button.setToolTip('Bookmark current filters')
@@ -1110,6 +1118,31 @@ class RenameTagDialog(QDialog):
         super(RenameTagDialog, self).accept()
 
 
+class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
+    triggered = pyqtSignal(str)
+
+    def __init__(self, parent):
+        super(DelayedExecutionTimer, self).__init__(parent)
+        self.minimumDelay = 200  # The minimum delay is the time the class will wait after being triggered before emitting the triggered() signal
+        self.maximumDelay = 500  # The maximum delay is the maximum time that will pass before a call to the trigger() slot leads to a triggered() signal.
+        self.minimumTimer = QTimer(self)
+        self.maximumTimer = QTimer(self)
+        self.minimumTimer.timeout.connect(self.timeout)
+        self.maximumTimer.timeout.connect(self.timeout)
+
+    def timeout(self):
+        self.minimumTimer.stop()
+        self.maximumTimer.stop()
+        self.triggered.emit(self.string)
+
+    def trigger(self, string):
+        self.string = string
+        if not self.maximumTimer.isActive():
+            self.maximumTimer.start(self.maximumDelay)
+        self.minimumTimer.stop()
+        self.minimumTimer.start(self.minimumDelay)
+
+
 # changes the header text
 class CustomHeaderView(QHeaderView):
     def __init__(self, text):
@@ -1149,7 +1182,7 @@ if __name__ == '__main__':
     app.setPalette(dark_palette)
 
     font = QFont('Arial', 16)
-    app.setFont(font);
+    app.setFont(font)
 
     form = MainWindow()
     form.show()
