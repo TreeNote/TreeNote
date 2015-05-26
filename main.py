@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
 
         self.item_model.updater.terminate()
 
-        if not __debug__:
+        if not __debug__:  # This constant is true if Python was not started with an -O option. -O turns on basic optimizations.
             if sys.platform == "darwin":
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
@@ -386,7 +386,7 @@ class MainWindow(QMainWindow):
                 break
 
     def updateActions(self):
-        pass  # todo embed split action
+        pass  #
         # todo rename tag action just when a tag is selected
 
     def toggle_sorting(self, column):
@@ -512,14 +512,6 @@ class MainWindow(QMainWindow):
             available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
             if isinstance(available_index, QModelIndex):
                 source_model.dataChanged.emit(available_index, available_index)
-            # todo orphaned code follwing?
-            # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
-            # if isinstance(available_index, QModelIndex):
-            # available_id = source_model.get_db_item_id(available_index)
-            # available_db_item = source_model.db[available_id]
-            # available_db_item['type'] = model.NOT_AVAILABLE_TASK
-            # source_model.db[available_id] = available_db_item
-            # source_model.dataChanged.emit(available_index, available_index)
 
             # update the sort by changing the ordering
             sorted_column = self.focused_column().view.header().sortIndicatorSection()
@@ -547,8 +539,7 @@ class MainWindow(QMainWindow):
                     else:  # bookmark
                         self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
-                # restore moved items expanded states + expanded states of their childrens
-                # save and restore expanded state not for bookmarks todo
+                # restore horizontally moved items expanded states + expanded states of their childrens
                 for child_id in self.removed_id_expanded_state_dict:
                     child_index = QModelIndex(source_model.id_index_dict[child_id])
                     proxy_index = self.filter_proxy_index_from_model_index(child_index)
@@ -558,16 +549,17 @@ class MainWindow(QMainWindow):
 
         elif method == 'removed':
             # for move horizontally: save expanded states of moved + children of moved
-            self.removed_id_expanded_state_dict = {}
-            # save and restore expanded state not for bookmarks todo
-            def save_childs(parent, from_child, to_child):
-                for child_item in parent.childItems[from_child:to_child]:
-                    child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                    proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                    self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-                    save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
+            if source_model is self.item_model:  # not for bookmarks
+                self.removed_id_expanded_state_dict = {}
+                # save and restore expanded state  todo performance
+                def save_childs(parent, from_child, to_child):
+                    for child_item in parent.childItems[from_child:to_child]:
+                        child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                        proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                        self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+                        save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
 
-            save_childs(item, position, position + count)
+                save_childs(item, position, position + count)
 
             source_model.beginRemoveRows(index, position, position + count - 1)
             item.childItems[position:position + count] = []
@@ -585,12 +577,13 @@ class MainWindow(QMainWindow):
 
         elif method == 'moved_vertical':
             # save expanded states
+            bool_moved_bookmark = source_model is self.bookmark_model # but not for bookmarks
             id_expanded_state_dict = {}
-            # save and restore expanded state not for bookmarks todo
-            for child_position, child_item in enumerate(item.childItems):
-                child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+            if not bool_moved_bookmark:
+                for child_position, child_item in enumerate(item.childItems):
+                    child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                    proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                    id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
 
             source_model.layoutAboutToBeChanged.emit()
             up_or_down = change_dict['up_or_down']
@@ -599,28 +592,27 @@ class MainWindow(QMainWindow):
                 item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
             elif up_or_down == +1:
                 item.childItems.insert(position, item.childItems.pop(position + count))
-            for i in range(count):
-                # todo: folliwng line needed?
-                index_moved_item = source_model.index(position + up_or_down + i, 0, index)  # calling index() refreshes the self.tree_model.id_index_dict of that item
-                if i == 0:
-                    index_first_moved_item = index_moved_item
+            index_first_moved_item = source_model.index(position + up_or_down, 0, index)
+            index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
             source_model.layoutChanged.emit()
 
             if my_edit:
-                self.set_selection(index_first_moved_item, index_moved_item)
+                # select first moved item
+                self.set_selection(index_first_moved_item, index_last_moved_item)
 
                 # restore expanded states
-                # save and restore expanded state not for bookmarks todo
-                for child_position, child_item in enumerate(item.childItems):
-                    child_index = source_model.index(child_position, 0, index)
+                if not bool_moved_bookmark:
+                    for child_position, child_item in enumerate(item.childItems):
+                        child_index = source_model.index(child_position, 0, index)
 
-                    # update id_index_dict # todo for foreign edits, too. so move this out of 'if my_edit:'
-                    source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
-                    source_model.pointer_set.add(child_index.internalId())
+                        # update id_index_dict # todo for foreign edits, too. so move this out of 'if my_edit:'
+                        source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
+                        source_model.pointer_set.add(child_index.internalId())
 
-                    proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                    expanded_state = id_expanded_state_dict[child_item.id]
-                    self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                        proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                        expanded_state = id_expanded_state_dict[child_item.id]
+                        self.focused_column().view.setExpanded(proxy_index, expanded_state)
+
 
 
         elif method == model.DELETED:
@@ -642,7 +634,7 @@ class MainWindow(QMainWindow):
                 view.setFocus()
             index_from = index_from.sibling(index_from.row(), 0)
             index_to = index_to.sibling(index_to.row(), self.item_model.columnCount() - 1)
-            view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)  # todo not always correct index when moving
+            view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)
             view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
 
     def set_top_row_selected(self):
@@ -816,7 +808,7 @@ class MainWindow(QMainWindow):
     def insert_child(self):
         index = self.focused_column().view.selectionModel().currentIndex()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:
-            # commit data by changing the current selection # todo doku
+            # save the edit of the yet open editor
             self.focused_column().view.selectionModel().currentChanged.emit(index, index)
         self.focused_column().filter_proxy.insert_row(0, index)
 
@@ -879,7 +871,7 @@ class MainWindow(QMainWindow):
     def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item(index)['_id']
-        self.focused_column().search_bar.setText(model.FOCUS + '=' +  item_id)
+        self.focused_column().search_bar.setText(model.FOCUS + '=' + item_id)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -928,6 +920,7 @@ class MainWindow(QMainWindow):
         search_holder.setLayout(layout)
 
         new_column.view = QTreeView()
+        new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }')
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
@@ -985,7 +978,7 @@ class SearchBarQLineEdit(QLineEdit):
         super(QLineEdit, self).__init__()
         self.main = main
         self.setStyleSheet('QLineEdit {\
-        padding-left: 20px;\
+        padding-left: 22px;\
         padding-top: 3px;\
         padding-right: 3px;\
         padding-bottom: 3px;\
@@ -994,6 +987,10 @@ class SearchBarQLineEdit(QLineEdit):
         background-repeat: no-repeat;\
         border-radius: 2px;\
         height: 22px;}')
+        self.setStyleSheet('QLineEdit:focus {\
+        border: 1px solid #006080;\
+        border-radius: 2px;\
+        height: 24px; }')
 
     def keyPressEvent(self, event):
         # arror key down: select first child

@@ -306,7 +306,6 @@ class TreeModel(QAbstractItemModel):
 
                         # type of new items depends on their parent: note -> note, projekt -> task
                         parent_type = self.model.db[parent_item_id]['type']
-                        print(parent_type)
                         child_type = NOTE if parent_type == NOTE else TASK
                         self.model.set_db_item_field(child_id, 'type', child_type)
 
@@ -583,10 +582,11 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         db_item = self.sourceModel().get_db_item(index)
 
         # return True if this row's data is accepted
-        # todo tokenize, but not in "", and ignore tags in ""
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            if token.startswith('c='):
+            if token.startswith((HIDE_FUTURE_START_DATE, ONLY_START_DATE, FLATTEN, SORT)): # ignore these
+                continue
+            elif token.startswith('c='):
                 color_character = token[2:3]
                 if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
                     continue
@@ -614,12 +614,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 # accept (continue) when no date or date is not in future
                 if db_item['date'] == '' or QDateFromString(db_item['date']) <= QDate.currentDate():
                     continue
-            elif token.startswith(HIDE_FUTURE_START_DATE):  # todo create an ignore list
-                continue
-            elif token.startswith(ONLY_START_DATE):  # ignore
-                continue
-            elif token.startswith(FLATTEN + '='):  # ignore
-                continue
             elif token.startswith(FOCUS + '='):
                 if FLATTEN not in self.filter:  # ignore
                     continue
