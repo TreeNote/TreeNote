@@ -779,9 +779,9 @@ class Delegate(QStyledItemDelegate):
             painter.save()
             if is_not_available:
                 type = NOT_AVAILABLE_TASK
-            icon = QIcon(':/' + type)
             iconsize = option.decorationSize
-            painter.drawPixmap(option.rect.x(), option.rect.y() + 3, icon.pixmap(iconsize.width(), iconsize.height()))
+            icon = QImage(':/' + type)
+            painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
     def createEditor(self, parent, option, index):
