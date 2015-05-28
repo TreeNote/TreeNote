@@ -63,14 +63,11 @@ class Tree_item(object):
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
-    def __init__(self, text, model, parent=None):
+    def __init__(self, text, model, parent=None, id=None):
         self.model = model
         self.parentItem = parent
-        self.text = text
+        self.id = id
         self.childItems = None
-        self.id = None
-        self.date = ''
-        self.estimate = ''
 
     def child_number(self):
         if self.parentItem is not None:
@@ -86,16 +83,21 @@ class Tree_item(object):
                 self.add_child(position, id, parent_index)
 
     def add_child(self, position, id, parent_index):
-        item = Tree_item('', self.model, self)
+        item = Tree_item('', self.model, self, id)
+        db_item = self.model.db[id]
+        # Tree_item has the same attributes like a DB_ITEM except 'children'
+        # it's saved here, because access to here ist faster than to the db
+        for key in TREE_ITEM_ATTRIBUTES_LIST:
+            item.__setattr__(key, db_item[key])
         self.childItems.insert(position, item)
-        self.childItems[position].text = self.model.db[id]['text']
-        self.childItems[position].date = self.model.db[id]['date']
-        self.childItems[position].estimate = self.model.db[id]['estimate']
-        self.childItems[position].id = id
 
         new_index = self.model.index(position, 0, parent_index)
         self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
         self.model.pointer_set.add(new_index.internalId())
+
+    def update_attributes(self, db_item):
+        for key in TREE_ITEM_ATTRIBUTES_LIST:
+            self.__setattr__(key, db_item[key])
 
 
 class TreeModel(QAbstractItemModel):
@@ -197,7 +199,7 @@ class TreeModel(QAbstractItemModel):
             return None
 
         if role == Qt.SizeHintRole:
-            return QSize(-1,21) # row height
+            return QSize(-1, 21)  # row height
 
         if role != Qt.DisplayRole and role != Qt.EditRole:
             return None
@@ -296,7 +298,6 @@ class TreeModel(QAbstractItemModel):
                     children_list.remove(child_item_id)
                     parent_db_item['children'] = ' '.join(children_list)
                     self.model.db[parent_item_id] = parent_db_item
-
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
@@ -584,7 +585,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # return True if this row's data is accepted
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            if token.startswith((HIDE_FUTURE_START_DATE, ONLY_START_DATE, FLATTEN, SORT)): # ignore these
+            if token.startswith((HIDE_FUTURE_START_DATE, ONLY_START_DATE, FLATTEN, SORT)):  # ignore these
                 continue
             elif token.startswith('c='):
                 color_character = token[2:3]
@@ -748,8 +749,6 @@ class Delegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
-        db_item = self.main_window.item_model.db[item.id]
-        type = db_item['type']
 
         word_list = index.data().split()
         for idx, word in enumerate(word_list):
@@ -759,14 +758,14 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
-        is_not_available = type == TASK and not self.model.is_task_available(index)
-        if type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
+        is_not_available = item.type == TASK  # todo and not self.model.is_task_available(index)
+        if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
             color = BACKGROUND_GRAY
-        html = "<font color={}>{}</font>".format(QColor(db_item['color']).name(), html)
+        html = "<font color={}>{}</font>".format(QColor(item.color).name(), html)
         document.setHtml(html)
         painter.save()
         painter.fillRect(option.rect, color)
@@ -775,12 +774,12 @@ class Delegate(QStyledItemDelegate):
         document.drawContents(painter)
         painter.restore()
 
-        if type != NOTE and index.column() == 0:  # set icon of task or project
+        if item.type != NOTE and index.column() == 0:  # set icon of task or project
             painter.save()
             if is_not_available:
-                type = NOT_AVAILABLE_TASK
+                item.type = NOT_AVAILABLE_TASK
             iconsize = option.decorationSize
-            icon = QImage(':/' + type)
+            icon = QImage(':/' + item.type)
             painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
@@ -803,7 +802,6 @@ class Delegate(QStyledItemDelegate):
             line_edit.setValidator(QIntValidator(0, 999, self))
             line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
             return line_edit
-
 
     def setEditorData(self, editor, index):
         QStyledItemDelegate.setEditorData(self, editor, index)
@@ -920,7 +918,6 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
             if len(event.text()) > 0 and len(completionPrefix) > 0:
                 self._completer.complete()
 
-
     def _updateCompleterPopupItems(self, completionPrefix):
         """
         Filters the completer's popup items to only show items
@@ -974,6 +971,7 @@ DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
 TEXT = 'text'
+TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'type', 'date', 'color', DELETED, 'estimate']
 NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'

@@ -403,7 +403,6 @@ class MainWindow(QMainWindow):
                 order = model.ASC
             self.append_replace_to_searchbar(model.SORT, model.ESTIMATE + order)
 
-
     def append_replace_to_searchbar(self, key, value):
         search_bar_text = self.focused_column().search_bar.text()
         new_text = re.sub(key + r'(\w|=)* ', key + '=' + value + ' ', search_bar_text)
@@ -431,7 +430,6 @@ class MainWindow(QMainWindow):
             self.append_replace_to_searchbar(model.FLATTEN, 'yes')
         else:
             self.filter(model.FLATTEN, 'all')
-
 
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
@@ -498,9 +496,7 @@ class MainWindow(QMainWindow):
         item = source_model.getItem(index)
 
         if method == 'updated':
-            item.text = db_item['text']
-            item.date = db_item['date']
-            item.estimate = db_item['estimate']
+            item.update_attributes(db_item)
             if my_edit:
                 self.set_selection(index, index)
             self.setup_tag_model()
@@ -577,7 +573,7 @@ class MainWindow(QMainWindow):
 
         elif method == 'moved_vertical':
             # save expanded states
-            bool_moved_bookmark = source_model is self.bookmark_model # but not for bookmarks
+            bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
             id_expanded_state_dict = {}
             if not bool_moved_bookmark:
                 for child_position, child_item in enumerate(item.childItems):
@@ -621,7 +617,6 @@ class MainWindow(QMainWindow):
             else:
                 source_model.pointer_set.remove(index.internalId())
             self.setup_tag_model()
-
 
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
@@ -824,7 +819,6 @@ class MainWindow(QMainWindow):
         indexes = self.focusWidget().selectionModel().selectedRows()
         self.focused_column().filter_proxy.remove_rows(indexes)
 
-
     def removeBookmarkSelection(self):
         self.bookmarks_view.setFocus()
         indexes = self.focusWidget().selectionModel().selectedRows()
@@ -959,7 +953,6 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
         self.unsplitWindowAct.setEnabled(True)
-
 
     def unsplit_window(self):
         index_last_widget = self.item_views_splitter.count() - 1
