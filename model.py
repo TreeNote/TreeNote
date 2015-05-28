@@ -580,7 +580,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         if not index.isValid():
             return False
 
-        db_item = self.sourceModel().get_db_item(index)
+        item = self.sourceModel().getItem(index)
 
         # return True if this row's data is accepted
         tokens = self.filter.split()  # all tokens must be in the row's data
@@ -589,31 +589,31 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 continue
             elif token.startswith('c='):
                 color_character = token[2:3]
-                if db_item['color'] == CHAR_QCOLOR_DICT.get(color_character):
+                if item.color == CHAR_QCOLOR_DICT.get(color_character):
                     continue
             elif token.startswith('t='):
                 task_character = token[2:3]
                 type = CHAR_TYPE_DICT.get(task_character)
-                if db_item['type'] == type:
+                if item.type == type:
                     # just available tasks
                     if type == TASK and not self.sourceModel().is_task_available(index):
                         break
                     continue
             elif re.match(r'e(<|>|=)', token):
-                if db_item['estimate'] == '':
+                if item.estimate == '':
                     break
                 less_greater_equal_sign = token[1]
                 if less_greater_equal_sign == '=':
                     less_greater_equal_sign = '=='
                 estimate_search = token[2:]
-                if eval(db_item['estimate'] + less_greater_equal_sign + estimate_search):
+                if eval(item.estimate + less_greater_equal_sign + estimate_search):
                     continue
             elif token.startswith(ONLY_START_DATE):
-                if db_item['date'] != '':
+                if item.date != '':
                     continue
             elif token.startswith(HIDE_FUTURE_START_DATE):
                 # accept (continue) when no date or date is not in future
-                if db_item['date'] == '' or QDateFromString(db_item['date']) <= QDate.currentDate():
+                if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
             elif token.startswith(FOCUS + '='):
                 if FLATTEN not in self.filter:  # ignore
@@ -631,7 +631,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                         return False
 
                     flatten_id = token[len(FOCUS + '='):]
-                    if is_somehow_child_of_flatten_id(db_item['_id'], flatten_id):
+                    if is_somehow_child_of_flatten_id(item.id, flatten_id):
                         continue
             elif token.startswith(SORT + '='):  # ignore
                 continue

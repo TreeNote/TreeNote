@@ -572,7 +572,7 @@ class MainWindow(QMainWindow):
                     self.set_selection(index, index)
 
         elif method == 'moved_vertical':
-            # save expanded states
+            # save expanded states todo: save and restore the moved items only
             bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
             id_expanded_state_dict = {}
             if not bool_moved_bookmark:
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
                     proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
                     id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
 
-            source_model.layoutAboutToBeChanged.emit()
+            source_model.layoutAboutToBeChanged.emit([QPersistentModelIndex(index)])
             up_or_down = change_dict['up_or_down']
             if up_or_down == -1:
                 # if we want to move several items up, we can move the item-above below the selection instead:
@@ -590,7 +590,7 @@ class MainWindow(QMainWindow):
                 item.childItems.insert(position, item.childItems.pop(position + count))
             index_first_moved_item = source_model.index(position + up_or_down, 0, index)
             index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
-            source_model.layoutChanged.emit()
+            source_model.layoutChanged.emit([QPersistentModelIndex(index)])
 
             if my_edit:
                 # select first moved item
