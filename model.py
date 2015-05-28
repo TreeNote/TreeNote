@@ -77,7 +77,7 @@ class Tree_item(object):
     def init_childs(self, parent_index):
         if self.childItems is None:  # deserialise children from the db
             self.childItems = []
-            children_id_list = self.model.db[self.id]['children'].split()
+            children_id_list = self.children.split()
             for position in range(len(children_id_list)):
                 id = children_id_list[position]
                 self.add_child(position, id, parent_index)
@@ -127,6 +127,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem = Tree_item('root item', self)
         self.rootItem.header_list = header_list
         self.rootItem.id = ROOT_ID
+        self.rootItem.children = db[ROOT_ID]['children']
         index = QModelIndex()
         self.id_index_dict[ROOT_ID] = index
         self.pointer_set.add(QModelIndex().internalId())
@@ -971,7 +972,7 @@ DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
 TEXT = 'text'
-TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'type', 'date', 'color', DELETED, 'estimate']
+TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'children', 'type', 'date', 'color', DELETED, 'estimate']
 NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
