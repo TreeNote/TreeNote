@@ -63,14 +63,14 @@ class MainWindow(QMainWindow):
 
         # load databases
         settings = QSettings()
-        servers = settings.value('databases', [('Local', None)])  # second value is loaded, if nothing was saved before in the settings
-        for name, url in servers:
-            self.server_model.add_server(name, url)
+        servers = settings.value('databases', [('Local', None, 'items')])  # second value is loaded, if nothing was saved before in the settings
+        for bookmark_name, url, db_name in servers:
+            self.server_model.add_server(bookmark_name, url, db_name)
 
-        self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
+        self.item_model = model.TreeModel(self.get_db('local_items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.bookmark_model = model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
+        self.bookmark_model = model.TreeModel(self.get_db('local_bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
@@ -83,6 +83,8 @@ class MainWindow(QMainWindow):
         # self.servers_view.clicked.connect(self.focus_index)
         self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
+        top_most_index = self.server_model.index(0, 0, QModelIndex())
+        self.servers_view.selectionModel().setCurrentIndex(top_most_index, QItemSelectionModel.ClearAndSelect)
 
         self.quicklinks_view = QTreeView()
         self.quicklinks_view.setModel(self.item_model)
@@ -321,24 +323,23 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.restoreState(first_column_splitter_state)
 
         # restore expanded item states
-        self.expand_saved_states(settings.value(EXPANDED_ITEMS, []))
+        for item_id in settings.value(EXPANDED_ITEMS, []):
+            if item_id in self.item_model.id_index_dict:
+                index = self.item_model.id_index_dict[item_id]
+                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+                self.focused_column().view.expand(proxy_index)
 
         # restore expanded quick link states
         for item_id in settings.value(EXPANDED_QUICKLINKS, []):
-            index = self.item_model.id_index_dict[item_id]
-            self.quicklinks_view.expand(QModelIndex(index))
+            if item_id in self.item_model.id_index_dict:
+                index = self.item_model.id_index_dict[item_id]
+                self.quicklinks_view.expand(QModelIndex(index))
 
         # restore selection
         selection_item_id = settings.value(SELECTED_ID, None)
-        if selection_item_id is not None:
+        if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
             index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
             self.set_selection(index, index)
-
-    def expand_saved_states(self, item_id_list):
-        for item_id in item_id_list:
-            index = self.item_model.id_index_dict[item_id]
-            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-            self.focused_column().view.expand(proxy_index)
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -428,7 +429,7 @@ class MainWindow(QMainWindow):
         # save databases
         server_list = []
         for server in self.server_model.servers:
-            server_list.append((server.name, server.url))
+            server_list.append((server.bookmark_name, server.url, server.db_name))
         settings.setValue('databases', server_list)
 
         # save expanded items
@@ -786,10 +787,11 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setRootIndex(proxy_idx)
 
         # expand
-        if search_text == '':
-            self.expand_saved_states(self.expanded_id_list)
-        elif focus_pattern.match(search_text):
-            self.expand_saved_states(self.expanded_id_list)
+        if search_text == '' or focus_pattern.match(search_text):
+            for item_id in self.expanded_id_list:
+                index = self.item_model.id_index_dict[item_id]
+                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+                self.focused_column().view.expand(proxy_index)
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
@@ -1230,21 +1232,26 @@ class DatabaseDialog(QDialog):
         self.index = index
         name = ''
         url = ''
+        database_name = ''
         if index is not None:
             server = parent.server_model.get_server(index)
-            name = server.name
+            name = server.bookmark_name
             url = server.url
-        self.name_edit = QLineEdit(name)
+            database_name = server.database_name
+        self.bookmark_name_edit = QLineEdit(name)
         self.url_edit = QLineEdit(url)
+        self.database_name_edit = QLineEdit(database_name)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
         grid.addWidget(QLabel('Database bookmark name:'), 0, 0)  # row, column
         grid.addWidget(QLabel('URL:'), 1, 0)
-        grid.addWidget(self.name_edit, 0, 1)
+        grid.addWidget(QLabel('Database name:'), 2, 0)
+        grid.addWidget(self.bookmark_name_edit, 0, 1)
         grid.addWidget(self.url_edit, 1, 1)
-        grid.addWidget(buttonBox, 2, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(self.database_name_edit, 2, 1)
+        grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
@@ -1255,9 +1262,9 @@ class DatabaseDialog(QDialog):
 
     def apply(self):
         if self.index is None:
-            self.parent.server_model.add_server(self.name_edit.text(), self.url_edit.text())
+            self.parent.server_model.add_server(self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
         else:
-            self.parent.server_model.set_data(self.index, self.name_edit.text(), self.url_edit.text())
+            self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
         super(DatabaseDialog, self).accept()
 
 

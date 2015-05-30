@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import *
 
 
 class Server():
-    def __init__(self, name, url):
-        self.name = name
+    def __init__(self, bookmark_name, url, database_name):
+        self.bookmark_name = bookmark_name
         self.url = url
+        self.database_name = database_name
 
 
 class ServerModel(QAbstractListModel):
@@ -33,15 +34,16 @@ class ServerModel(QAbstractListModel):
 
     def data(self, index, role):
         if role != Qt.DisplayRole: return None
-        return self.get_server(index).name
+        return self.get_server(index).bookmark_name
 
-    def set_data(self, index, name, url):
-        self.servers[index.row()].name = name
+    def set_data(self, index, bookmark_name, url, db_name):
+        self.servers[index.row()].bookmark_name = bookmark_name
         self.servers[index.row()].url = url
+        self.servers[index.row()].db_name = db_name
 
-    def add_server(self, name, url):
+    def add_server(self, bookmark_name, url, db_name):
         self.beginResetModel()
-        new_item = Server(name, url)
+        new_item = Server(bookmark_name, url, db_name)
         self.servers.append(new_item)
         self.endResetModel()
 
