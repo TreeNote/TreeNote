@@ -8,7 +8,6 @@ import qrc_resources
 import model
 import server_model
 import tag_model
-import subprocess
 import socket
 import webbrowser
 import re
@@ -63,14 +62,15 @@ class MainWindow(QMainWindow):
 
         # load databases
         settings = QSettings()
-        servers = settings.value('databases', [('Local', None, 'items')])  # second value is loaded, if nothing was saved before in the settings
+        servers = settings.value('databases', [('Local', '', 'items'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'items')])  # second value is loaded, if nothing was saved before in the settings
         for bookmark_name, url, db_name in servers:
-            self.server_model.add_server(bookmark_name, url, db_name)
+            new_server = server_model.Server(bookmark_name, url, db_name)
+            new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
+            self.server_model.add_server(new_server)
 
-        self.item_model = model.TreeModel(self.get_db('local_items'), header_list=['Text', 'Start date', 'Estimate'])
-        self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
+        self.item_model = self.server_model.servers[0].model
 
-        self.bookmark_model = model.TreeModel(self.get_db('local_bookmarks'), header_list=['Bookmarks'])
+        self.bookmark_model = model.TreeModel(server_model.get_db('', 'local_bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
         self.mainSplitter = QSplitter(Qt.Horizontal)
@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
 
         self.servers_view = QTreeView()
         self.servers_view.setModel(self.server_model)
-        # self.servers_view.clicked.connect(self.focus_index)
+        self.servers_view.clicked.connect(self.change_active_database)
         self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
         top_most_index = self.server_model.index(0, 0, QModelIndex())
@@ -223,9 +223,9 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()))
         add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()))
-        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, shortcut='W', triggered=self.move_up))
-        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, shortcut='S', triggered=self.move_down))
-        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, shortcut='delete', triggered=self.removeBookmarkSelection))
+        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_up))
+        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_down))
+        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection))
         add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()))
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
@@ -290,20 +290,22 @@ class MainWindow(QMainWindow):
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
 
-        # make single key menu shortcuts work on all operating systems http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
-        self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
-        self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-        for action in self.actions:
-            if action is self.moveBookmarkUpAction or \
-                            action is self.moveBookmarkDownAction or \
-                            action is self.deleteBookmarkAction:  # the shortcuts of these are already used
-                continue
-            keySequence = action.shortcut()
-            if keySequence.count() == 1:
-                shortcut = QShortcut(keySequence, self)
-                shortcut.activated.connect(self.signalMapper.map)
-                self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
-                action.shortcut = QKeySequence()  # disable the old shortcut
+        # make single key menu shortcuts work on Mac OS X, too
+        # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
+        if sys.platform == "darwin":
+            self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
+            self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
+            for action in self.actions:
+                if action is self.moveBookmarkUpAction or \
+                                action is self.moveBookmarkDownAction or \
+                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
+                    continue
+                keySequence = action.shortcut()
+                if keySequence.count() == 1:
+                    shortcut = QShortcut(keySequence, self)
+                    shortcut.activated.connect(self.signalMapper.map)
+                    self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
+                    action.shortcut = QKeySequence()  # disable the old shortcut
 
         self.split_window()
         self.reset_view()  # inits checkboxes
@@ -359,48 +361,6 @@ class MainWindow(QMainWindow):
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
                                                          triggered=partial(self.append_replace_to_searchbar, model.FOCUS, row.id)))
 
-    def get_db(self, db_name):
-        if sys.platform == "darwin":
-            subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
-
-        def get_create_db(new_db_name, db_url=None):
-
-            if db_url:
-                # todo check if couchdb was started, else exit loop and print exc
-                # http://stackoverflow.com/questions/1378974/is-there-a-way-to-start-stop-linux-processes-with-python
-                server = couchdb.Server(db_url)
-            else:
-                # todo check if couchdb was started, else exit loop and print exc
-                server = couchdb.Server()
-            try:
-                # del server[new_db_name]
-                return server, server[new_db_name]
-            except couchdb.http.ResourceNotFound:
-                new_db = server.create(new_db_name)
-                new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
-                print("Database does not exist. Created the database.")
-                return server, new_db
-            except couchdb.http.Unauthorized as err:
-                print(err.message)
-
-            except couchdb.http.ServerError as err:
-                print(err.message)
-
-        local_server = None
-        while local_server is None:  # wait until couchdb is started
-            try:
-                time.sleep(0.1)
-                local_server, db = get_create_db(db_name)
-                break
-            except Exception as e:
-                print("Trying to connect to database, but: " + str(e))
-        return db
-
-        server_url = 'http://192.168.178.42:5984/'
-        # get_create_db(db_name, server_url)
-        # local_server.replicate(db_name, server_url + db_name, continuous=True)
-        # local_server.replicate(server_url + db_name, db_name, continuous=True)
-
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
             if self.item_views_splitter.widget(i).hasFocus():
@@ -419,6 +379,12 @@ class MainWindow(QMainWindow):
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
+    def change_active_database(self, index):
+        self.item_model = self.server_model.get_server(index).model
+        self.focused_column().flat_proxy.setSourceModel(self.item_model)
+        self.focused_column().filter_proxy.setSourceModel(self.item_model)
+
+
     def closeEvent(self, event):
         settings = QSettings()
         settings.setValue('pos', self.pos())
@@ -429,7 +395,7 @@ class MainWindow(QMainWindow):
         # save databases
         server_list = []
         for server in self.server_model.servers:
-            server_list.append((server.bookmark_name, server.url, server.db_name))
+            server_list.append((server.bookmark_name, server.url, server.database_name))
         settings.setValue('databases', server_list)
 
         # save expanded items
@@ -1228,6 +1194,7 @@ class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
     def __init__(self, parent, index=None):
         super(DatabaseDialog, self).__init__(parent)
+        self.setMinimumWidth(630)
         self.parent = parent
         self.index = index
         name = ''
@@ -1262,7 +1229,8 @@ class DatabaseDialog(QDialog):
 
     def apply(self):
         if self.index is None:
-            self.parent.server_model.add_server(self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
+            new_server = server_model.Server(self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
+            self.parent.server_model.add_server(new_server)
         else:
             self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
         super(DatabaseDialog, self).accept()
@@ -1309,7 +1277,7 @@ class CustomHeaderView(QHeaderView):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNoteee'))
     app.setWindowIcon(QIcon(':/icon.png'))
 
     form = MainWindow()
