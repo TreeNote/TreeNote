@@ -17,7 +17,7 @@ from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
-EXPANDED_ITEMS = 'EXPANDED_ITEMS'
+EXPANDED_ITEMS_DICT = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
 SELECTED_ID = 'SELECTED_ID'
 CREATE_DB = 'Create bookmark to a server database'
@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         font = QFont('Arial', 16)
         app.setFont(font)
 
-        self.expanded_id_list = []  # for restoring the expanded state after a search
+        self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
         self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
         self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
@@ -78,11 +78,9 @@ class MainWindow(QMainWindow):
 
         self.servers_view = QTreeView()
         self.servers_view.setModel(self.server_model)
-        self.servers_view.clicked.connect(self.change_active_database)
+        self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
         self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
-        top_most_index = self.server_model.index(0, 0, QModelIndex())
-        self.servers_view.selectionModel().setCurrentIndex(top_most_index, QItemSelectionModel.ClearAndSelect)
 
         self.quicklinks_view = QTreeView()
         self.quicklinks_view.setModel(self.item_model)
@@ -322,12 +320,23 @@ class MainWindow(QMainWindow):
         if first_column_splitter_state is not None:
             self.first_column_splitter.restoreState(first_column_splitter_state)
 
+        # restore selected database
+        last_db_name = settings.value('database')
+        if last_db_name is not None:
+            for idx, server in enumerate(self.server_model.servers):
+                if server.bookmark_name == last_db_name:
+                    server_index = self.server_model.index(idx, 0, QModelIndex())
+                    break
+        else:
+            server_index = self.server_model.index(0, 0, QModelIndex()) # top_most_index
+        self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
+        self.change_active_database(server_index)
+
         # restore expanded item states
-        for item_id in settings.value(EXPANDED_ITEMS, []):
-            if item_id in self.item_model.id_index_dict:
-                index = self.item_model.id_index_dict[item_id]
-                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-                self.focused_column().view.expand(proxy_index)
+        expanded_ids_list_dict = settings.value(EXPANDED_ITEMS_DICT)
+        if expanded_ids_list_dict is not None: #  and last_db_name in self.expanded_ids_list_dict:
+            self.expanded_ids_list_dict  = expanded_ids_list_dict
+            self.expand_saved()
 
         # restore expanded quick link states
         for item_id in settings.value(EXPANDED_QUICKLINKS, []):
@@ -348,6 +357,15 @@ class MainWindow(QMainWindow):
         else:
             palette = self.dark_palette  # standard theme
         self.set_palette(palette)
+
+    def expand_saved(self):
+        current_server_name = self.get_server_name()
+        if current_server_name in self.expanded_ids_list_dict:
+            for item_id in self.expanded_ids_list_dict[current_server_name]:
+                if item_id in self.item_model.id_index_dict:
+                    index = self.item_model.id_index_dict[item_id]
+                    proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+                    self.focused_column().view.expand(proxy_index)
 
     def set_palette(self, new_palette):
         QApplication.setPalette(new_palette)
@@ -394,10 +412,13 @@ class MainWindow(QMainWindow):
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
-    def change_active_database(self, index):
-        self.item_model = self.server_model.get_server(index).model
+    def change_active_database(self, new_index, old_index=None):
+        self.save_expanded_state(old_index)
+        self.item_model = self.server_model.get_server(new_index).model
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
+        self.old_search_text = 'dont save expanded states of next db when switching to next db'
+        self.reset_view()
 
     def closeEvent(self, event):
         settings = QSettings()
@@ -414,7 +435,7 @@ class MainWindow(QMainWindow):
 
         # save expanded items
         self.save_expanded_state()
-        settings.setValue(EXPANDED_ITEMS, self.expanded_id_list)
+        settings.setValue(EXPANDED_ITEMS_DICT, self.expanded_ids_list_dict)
 
         # save expanded quicklinks
         expanded_quicklinks_id_list = []
@@ -431,11 +452,19 @@ class MainWindow(QMainWindow):
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
 
+        # save selected database
+        settings.setValue('database', self.get_server_name())
+
         self.item_model.updater.terminate()
 
         if not __debug__:  # This constant is true if Python was not started with an -O option. -O turns on basic optimizations.
             if sys.platform == "darwin":
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
+
+    def get_server_name(self, index=None):
+        if index is None:
+            index= self.servers_view.selectionModel().currentIndex()
+        return self.server_model.get_server(index).bookmark_name
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.actions:
@@ -711,19 +740,19 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
-    def save_expanded_state(self):
-        self.expanded_id_list = []
+    def save_expanded_state(self, index=None):
+        expanded_list_current_view = []
+        current_server_name = self.get_server_name(index)
         for index in self.focused_column().filter_proxy.persistentIndexList():
             if self.focused_column().view.isExpanded(index):
-                self.expanded_id_list.append(self.focused_column().filter_proxy.getItem(index).id)
+                expanded_list_current_view.append(self.focused_column().filter_proxy.getItem(index).id)
+        self.expanded_ids_list_dict[current_server_name] = expanded_list_current_view
 
     @pyqtSlot(str)
     def search(self, search_text):
         # before doing the search: save expanded states
         focus_pattern = re.compile(' ' + model.FOCUS + '\S* *$')  # '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
-        if self.old_search_text == '':
-            self.save_expanded_state()
-        elif focus_pattern.match(self.old_search_text):
+        if self.old_search_text == '' or focus_pattern.match(self.old_search_text):
             self.save_expanded_state()
         self.old_search_text = search_text
 
@@ -772,10 +801,7 @@ class MainWindow(QMainWindow):
 
         # expand
         if search_text == '' or focus_pattern.match(search_text):
-            for item_id in self.expanded_id_list:
-                index = self.item_model.id_index_dict[item_id]
-                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-                self.focused_column().view.expand(proxy_index)
+            self.expand_saved()
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
