@@ -25,6 +25,7 @@ CREATE_DB = 'Create bookmark to a server database'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -60,6 +61,12 @@ class MainWindow(QMainWindow):
 
         self.server_model = server_model.ServerModel()
 
+        # load databases
+        settings = QSettings()
+        servers = settings.value('databases', [('Local', None)])  # second value is loaded, if nothing was saved before in the settings
+        for name, url in servers:
+            self.server_model.add_server(name, url)
+
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
@@ -73,6 +80,9 @@ class MainWindow(QMainWindow):
 
         self.servers_view = QTreeView()
         self.servers_view.setModel(self.server_model)
+        # self.servers_view.clicked.connect(self.focus_index)
+        self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
 
         self.quicklinks_view = QTreeView()
         self.quicklinks_view.setModel(self.item_model)
@@ -183,7 +193,7 @@ class MainWindow(QMainWindow):
             setattr(self, name, qaction)
             self.actions.append(qaction)
 
-        add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self,  triggered=lambda: DatabaseDialog(self).exec_()))
+        add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
         add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
         add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
         add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
@@ -299,7 +309,6 @@ class MainWindow(QMainWindow):
         self.updateActions()
 
         # restore previous position etc
-        settings = QSettings()
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
 
@@ -415,6 +424,12 @@ class MainWindow(QMainWindow):
         settings.setValue('size', self.size())
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
         settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
+
+        # save databases
+        server_list = []
+        for server in self.server_model.servers:
+            server_list.append((server.name, server.url))
+        settings.setValue('databases', server_list)
 
         # save expanded items
         self.save_expanded_state()
@@ -817,8 +832,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QPoint)
     def open_edit_bookmark_contextmenu(self, point):
         index = self.bookmarks_view.indexAt(point)
-        if not index.isValid():
-            return
+        if not index.isValid(): return
         menu = QMenu()
         editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
         deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
@@ -831,13 +845,22 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QPoint)
     def open_edit_shortcut_contextmenu(self, point):
         index = self.quicklinks_view.indexAt(point)
-        if not index.isValid():
-            return
+        if not index.isValid(): return
         menu = QMenu()
         editShortcutAction = menu.addAction(self.tr('Edit shortcut'))
         action = menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
         if action is editShortcutAction:
             ShortcutDialog(self, index=index).exec_()
+
+    @pyqtSlot(QPoint)
+    def open_edit_server_contextmenu(self, point):
+        menu = QMenu()
+        menu.addAction(self.addDatabaseAct)
+        index = self.servers_view.indexAt(point)
+        if index.isValid():
+            menu.addAction(self.editDatabaseAct)
+            menu.addAction(self.deleteDatabaseAct)
+        menu.exec_(self.servers_view.viewport().mapToGlobal(point))
 
     # structure menu actions
 
@@ -1198,6 +1221,7 @@ class SettingsDialog(QDialog):
         self.parent.focused_column().view.verticalScrollBar().setPalette(new_palette)
         self.parent.focused_column().view.header().setPalette(new_palette)
 
+
 class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
     def __init__(self, parent, index=None):
@@ -1235,6 +1259,7 @@ class DatabaseDialog(QDialog):
         else:
             self.parent.server_model.set_data(self.index, self.name_edit.text(), self.url_edit.text())
         super(DatabaseDialog, self).accept()
+
 
 class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
     triggered = pyqtSignal(str)
