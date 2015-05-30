@@ -765,8 +765,9 @@ class Delegate(QStyledItemDelegate):
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
-            color = BACKGROUND_GRAY
-        html = "<font color={}>{}</font>".format(QColor(item.color).name(), html)
+            color = QApplication.palette().base()
+        text_color= QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
+        html = "<font color={}>{}</font>".format(text_color, html)
         document.setHtml(html)
         painter.save()
         painter.fillRect(option.rect, color)
@@ -830,7 +831,7 @@ class BookmarkDelegate(QStyledItemDelegate):
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
-            color = BACKGROUND_GRAY
+            color = QApplication.palette().base()
         painter.save()
         painter.fillRect(option.rect, color)
         painter.translate(option.rect.x() - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
@@ -945,13 +946,14 @@ FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
 HIGHLIGHT_ORANGE = QColor(195, 144, 72)
 TAG_COLOR = QColor('#71CD58')  # green
 REPEAT_COLOR = QColor('#CF4573')  # red
+NO_COLOR = 'NO_COLOR'
 CHAR_QCOLOR_DICT = {
     'g': QColor('#85E326').name(),  # green
     'y': QColor('#EEEF22').name(),  # yellow
     'b': QColor('#8A9ADD').name(),  # blue
     'r': QColor('#CE3535').name(),  # red
     'o': QColor('#DFBC30').name(),  # orange
-    'n': TEXT_GRAY.name()
+    'n': NO_COLOR
 }
 DELIMITER = ':'
 DONE_TASK = 'done'  # same as icon file names
@@ -973,6 +975,6 @@ SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
 TEXT = 'text'
 TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'children', 'type', 'date', 'color', DELETED, 'estimate']
-NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': TEXT_GRAY.name(), DELETED: '', 'estimate': '',
+NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_COLOR, DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'

@@ -26,6 +26,31 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
+        app.setStyle("Fusion")
+        self.light_palette = app.palette()
+
+        self.dark_palette = QPalette()
+        self.dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
+        self.dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
+        self.dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
+        self.dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
+        self.dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.BrightText, Qt.red)
+        self.dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+        self.dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
+        self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
+        self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
+        self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+
+        app.setPalette(self.dark_palette)
+
+        font = QFont('Arial', 16)
+        app.setFont(font)
+
         self.expanded_id_list = []  # for restoring the expanded state after a search
         self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
         self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
@@ -144,6 +169,7 @@ class MainWindow(QMainWindow):
             setattr(self, name, qaction)
             self.actions.append(qaction)
 
+        add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
         add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
         add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
         self.unsplitWindowAct.setEnabled(False)  # todo put in update actions
@@ -190,6 +216,7 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.moveBookmarkDownAction)
         self.fileMenu.addAction(self.deleteBookmarkAction)
         self.fileMenu.addAction(self.editShortcutAction)
+        self.fileMenu.addAction(self.settingsAct)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
         self.structureMenu.addAction(self.insertRowAction)
@@ -879,14 +906,14 @@ class MainWindow(QMainWindow):
     def split_window(self):  # creates another item_view
         new_column = QWidget()
 
-        focus_button = QPushButton()
-        focus_button.setToolTip('Focus on current row')
-        focus_button.setIcon(QIcon(':/focus'))
-        focus_button.setStyleSheet('QPushButton {\
+        new_column.focus_button = QPushButton()
+        new_column.focus_button.setToolTip('Focus on current row')
+        new_column.focus_button.setIcon(QIcon(':/focus'))
+        new_column.focus_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        focus_button.clicked.connect(lambda: self.focus_index(self.focused_column().view.selectionModel().currentIndex()))
+        new_column.focus_button.clicked.connect(lambda: self.focus_index(self.focused_column().view.selectionModel().currentIndex()))
 
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
@@ -896,20 +923,20 @@ class MainWindow(QMainWindow):
         new_column.search_bar.textChanged[str].connect(filterDelay.trigger)
         filterDelay.triggered[str].connect(self.search)
 
-        bookmark_button = QPushButton()
-        bookmark_button.setToolTip('Bookmark current filters')
-        bookmark_button.setIcon(QIcon(':/star'))
-        bookmark_button.setStyleSheet('QPushButton {\
+        new_column.bookmark_button = QPushButton()
+        new_column.bookmark_button.setToolTip('Bookmark current filters')
+        new_column.bookmark_button.setIcon(QIcon(':/star'))
+        new_column.bookmark_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
+        new_column.bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
         search_holder = QWidget()
         layout = QHBoxLayout()
-        layout.addWidget(focus_button)
+        layout.addWidget(new_column.focus_button)
         layout.addWidget(new_column.search_bar)
-        layout.addWidget(bookmark_button)
+        layout.addWidget(new_column.bookmark_button)
         layout.setContentsMargins(0, 11, 0, 0)
         search_holder.setLayout(layout)
 
@@ -1107,6 +1134,37 @@ class RenameTagDialog(QDialog):
         super(RenameTagDialog, self).accept()
 
 
+class SettingsDialog(QDialog):
+    def __init__(self, parent):
+        super(SettingsDialog, self).__init__(parent)
+        self.parent = parent
+        theme_dropdown = QComboBox()
+        theme_dropdown.addItems(['Light', 'Dark'])
+        current_palette_index = 0 if QApplication.palette() == self.parent.light_palette else 1
+        theme_dropdown.setCurrentIndex(current_palette_index)
+        theme_dropdown.currentIndexChanged[int].connect(self.change_theme)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel('UI Theme:'), 0, 0)  # row, column
+        grid.addWidget(theme_dropdown, 0, 1)
+        grid.setContentsMargins(20, 20, 20, 20)
+        self.setLayout(grid)
+        self.setWindowTitle(self.tr('Preferences'))
+
+    def change_theme(self, current_palette_index):
+        if current_palette_index == 0:
+            new_palette = self.parent.light_palette
+        else:
+            new_palette = self.parent.dark_palette
+        QApplication.setPalette(new_palette)
+        self.parent.focused_column().focus_button.setPalette(new_palette)
+        self.parent.focused_column().bookmark_button.setPalette(new_palette)
+        self.parent.focused_column().search_bar.setPalette(new_palette)
+        self.parent.focused_column().view.setPalette(new_palette)
+        self.parent.focused_column().view.verticalScrollBar().setPalette(new_palette)
+        self.parent.focused_column().view.header().setPalette(new_palette)
+
+
 class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
     triggered = pyqtSignal(str)
 
@@ -1150,28 +1208,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon.png'))
-
-    app.setStyle("Fusion")
-    dark_palette = QPalette()
-    dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
-    dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.BrightText, Qt.red)
-    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
-    dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
-    dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
-    dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-    app.setPalette(dark_palette)
-
-    font = QFont('Arial', 16)
-    app.setFont(font)
 
     form = MainWindow()
     form.show()
