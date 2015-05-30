@@ -744,7 +744,8 @@ class MainWindow(QMainWindow):
             self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
-        self.set_top_row_selected()
+        if not self.focused_column().search_bar.isModified(): # only if text was set programmatically e.g. because the user selected a dropdown
+            self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
         self.focused_column().view.setExpanded(parent_index, bool_expand)
