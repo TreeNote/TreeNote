@@ -49,8 +49,6 @@ class MainWindow(QMainWindow):
         self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
         self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-        app.setPalette(self.dark_palette)
-
         font = QFont('Arial', 16)
         app.setFont(font)
 
@@ -343,6 +341,23 @@ class MainWindow(QMainWindow):
             index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
             self.set_selection(index, index)
 
+        # restore palette
+        palette = settings.value('theme')
+        if palette is not None:
+            palette = self.light_palette if palette == 'light' else self.dark_palette
+        else:
+            palette = self.dark_palette  # standard theme
+        self.set_palette(palette)
+
+    def set_palette(self, new_palette):
+        QApplication.setPalette(new_palette)
+        self.focused_column().focus_button.setPalette(new_palette)
+        self.focused_column().bookmark_button.setPalette(new_palette)
+        self.focused_column().search_bar.setPalette(new_palette)
+        self.focused_column().view.setPalette(new_palette)
+        self.focused_column().view.verticalScrollBar().setPalette(new_palette)
+        self.focused_column().view.header().setPalette(new_palette)
+
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
         map = "function(doc) { \
@@ -384,7 +399,6 @@ class MainWindow(QMainWindow):
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
 
-
     def closeEvent(self, event):
         settings = QSettings()
         settings.setValue('pos', self.pos())
@@ -412,6 +426,10 @@ class MainWindow(QMainWindow):
         # save selection
         current_index = self.focused_column().view.selectionModel().currentIndex()
         settings.setValue(SELECTED_ID, self.focused_column().filter_proxy.getItem(current_index).id)
+
+        # save theme
+        theme = 'light' if app.palette() == self.light_palette else 'dark'
+        settings.setValue('theme', theme)
 
         self.item_model.updater.terminate()
 
@@ -1181,13 +1199,7 @@ class SettingsDialog(QDialog):
             new_palette = self.parent.light_palette
         else:
             new_palette = self.parent.dark_palette
-        QApplication.setPalette(new_palette)
-        self.parent.focused_column().focus_button.setPalette(new_palette)
-        self.parent.focused_column().bookmark_button.setPalette(new_palette)
-        self.parent.focused_column().search_bar.setPalette(new_palette)
-        self.parent.focused_column().view.setPalette(new_palette)
-        self.parent.focused_column().view.verticalScrollBar().setPalette(new_palette)
-        self.parent.focused_column().view.header().setPalette(new_palette)
+        self.parent.set_palette(new_palette)
 
 
 class DatabaseDialog(QDialog):
