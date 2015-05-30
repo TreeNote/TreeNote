@@ -435,7 +435,7 @@ class MainWindow(QMainWindow):
         new_text = re.sub(key + r'(\w|=)* ', key + '=' + value + ' ', search_bar_text)
         if key not in search_bar_text:
             new_text += ' ' + key + '=' + value + ' '
-        self.focused_column().search_bar.setText(new_text)
+        self.set_searchbar_text_and_search(new_text)
 
     @pyqtSlot(bool)
     def filter_show_only_startdate(self, only_startdate):
@@ -466,7 +466,7 @@ class MainWindow(QMainWindow):
             new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text)  # matches a tag
             if ':' not in search_bar_text:
                 new_text += ' ' + current_tag + ' '
-            self.focused_column().search_bar.setText(new_text)
+            self.set_searchbar_text_and_search(new_text)
 
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, item_id):
@@ -499,7 +499,11 @@ class MainWindow(QMainWindow):
             else:
                 # add filter
                 search_bar_text += ' ' + key + value + ' '
+        self.set_searchbar_text_and_search(search_bar_text)
+
+    def set_searchbar_text_and_search(self, search_bar_text):
         self.focused_column().search_bar.setText(search_bar_text)
+        self.search(search_bar_text)
 
     def filter_proxy_index_from_model_index(self, model_index):
         if self.focused_column().filter_proxy.sourceModel() == self.focused_column().flat_proxy:
@@ -672,7 +676,7 @@ class MainWindow(QMainWindow):
         self.task_dropdown.setCurrentIndex(0)
         self.estimate_dropdown.setCurrentIndex(0)
         self.color_dropdown.setCurrentIndex(0)
-        self.focused_column().search_bar.setText('')
+        self.set_searchbar_text_and_search('')
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
@@ -744,7 +748,7 @@ class MainWindow(QMainWindow):
             self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
-        if not self.focused_column().search_bar.isModified(): # only if text was set programmatically e.g. because the user selected a dropdown
+        if not self.focused_column().search_bar.isModified():  # only if text was set programmatically e.g. because the user selected a dropdown
             self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
@@ -893,7 +897,7 @@ class MainWindow(QMainWindow):
     def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         item_id = index.model().get_db_item(index)['_id']
-        self.focused_column().search_bar.setText(model.FOCUS + '=' + item_id)
+        self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -921,7 +925,7 @@ class MainWindow(QMainWindow):
 
         # search shall start not before the user completed typing
         filterDelay = DelayedExecutionTimer(self)
-        new_column.search_bar.textChanged[str].connect(filterDelay.trigger)
+        new_column.search_bar.textEdited[str].connect(filterDelay.trigger)  # just triggered by user editing, not triggered by programmatically setting the search bar text
         filterDelay.triggered[str].connect(self.search)
 
         new_column.bookmark_button = QPushButton()
