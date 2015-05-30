@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
 
         # load databases
         settings = QSettings()
-        servers = settings.value('databases', [('Local', '', 'items'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'items')])  # second value is loaded, if nothing was saved before in the settings
+        servers = settings.value('databases', [('Local', '', 'local'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'jans_raspberry')])  # second value is loaded, if nothing was saved before in the settings
         for bookmark_name, url, db_name in servers:
             new_server = server_model.Server(bookmark_name, url, db_name)
             new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
@@ -1194,7 +1194,7 @@ class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
     def __init__(self, parent, index=None):
         super(DatabaseDialog, self).__init__(parent)
-        self.setMinimumWidth(630)
+        self.setMinimumWidth(910)
         self.parent = parent
         self.index = index
         name = ''
@@ -1208,6 +1208,7 @@ class DatabaseDialog(QDialog):
         self.bookmark_name_edit = QLineEdit(name)
         self.url_edit = QLineEdit(url)
         self.database_name_edit = QLineEdit(database_name)
+        self.database_name_edit.setPlaceholderText('Different to existing database names. Only lowercase characters (a-z), digits (0-9) or _ allowed.')
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -1277,7 +1278,7 @@ class CustomHeaderView(QHeaderView):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNoteee'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNoteeee'))
     app.setWindowIcon(QIcon(':/icon.png'))
 
     form = MainWindow()

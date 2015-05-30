@@ -39,17 +39,18 @@ def get_db(url, database_name):
     while local_server is None:  # wait until couchdb is started
         try:
             time.sleep(0.1)
-            local_server, db = get_create_db(url, database_name)
+            local_server, local_db = get_create_db('', database_name)
             break
         except Exception as e:
             print("Trying to connect to database, but: " + str(e))
-    return db
 
+    # if new db is also on a server: enable replication
     if url != '':
-        get_create_db(db_name, url)
-        local_server.replicate(db_name, url + db_name, continuous=True)
-        local_server.replicate(url + db_name, db_name, continuous=True)
+        get_create_db(url, database_name)
+        local_server.replicate(database_name, url + database_name, continuous=True)
+        local_server.replicate(url + database_name, database_name, continuous=True)
 
+    return local_db
 
 class Server():
     def __init__(self, bookmark_name, url, database_name):
