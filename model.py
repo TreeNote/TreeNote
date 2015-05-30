@@ -228,8 +228,10 @@ class TreeModel(QAbstractItemModel):
                     db_item[self.field] = value
                 elif self.column == 1:
                     self.old_value = db_item['date']
+                    if type(value) == QDate and value == QDate.currentDate(): # user has not selected a date other than 'today'
+                        value = EMPTY_DATE
                     value = value.toString('dd.MM.yy') if type(value) == QDate else value
-                    if value == EMPTY_DATE:  # workaround to set empty date
+                    if value == EMPTY_DATE:  # user pressed del
                         value = ''
                     db_item['date'] = value
                 elif self.column == 2:
@@ -969,7 +971,7 @@ CHAR_TYPE_DICT = {
     'n': NOTE  # note
 }
 FOCUS = 'focus'
-EMPTY_DATE = '14.09.52'
+EMPTY_DATE = '14.09.52' # random date. we regard this date as 'empty'
 DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
