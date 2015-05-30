@@ -61,8 +61,8 @@ class MainWindow(QMainWindow):
         self.bookmark_model = model.TreeModel(self.get_db('bookmarks'), header_list=['Bookmarks'])
         self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        mainSplitter = QSplitter(Qt.Horizontal)
-        mainSplitter.setHandleWidth(0)  # thing to grab the splitter
+        self.mainSplitter = QSplitter(Qt.Horizontal)
+        self.mainSplitter.setHandleWidth(0)  # thing to grab the splitter
 
         # first column
 
@@ -91,11 +91,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.bookmarks_view)
         holder.setLayout(layout)
 
-        first_column = QSplitter(Qt.Vertical)
-        first_column.setHandleWidth(0)
-        first_column.addWidget(self.quicklinks_view)
-        first_column.addWidget(holder)
-        first_column.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
+        self.first_column_splitter = QSplitter(Qt.Vertical)
+        self.first_column_splitter.setHandleWidth(0)
+        self.first_column_splitter.addWidget(self.quicklinks_view)
+        self.first_column_splitter.addWidget(holder)
+        self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
 
         # second column
 
@@ -155,13 +155,13 @@ class MainWindow(QMainWindow):
 
         # add columns to main
 
-        mainSplitter.addWidget(first_column)
-        mainSplitter.addWidget(self.item_views_splitter)
-        mainSplitter.addWidget(third_column)
-        mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
-        mainSplitter.setStretchFactor(1, 6)
-        mainSplitter.setStretchFactor(2, 2)
-        self.setCentralWidget(mainSplitter)
+        self.mainSplitter.addWidget(self.first_column_splitter)
+        self.mainSplitter.addWidget(self.item_views_splitter)
+        self.mainSplitter.addWidget(third_column)
+        self.mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
+        self.mainSplitter.setStretchFactor(1, 6)
+        self.mainSplitter.setStretchFactor(2, 2)
+        self.setCentralWidget(self.mainSplitter)
 
         self.actions = list()
 
@@ -171,9 +171,9 @@ class MainWindow(QMainWindow):
 
         add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
         add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
-        add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
-        self.unsplitWindowAct.setEnabled(False)  # todo put in update actions
-        add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
+        # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
+        # self.unsplitWindowAct.setEnabled(False)  # put this in update actions
+        # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
         add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row))
         add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection))
         add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row))
@@ -245,8 +245,8 @@ class MainWindow(QMainWindow):
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.expandAllChildrenAction)
         self.viewMenu.addAction(self.collapseAllChildrenAction)
-        self.viewMenu.addAction(self.splitWindowAct)
-        self.viewMenu.addAction(self.unsplitWindowAct)
+        # self.viewMenu.addAction(self.splitWindowAct)
+        # self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.resetViewAction)
@@ -281,6 +281,14 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         self.resize(settings.value('size', QSize(800, 600)))
         self.move(settings.value('pos', QPoint(200, 200)))
+
+        mainSplitter_state = settings.value('mainSplitter')
+        if mainSplitter_state is not None:
+            self.mainSplitter.restoreState(mainSplitter_state)
+
+        first_column_splitter_state = settings.value('first_column_splitter')
+        if first_column_splitter_state is not None:
+            self.first_column_splitter.restoreState(first_column_splitter_state)
 
         # restore expanded item states
         self.expand_saved_states(settings.value(EXPANDED_ITEMS, []))
@@ -384,6 +392,8 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
+        settings.setValue('mainSplitter', self.mainSplitter.saveState())
+        settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
 
         # save expanded items
         self.save_expanded_state()
