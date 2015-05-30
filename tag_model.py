@@ -46,15 +46,13 @@ class TagModel(QAbstractItemModel):
     def __init__(self):
         super(TagModel, self).__init__()
         self.rootItem = TagTreeItem(None)
-        self.rootItem.header_list = ['Tags']
 
     def columnCount(self, parent):
         return 1
 
     def headerData(self, column, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.rootItem.header_list[column]
-
+            return 'Tags'
         return None
 
     def getItem(self, index):

@@ -6,6 +6,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources
 import model
+import server_model
 import tag_model
 import subprocess
 import socket
@@ -20,7 +21,9 @@ EDIT_QUICKLINK = 'Edit quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
 SELECTED_ID = 'SELECTED_ID'
-
+CREATE_DB = 'Create bookmark to a server database'
+EDIT_DB = 'Edit selected database bookmark'
+DEL_DB = 'Delete selected database bookmark'
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -55,6 +58,8 @@ class MainWindow(QMainWindow):
         self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
         self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
+        self.server_model = server_model.ServerModel()
+
         self.item_model = model.TreeModel(self.get_db('items'), header_list=['Text', 'Start date', 'Estimate'])
         self.item_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
@@ -66,6 +71,9 @@ class MainWindow(QMainWindow):
 
         # first column
 
+        self.servers_view = QTreeView()
+        self.servers_view.setModel(self.server_model)
+
         self.quicklinks_view = QTreeView()
         self.quicklinks_view.setModel(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
@@ -76,6 +84,11 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.header().setToolTip('Focus on the clicked row')
         self.quicklinks_view.hideColumn(1)
         self.quicklinks_view.hideColumn(2)
+        quicklinks_holder = QWidget()  # needed to add space
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
+        layout.addWidget(self.quicklinks_view)
+        quicklinks_holder.setLayout(layout)
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
@@ -85,16 +98,17 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
         self.bookmarks_view.hideColumn(1)
         self.bookmarks_view.hideColumn(2)
-        holder = QWidget()  # needed to add space
+        bookmarks_holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.bookmarks_view)
-        holder.setLayout(layout)
+        bookmarks_holder.setLayout(layout)
 
         self.first_column_splitter = QSplitter(Qt.Vertical)
         self.first_column_splitter.setHandleWidth(0)
-        self.first_column_splitter.addWidget(self.quicklinks_view)
-        self.first_column_splitter.addWidget(holder)
+        self.first_column_splitter.addWidget(self.servers_view)
+        self.first_column_splitter.addWidget(quicklinks_holder)
+        self.first_column_splitter.addWidget(bookmarks_holder)
         self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
 
         # second column
@@ -123,7 +137,7 @@ class MainWindow(QMainWindow):
         self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
         self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
-        holder = QWidget()  # needed to add space
+        bookmarks_holder = QWidget()  # needed to add space
         layout = QGridLayout()
         layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
         layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
@@ -137,7 +151,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.hideFutureStartdateCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.showOnlyStartdateCheckBox, 6, 0, 1, 2)
         layout.setColumnStretch(1, 10)
-        holder.setLayout(layout)
+        bookmarks_holder.setLayout(layout)
 
         self.tag_view = QTreeView()
         self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -149,7 +163,7 @@ class MainWindow(QMainWindow):
         third_column = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
-        layout.addWidget(holder)
+        layout.addWidget(bookmarks_holder)
         layout.addWidget(self.tag_view)
         third_column.setLayout(layout)
 
@@ -169,10 +183,12 @@ class MainWindow(QMainWindow):
             setattr(self, name, qaction)
             self.actions.append(qaction)
 
+        add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self,  triggered=lambda: DatabaseDialog(self).exec_()))
+        add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
+        add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
         add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
         add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
         # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
-        # self.unsplitWindowAct.setEnabled(False)  # put this in update actions
         # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
         add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row))
         add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection))
@@ -206,6 +222,11 @@ class MainWindow(QMainWindow):
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
         self.redoAction.setShortcut('CTRL+Shift+Z')
+
+        self.fileMenu = self.menuBar().addMenu(self.tr('Databases'))
+        self.fileMenu.addAction(self.addDatabaseAct)
+        self.fileMenu.addAction(self.deleteDatabaseAct)
+        self.fileMenu.addAction(self.editDatabaseAct)
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.fileMenu.addAction(self.undoAction)
@@ -994,8 +1015,6 @@ class MainWindow(QMainWindow):
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
-        self.unsplitWindowAct.setEnabled(True)
-
     def unsplit_window(self):
         index_last_widget = self.item_views_splitter.count() - 1
         self.item_views_splitter.widget(index_last_widget).setParent(None)
@@ -1179,6 +1198,43 @@ class SettingsDialog(QDialog):
         self.parent.focused_column().view.verticalScrollBar().setPalette(new_palette)
         self.parent.focused_column().view.header().setPalette(new_palette)
 
+class DatabaseDialog(QDialog):
+    # if index is set: edit existing database. else: create new database
+    def __init__(self, parent, index=None):
+        super(DatabaseDialog, self).__init__(parent)
+        self.parent = parent
+        self.index = index
+        name = ''
+        url = ''
+        if index is not None:
+            server = parent.server_model.get_server(index)
+            name = server.name
+            url = server.url
+        self.name_edit = QLineEdit(name)
+        self.url_edit = QLineEdit(url)
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel('Database bookmark name:'), 0, 0)  # row, column
+        grid.addWidget(QLabel('URL:'), 1, 0)
+        grid.addWidget(self.name_edit, 0, 1)
+        grid.addWidget(self.url_edit, 1, 1)
+        grid.addWidget(buttonBox, 2, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
+        self.setLayout(grid)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        if self.index is None:
+            self.setWindowTitle(CREATE_DB)
+        else:
+            self.setWindowTitle(EDIT_DB)
+
+    def apply(self):
+        if self.index is None:
+            self.parent.server_model.add_server(self.name_edit.text(), self.url_edit.text())
+        else:
+            self.parent.server_model.set_data(self.index, self.name_edit.text(), self.url_edit.text())
+        super(DatabaseDialog, self).accept()
 
 class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
     triggered = pyqtSignal(str)
