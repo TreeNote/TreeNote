@@ -612,6 +612,10 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
             elif token.startswith(ONLY_START_DATE):
                 if item.date != '':
                     continue
+            elif token.startswith(HIDE_TAGS):
+                # accept (continue) when row has no tag
+                if not re.search(' ' + DELIMITER, index.data()):
+                    continue
             elif token.startswith(HIDE_FUTURE_START_DATE):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
@@ -931,6 +935,7 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
 
 ONLY_START_DATE = 'only_date'
 HIDE_FUTURE_START_DATE = 'hide_future_date'
+HIDE_TAGS = 'has_tag'
 FLATTEN = 'flatten'
 SORT = 'sort'
 ESTIMATE = 'estimate'

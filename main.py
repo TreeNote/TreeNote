@@ -140,6 +140,8 @@ class MainWindow(QMainWindow):
 
         self.flattenViewCheckBox = QCheckBox('Flatten view')
         self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
+        self.hideTagsCheckBox = QCheckBox('Hide rows with a tag')
+        self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
         self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
         self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
@@ -156,15 +158,15 @@ class MainWindow(QMainWindow):
         layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
         layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
         layout.addWidget(self.flattenViewCheckBox, 4, 0, 1, 2)
-        layout.addWidget(self.hideFutureStartdateCheckBox, 5, 0, 1, 2)
-        layout.addWidget(self.showOnlyStartdateCheckBox, 6, 0, 1, 2)
+        layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
+        layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
+        layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
         layout.setColumnStretch(1, 10)
         bookmarks_holder.setLayout(layout)
 
         self.tag_view = QTreeView()
         self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
-        # self.tag_view.setSizePolicy(QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding))  # horizontal, vertical
         self.tag_view.setModel(tag_model.TagModel())
         self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
@@ -504,6 +506,13 @@ class MainWindow(QMainWindow):
             self.filter(model.ONLY_START_DATE, 'all')
 
     @pyqtSlot(bool)
+    def filter_hide_tags(self, filter_hide_tags):
+        if filter_hide_tags:
+            self.append_replace_to_searchbar(model.HIDE_TAGS, 'no')
+        else:
+            self.filter(model.HIDE_TAGS, 'all')
+
+    @pyqtSlot(bool)
     def filter_hide_future_startdate(self, hide_future_startdate):
         if hide_future_startdate:
             self.append_replace_to_searchbar(model.HIDE_FUTURE_START_DATE, 'yes')
@@ -731,6 +740,7 @@ class MainWindow(QMainWindow):
 
     def reset_view(self):
         self.hideFutureStartdateCheckBox.setChecked(False)
+        self.hideTagsCheckBox.setChecked(False)
         self.flattenViewCheckBox.setChecked(False)
         self.showOnlyStartdateCheckBox.setChecked(False)
         self.task_dropdown.setCurrentIndex(0)
