@@ -128,6 +128,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.header_list = header_list
         self.rootItem.id = ROOT_ID
         self.rootItem.children = db[ROOT_ID]['children']
+        self.rootItem.type = NOTE
         index = QModelIndex()
         self.id_index_dict[ROOT_ID] = index
         self.pointer_set.add(QModelIndex().internalId())
@@ -228,7 +229,7 @@ class TreeModel(QAbstractItemModel):
                     db_item[self.field] = value
                 elif self.column == 1:
                     self.old_value = db_item['date']
-                    if type(value) == QDate and value == QDate.currentDate(): # user has not selected a date other than 'today'
+                    if type(value) == QDate and value == QDate.currentDate():  # user has not selected a date other than 'today'
                         value = EMPTY_DATE
                     value = value.toString('dd.MM.yy') if type(value) == QDate else value
                     if value == EMPTY_DATE:  # user pressed del
@@ -453,15 +454,14 @@ class TreeModel(QAbstractItemModel):
         returns True if it is the next available task from the parent sequential project
         """
         item = self.getItem(index)
-        db_item = self.db[item.id]
 
-        if db_item['type'] == NOTE:
+        if item.type == NOTE:
             return True
 
-        project_db_item = self.db[item.parentItem.id]
-        if project_db_item['type'] == PAUSED:
+        project_item = item.parentItem
+        if project_item.type == PAUSED:
             return False
-        if project_db_item['type'] != SEQ:
+        if project_item.type != SEQ:
             return True
 
         project_index = self.parent(index)
@@ -475,8 +475,7 @@ class TreeModel(QAbstractItemModel):
     def get_next_available_task(self, row, parent):
         index = self.index(row, 0, parent)
         item = self.getItem(index)
-        db_item = self.db[item.id]
-        if db_item['type'] == TASK:
+        if item.type == TASK:
             return True
         for row in range(self.rowCount(index)):
             if self.get_next_available_task(row, index):
@@ -588,7 +587,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # return True if this row's data is accepted
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            if token.startswith((HIDE_FUTURE_START_DATE, ONLY_START_DATE, FLATTEN, SORT)):  # ignore these
+            if token.startswith((FLATTEN, SORT)):  # ignore these
                 continue
             elif token.startswith('c='):
                 color_character = token[2:3]
@@ -761,14 +760,14 @@ class Delegate(QStyledItemDelegate):
                 word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
         document = QTextDocument()
         html = ' '.join(word_list)
-        is_not_available = item.type == TASK  # todo and not self.model.is_task_available(index)
+        is_not_available = item.type == TASK and not self.model.is_task_available(index)
         if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
             color = QApplication.palette().base()
-        text_color= QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
+        text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
         html = "<font color={}>{}</font>".format(text_color, html)
         document.setHtml(html)
         painter.save()
@@ -780,10 +779,9 @@ class Delegate(QStyledItemDelegate):
 
         if item.type != NOTE and index.column() == 0:  # set icon of task or project
             painter.save()
-            if is_not_available:
-                item.type = NOT_AVAILABLE_TASK
             iconsize = option.decorationSize
-            icon = QImage(':/' + item.type)
+            type = NOT_AVAILABLE_TASK if is_not_available else item.type
+            icon = QImage(':/' + type)
             painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
@@ -971,7 +969,7 @@ CHAR_TYPE_DICT = {
     'n': NOTE  # note
 }
 FOCUS = 'focus'
-EMPTY_DATE = '14.09.52' # random date. we regard this date as 'empty'
+EMPTY_DATE = '14.09.52'  # random date. we regard this date as 'empty'
 DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'
 SHORTCUT = 'shortcut'
