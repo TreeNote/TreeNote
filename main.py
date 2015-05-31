@@ -230,8 +230,8 @@ class MainWindow(QMainWindow):
         add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
         add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
         add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
-        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_up), list=self.bookmark_view_actions)
-        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_down), list=self.bookmark_view_actions)
+        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
+        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
         add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection), list=self.bookmark_view_actions)
         add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
@@ -242,20 +242,20 @@ class MainWindow(QMainWindow):
         add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
         self.redoAction.setShortcut('CTRL+Shift+Z')
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('Databases'))
+        self.fileMenu = self.menuBar().addMenu(self.tr('Databases list'))
         self.fileMenu.addAction(self.addDatabaseAct)
         self.fileMenu.addAction(self.deleteDatabaseAct)
         self.fileMenu.addAction(self.editDatabaseAct)
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
+        self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
         self.fileMenu.addAction(self.undoAction)
         self.fileMenu.addAction(self.redoAction)
-        self.fileMenu.addAction(self.renameTagAction)
+        self.fileMenu.addAction(self.editShortcutAction)
         self.fileMenu.addAction(self.editBookmarkAction)
+        self.fileMenu.addAction(self.deleteBookmarkAction)
         self.fileMenu.addAction(self.moveBookmarkUpAction)
         self.fileMenu.addAction(self.moveBookmarkDownAction)
-        self.fileMenu.addAction(self.deleteBookmarkAction)
-        self.fileMenu.addAction(self.editShortcutAction)
+        self.fileMenu.addAction(self.renameTagAction)
         self.fileMenu.addAction(self.settingsAct)
 
         self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
@@ -862,38 +862,30 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QPoint)
     def open_rename_tag_contextmenu(self, point):
         index = self.tag_view.indexAt(point)
-        if not index.isValid():  # show context menu only when clicked on an item, not when clicked on empty space
-            return
+        # show context menu only when clicked on an item, not when clicked on empty space
+        if not index.isValid(): return
         menu = QMenu()
-        renameTagAction = menu.addAction(self.tr("Rename tag"))
-        action = menu.exec_(self.tag_view.viewport().mapToGlobal(point))
-        if action is not renameTagAction:
-            return
-        tag = index.data()
-        RenameTagDialog(self, tag).exec_()
+        menu.addAction(self.renameTagAction)
+        menu.exec_(self.tag_view.viewport().mapToGlobal(point))
 
     @pyqtSlot(QPoint)
     def open_edit_bookmark_contextmenu(self, point):
         index = self.bookmarks_view.indexAt(point)
         if not index.isValid(): return
         menu = QMenu()
-        editBookmarkAction = menu.addAction(self.tr(EDIT_BOOKMARK))
-        deleteBookmarkAction = menu.addAction(self.tr('Delete bookmark'))
-        action = menu.exec_(self.bookmarks_view.viewport().mapToGlobal(point))
-        if action is editBookmarkAction:
-            BookmarkDialog(self, index=index).exec_()
-        elif action is deleteBookmarkAction:
-            self.removeBookmarkSelection()
+        menu.addAction(self.editBookmarkAction)
+        menu.addAction(self.deleteBookmarkAction)
+        menu.addAction(self.moveBookmarkUpAction)
+        menu.addAction(self.moveBookmarkDownAction)
+        menu.exec_(self.bookmarks_view.viewport().mapToGlobal(point))
 
     @pyqtSlot(QPoint)
     def open_edit_shortcut_contextmenu(self, point):
         index = self.quicklinks_view.indexAt(point)
         if not index.isValid(): return
         menu = QMenu()
-        editShortcutAction = menu.addAction(self.tr('Edit shortcut'))
-        action = menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
-        if action is editShortcutAction:
-            ShortcutDialog(self, index=index).exec_()
+        menu.addAction(self.editShortcutAction)
+        menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
 
     @pyqtSlot(QPoint)
     def open_edit_server_contextmenu(self, point):
@@ -912,6 +904,12 @@ class MainWindow(QMainWindow):
 
     def collapse_all_children_of_selected_rows(self):
         self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)
+
+    def move_bookmark_up(self):
+        self.bookmark_model.move_vertical(self.bookmarks_view.selectedIndexes(), -1)
+
+    def move_bookmark_down(self):
+        self.bookmark_model.move_vertical(self.bookmarks_view.selectedIndexes(), 1)
 
     def move_up(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
@@ -968,14 +966,12 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setFocus()
 
     def toggle_task(self):
-        if self.focused_column().view.hasFocus():
-            for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().filter_proxy.toggle_task(row_index)
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            self.focused_column().filter_proxy.toggle_task(row_index)
 
     def toggle_project(self):
-        if self.focused_column().view.hasFocus():
-            for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().filter_proxy.toggle_project(row_index)
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            self.focused_column().filter_proxy.toggle_project(row_index)
 
     def append_repeat(self):
         current_index = self.focused_column().view.selectionModel().currentIndex()
@@ -984,9 +980,8 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def color_row(self, color_character):
-        if self.focused_column().view.hasFocus():
-            for row_index in self.focused_column().view.selectionModel().selectedRows():
-                self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
     # view menu actions
 
