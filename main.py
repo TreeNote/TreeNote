@@ -29,6 +29,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
+        app.focusChanged.connect(self.update_actions)
+
         app.setStyle("Fusion")
         self.light_palette = app.palette()
 
@@ -187,11 +189,18 @@ class MainWindow(QMainWindow):
         self.mainSplitter.setStretchFactor(2, 2)
         self.setCentralWidget(self.mainSplitter)
 
-        self.actions = list()
+        # list of actions which depend on a specific view
+        self.item_view_actions = []
+        self.tag_view_actions = []
+        self.bookmark_view_actions = []
+        self.quick_links_view_actions = []
+        self.all_actions = []
 
-        def add_action(name, qaction):
+        def add_action(name, qaction, list=None):
             setattr(self, name, qaction)
-            self.actions.append(qaction)
+            self.all_actions.append(qaction)
+            if list is not None:
+                list.append(qaction)
 
         add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
         add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
@@ -200,34 +209,34 @@ class MainWindow(QMainWindow):
         add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
         # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
         # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
-        add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row))
-        add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection))
-        add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row))
-        add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child))
-        add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up))
-        add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down))
-        add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left))
-        add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right))
-        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows))
-        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows))
+        add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
+        add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection), list=self.item_view_actions)
+        add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
+        add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
+        add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
+        add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
+        add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
+        add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
+        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
+        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
         add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
-        add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')))
-        add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')))
-        add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')))
-        add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')))
-        add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')))
-        add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')))
-        add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task))
-        add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links))
-        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()))
-        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()))
-        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_up))
-        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_down))
-        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection))
-        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()))
+        add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
+        add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
+        add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
+        add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
+        add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
+        add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
+        add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
+        add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
+        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
+        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
+        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_up), list=self.bookmark_view_actions)
+        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_down), list=self.bookmark_view_actions)
+        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection), list=self.bookmark_view_actions)
+        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
         add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
-        add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project))
-        add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat))
+        add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
+        add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat), list=self.item_view_actions)
         add_action('undoAction', self.item_model.undoStack.createUndoAction(self))
         self.undoAction.setShortcut('CTRL+Z')
         add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
@@ -293,7 +302,7 @@ class MainWindow(QMainWindow):
         if sys.platform == "darwin":
             self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
             self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-            for action in self.actions:
+            for action in self.all_actions:
                 if action is self.moveBookmarkUpAction or \
                                 action is self.moveBookmarkDownAction or \
                                 action is self.deleteBookmarkAction:  # the shortcuts of these are already used
@@ -308,7 +317,7 @@ class MainWindow(QMainWindow):
         self.split_window()
         self.reset_view()  # inits checkboxes
         self.focused_column().view.setFocus()
-        self.updateActions()
+        self.update_actions()
 
         # restore previous position etc
         self.resize(settings.value('size', QSize(800, 600)))
@@ -469,13 +478,25 @@ class MainWindow(QMainWindow):
         return self.server_model.get_server(index).bookmark_name
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
-        for action in self.actions:
+        for action in self.all_actions:
             if action.text() == action_name and action.isEnabled():
                 action.trigger()
                 break
 
-    def updateActions(self):
-        pass
+    def update_actions(self):  # enable / disable menu items whether they are doable right now
+        def toggle_actions(bool_focused, actions_list):
+            for action in actions_list:
+                action.setEnabled(bool_focused)
+
+        toggle_actions(len(self.bookmarks_view.selectedIndexes()) > 0, self.bookmark_view_actions)
+        toggle_actions(len(self.tag_view.selectedIndexes()) > 0, self.tag_view_actions)
+        toggle_actions(len(self.quicklinks_view.selectedIndexes()) > 0, self.quick_links_view_actions)
+
+        # focus is either in a dialog, in item_view or in the search bar
+        # item actions should be enabled while editing a row, so:
+        bool_item_view_focused = not self.focused_column().search_bar.hasFocus()
+        for action in self.item_view_actions:
+            action.setEnabled(bool_item_view_focused)
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
@@ -555,7 +576,7 @@ class MainWindow(QMainWindow):
         search_bar_text = self.focused_column().search_bar.text()
         # 'all' selected: remove existing same filter
         if value == 'all':
-            search_bar_text = re.sub(key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
+            search_bar_text = re.sub(' ' + key + r'(<|>|=|\w|\d)* ', '', search_bar_text)
         else:
             # key is a compare operator. estimate parameters are 'e' and '<20' instead of 't=' and 'n'
             if len(key) == 1:
@@ -984,7 +1005,7 @@ class MainWindow(QMainWindow):
                     if not url.startswith('http://'):
                         url = 'http://' + url
                     webbrowser.open(url)
-            else: # no urls found: search the web for the selected entry
+            else:  # no urls found: search the web for the selected entry
                 webbrowser.open('https://www.google.de/search?q=' + row_index.data())
 
     def split_window(self):  # creates another item_view
@@ -1039,7 +1060,7 @@ class MainWindow(QMainWindow):
 
         new_column.view.setModel(new_column.filter_proxy)
         new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy))
-        new_column.view.selectionModel().selectionChanged.connect(self.updateActions)
+        new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
         new_column.view.setColumnWidth(1, 105)
@@ -1189,7 +1210,7 @@ class ShortcutDialog(QDialog):
         self.setWindowTitle(EDIT_QUICKLINK)
 
     def apply(self):
-        self.parent.item_model.set_data(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
+        self.parent.item_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(ShortcutDialog, self).accept()
 
