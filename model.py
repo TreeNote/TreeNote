@@ -48,7 +48,6 @@ class Updater(QThread):
             if 'doc' in line:
                 # pprint(line)
                 db_item = line['doc']
-                # todo if item_id in self.model.id_index_dict:  # update the view only if the item is already loaded
                 if 'change' in db_item:
                     self.model.db_change_signal.emit(db_item, self.model)
 
@@ -214,10 +213,8 @@ class TreeModel(QAbstractItemModel):
         else:  # index.column() == 2:
             return item.estimate
 
-    # pass either index or item_id + column
-    # the item_id + column version is used by the bookmark dialog # todo make two methods
-    def set_data(self, value, index=None, item_id=None, column=None, field='text'):
-
+    # directly used by bookmark dialog, because it has no index of the new created item
+    def set_data_with_id(self, value, item_id, column, field='text'):
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'item_id', 'value', 'column', 'field']
             title = 'Edit row'
@@ -247,11 +244,13 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.set_data(self.old_value)
 
-        if item_id is None:
-            item_id = self.getItem(index).id
-            column = index.column()
         self.undoStack.push(SetDataCommand(self, item_id, value, column, field))
         return True
+
+    def set_data(self, value, index, field='text'):
+        item_id = self.getItem(index).id
+        column = index.column()
+        return self.set_data_with_id(value, item_id, column, field)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
@@ -621,7 +620,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 if FLATTEN not in self.filter:  # ignore
                     continue
                 else:
-                    # todo improve performance
+                    # focus + flatten: show just childs of flatten
                     # return if somehow_child_id is a child or grandchild etc of parent_id
                     def is_somehow_child_of_flatten_id(somehow_child_id, parent_id):
                         if somehow_child_id in self.sourceModel().sourceModel().db[parent_id]['children']:

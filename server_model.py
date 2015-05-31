@@ -15,14 +15,10 @@ def get_db(url, database_name):
     def get_create_db(url, new_db_name):
 
         if url != '':
-            # todo check if couchdb was started, else exit loop and print exc
-            # http://stackoverflow.com/questions/1378974/is-there-a-way-to-start-stop-linux-processes-with-python
             server = couchdb.Server(url)
         else: # local db
-            # todo check if couchdb was started, else exit loop and print exc
             server = couchdb.Server()
         try:
-            # del server[new_db_name]
             return server, server[new_db_name]
         except couchdb.http.ResourceNotFound:
             new_db = server.create(new_db_name)

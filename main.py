@@ -328,14 +328,14 @@ class MainWindow(QMainWindow):
                     server_index = self.server_model.index(idx, 0, QModelIndex())
                     break
         else:
-            server_index = self.server_model.index(0, 0, QModelIndex()) # top_most_index
+            server_index = self.server_model.index(0, 0, QModelIndex())  # top_most_index
         self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
         self.change_active_database(server_index)
 
         # restore expanded item states
         expanded_ids_list_dict = settings.value(EXPANDED_ITEMS_DICT)
-        if expanded_ids_list_dict is not None: #  and last_db_name in self.expanded_ids_list_dict:
-            self.expanded_ids_list_dict  = expanded_ids_list_dict
+        if expanded_ids_list_dict is not None:  # and last_db_name in self.expanded_ids_list_dict:
+            self.expanded_ids_list_dict = expanded_ids_list_dict
             self.expand_saved()
 
         # restore expanded quick link states
@@ -463,7 +463,7 @@ class MainWindow(QMainWindow):
 
     def get_server_name(self, index=None):
         if index is None:
-            index= self.servers_view.selectionModel().currentIndex()
+            index = self.servers_view.selectionModel().currentIndex()
         return self.server_model.get_server(index).bookmark_name
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
@@ -473,8 +473,7 @@ class MainWindow(QMainWindow):
                 break
 
     def updateActions(self):
-        pass  #
-        # todo rename tag action just when a tag is selected
+        pass
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
@@ -502,7 +501,7 @@ class MainWindow(QMainWindow):
         if only_startdate:
             self.append_replace_to_searchbar(model.ONLY_START_DATE, 'yes')
         else:
-            self.filter(model.ONLY_START_DATE, 'all')  # todo: ugly to use two different methods for the same thing, append_replace_to_searchbar and filter
+            self.filter(model.ONLY_START_DATE, 'all')
 
     @pyqtSlot(bool)
     def filter_hide_future_startdate(self, hide_future_startdate):
@@ -638,7 +637,7 @@ class MainWindow(QMainWindow):
             # for move horizontally: save expanded states of moved + children of moved
             if source_model is self.item_model:  # not for bookmarks
                 self.removed_id_expanded_state_dict = {}
-                # save and restore expanded state  todo performance
+                # save and restore expanded state
                 def save_childs(parent, from_child, to_child):
                     for child_item in parent.childItems[from_child:to_child]:
                         child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
@@ -663,14 +662,14 @@ class MainWindow(QMainWindow):
                     self.set_selection(index, index)
 
         elif method == 'moved_vertical':
-            # save expanded states todo: save and restore the moved items only
-            bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
-            id_expanded_state_dict = {}
-            if not bool_moved_bookmark:
-                for child_position, child_item in enumerate(item.childItems):
-                    child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                    proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                    id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+            if my_edit:  # save expanded states
+                bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
+                id_expanded_state_dict = {}
+                if not bool_moved_bookmark:
+                    for child_position, child_item in enumerate(item.childItems):
+                        child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                        proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                        id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
 
             source_model.layoutAboutToBeChanged.emit([QPersistentModelIndex(index)])
             up_or_down = change_dict['up_or_down']
@@ -683,24 +682,24 @@ class MainWindow(QMainWindow):
             index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
             source_model.layoutChanged.emit([QPersistentModelIndex(index)])
 
+            # update id_index_dict
+            child_index_list = []
+            for child_position, child_item in enumerate(item.childItems):
+                child_index = source_model.index(child_position, 0, index)
+                source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
+                source_model.pointer_set.add(child_index.internalId())
+                child_index_list.append(child_index)
+
             if my_edit:
                 # select first moved item
                 self.set_selection(index_first_moved_item, index_last_moved_item)
 
                 # restore expanded states
                 if not bool_moved_bookmark:
-                    for child_position, child_item in enumerate(item.childItems):
-                        child_index = source_model.index(child_position, 0, index)
-
-                        # update id_index_dict # todo for foreign edits, too. so move this out of 'if my_edit:'
-                        source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
-                        source_model.pointer_set.add(child_index.internalId())
-
+                    for child_index in child_index_list:
                         proxy_index = self.filter_proxy_index_from_model_index(child_index)
                         expanded_state = id_expanded_state_dict[child_item.id]
                         self.focused_column().view.setExpanded(proxy_index, expanded_state)
-
-
 
         elif method == model.DELETED:
             if source_model.db[item_id][model.DELETED] == '':
@@ -782,7 +781,7 @@ class MainWindow(QMainWindow):
                 self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
                 # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
 
-        # flatten + filter # todo just when not already flattened
+        # flatten + filter
         if model.FLATTEN in search_text:
             self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
             apply_filter()
@@ -953,7 +952,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def color_row(self, color_character):
-        if self.focused_column().view.hasFocus():  # todo not needed if action is only available when row selected
+        if self.focused_column().view.hasFocus():
             for row_index in self.focused_column().view.selectionModel().selectedRows():
                 self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
 
@@ -1145,9 +1144,9 @@ class BookmarkDialog(QDialog):
             item_id = children_list[-1]
         else:
             item_id = self.parent.bookmark_model.get_db_item(self.index)['_id']
-        self.parent.bookmark_model.set_data(self.name_edit.text(), item_id=item_id, column=0, field='text')
-        self.parent.bookmark_model.set_data(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
-        self.parent.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
+        self.parent.bookmark_model.set_data_with_id(self.name_edit.text(), item_id=item_id, column=0, field='text')
+        self.parent.bookmark_model.set_data_with_id(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
+        self.parent.bookmark_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
