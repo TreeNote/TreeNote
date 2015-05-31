@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
                 child_index = source_model.index(child_position, 0, index)
                 source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
                 source_model.pointer_set.add(child_index.internalId())
-                child_index_list.append(child_index)
+                child_index_list.append((child_index, child_item.id))
 
             if my_edit:
                 # select first moved item
@@ -696,9 +696,9 @@ class MainWindow(QMainWindow):
 
                 # restore expanded states
                 if not bool_moved_bookmark:
-                    for child_index in child_index_list:
+                    for child_index, child_item_id in child_index_list:
                         proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                        expanded_state = id_expanded_state_dict[child_item.id]
+                        expanded_state = id_expanded_state_dict[child_item_id]
                         self.focused_column().view.setExpanded(proxy_index, expanded_state)
 
         elif method == model.DELETED:
@@ -721,6 +721,7 @@ class MainWindow(QMainWindow):
             index_to = index_to.sibling(index_to.row(), self.item_model.columnCount() - 1)
             view.selectionModel().setCurrentIndex(index_from, QItemSelectionModel.ClearAndSelect)
             view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
+            self.focused_column().view.setFocus()  # after editing a date, the focus is lost
 
     def set_top_row_selected(self):
         current_root_index = self.focused_column().view.rootIndex()
@@ -968,10 +969,13 @@ class MainWindow(QMainWindow):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
             url_regex = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""  # source: http://daringfireball.net/2010/07/improved_regex_for_matching_urls
             url_list = re.findall(url_regex, row_index.data())
-            for url in url_list:
-                if not url.startswith('http://'):
-                    url = 'http://' + url
-                webbrowser.open(url)
+            if url_list != []:
+                for url in url_list:
+                    if not url.startswith('http://'):
+                        url = 'http://' + url
+                    webbrowser.open(url)
+            else: # no urls found: search the web for the selected entry
+                webbrowser.open('https://www.google.de/search?q=' + row_index.data())
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
