@@ -1,13 +1,11 @@
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-import couchdb
 import sys
-import subprocess
-import threading
 import socket
 import re
 from pprint import pprint
+
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 
 
 def QDateFromString(string):

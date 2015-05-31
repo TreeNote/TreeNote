@@ -1,12 +1,5 @@
 from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-import couchdb
-import time
-import sys
-import subprocess
-import threading
-import socket
+
 import model
 
 FULL_PATH = 'FULL_PATH'

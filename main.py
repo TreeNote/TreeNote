@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
-import sys
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-import qrc_resources
-import model
-import server_model
-import tag_model
 import socket
 import webbrowser
 import re
 import subprocess
-import time
-import couchdb
 import sys
 from functools import partial
+
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+import couchdb
+
+import model
+import server_model
+import tag_model
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
@@ -640,142 +638,147 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(dict, QAbstractItemModel)
     def db_change_signal(self, db_item, source_model):
-        change_dict = db_item['change']
-        my_edit = change_dict['user'] == socket.gethostname()
-        method = change_dict['method']
-        position = change_dict.get('position')
-        count = change_dict.get('count')
-        item_id = db_item['_id']
+        try:
+            change_dict = db_item['change']
+            my_edit = change_dict['user'] == socket.gethostname()
+            method = change_dict['method']
+            position = change_dict.get('position')
+            count = change_dict.get('count')
+            item_id = db_item['_id']
 
-        # ignore cases when the 'update delete marker' change comes before the corresponding item is created
-        if item_id not in source_model.id_index_dict:
-            return
-        index = QModelIndex(source_model.id_index_dict[item_id])
+            raise ValueError('A very specific bad thing happened')
 
-        item = source_model.getItem(index)
+            # ignore cases when the 'update delete marker' change comes before the corresponding item is created
+            if item_id not in source_model.id_index_dict:
+                return
+            index = QModelIndex(source_model.id_index_dict[item_id])
 
-        if method == 'updated':
-            item.update_attributes(db_item)
-            if my_edit:
-                self.set_selection(index, index)
-            self.setup_tag_model()
-            source_model.dataChanged.emit(index, index)
+            item = source_model.getItem(index)
 
-            # update next available task in a sequential project
-            project_index = source_model.parent(index)
-            project_parent_index = source_model.parent(project_index)
-            available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
-            if isinstance(available_index, QModelIndex):
-                source_model.dataChanged.emit(available_index, available_index)
-
-            # update the sort by changing the ordering
-            sorted_column = self.focused_column().view.header().sortIndicatorSection()
-            if sorted_column == 1 or sorted_column == 2:
-                order = self.focused_column().view.header().sortIndicatorOrder()
-                self.focused_column().view.sortByColumn(sorted_column, 1 - order)
-                self.focused_column().view.sortByColumn(sorted_column, order)
-
-        elif method == 'added':
-            id_list = change_dict['id_list']
-            source_model.beginInsertRows(index, position, position + len(id_list) - 1)
-            for i, added_item_id in enumerate(id_list):
-                item.add_child(position + i, added_item_id, index)
-            source_model.endInsertRows()
-            if my_edit:
-                index_first_added = source_model.index(position, 0, index)
-                index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
-                if not change_dict['set_edit_focus']:
-                    self.set_selection(index_first_added, index_last_added)
-                else:  # update selection_and_edit
-                    if index_first_added.model() is self.item_model:
-                        index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
-                        self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
-                        self.focusWidget().edit(index_first_added)
-                    else:  # bookmark
-                        self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
-
-                # restore horizontally moved items expanded states + expanded states of their childrens
-                for child_id in self.removed_id_expanded_state_dict:
-                    child_index = QModelIndex(source_model.id_index_dict[child_id])
-                    proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                    expanded_state = self.removed_id_expanded_state_dict[child_id]
-                    self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                self.removed_id_expanded_state_dict = {}
-
-        elif method == 'removed':
-            # for move horizontally: save expanded states of moved + children of moved
-            if source_model is self.item_model:  # not for bookmarks
-                self.removed_id_expanded_state_dict = {}
-                # save and restore expanded state
-                def save_childs(parent, from_child, to_child):
-                    for child_item in parent.childItems[from_child:to_child]:
-                        child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                        proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                        self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-                        save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
-
-                save_childs(item, position, position + count)
-
-            source_model.beginRemoveRows(index, position, position + count - 1)
-            item.childItems[position:position + count] = []
-            source_model.endRemoveRows()
-            self.fill_bookmarkShortcutsMenu()
-            if my_edit:
-                # select the item below
-                if position == len(item.childItems):  # there is no item below, so select the one above
-                    position -= 1
-                if len(item.childItems) > 0:
-                    index_next_child = source_model.index(position, 0, index)
-                    self.set_selection(index_next_child, index_next_child)
-                else:  # all childs deleted, select parent
+            if method == 'updated':
+                item.update_attributes(db_item)
+                if my_edit:
                     self.set_selection(index, index)
+                self.setup_tag_model()
+                source_model.dataChanged.emit(index, index)
 
-        elif method == 'moved_vertical':
-            if my_edit:  # save expanded states
-                bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
-                id_expanded_state_dict = {}
-                if not bool_moved_bookmark:
-                    for child_position, child_item in enumerate(item.childItems):
-                        child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                        proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                        id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+                # update next available task in a sequential project
+                project_index = source_model.parent(index)
+                project_parent_index = source_model.parent(project_index)
+                available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
+                if isinstance(available_index, QModelIndex):
+                    source_model.dataChanged.emit(available_index, available_index)
 
-            source_model.layoutAboutToBeChanged.emit([QPersistentModelIndex(index)])
-            up_or_down = change_dict['up_or_down']
-            if up_or_down == -1:
-                # if we want to move several items up, we can move the item-above below the selection instead:
-                item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-            elif up_or_down == +1:
-                item.childItems.insert(position, item.childItems.pop(position + count))
-            index_first_moved_item = source_model.index(position + up_or_down, 0, index)
-            index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
-            source_model.layoutChanged.emit([QPersistentModelIndex(index)])
+                # update the sort by changing the ordering
+                sorted_column = self.focused_column().view.header().sortIndicatorSection()
+                if sorted_column == 1 or sorted_column == 2:
+                    order = self.focused_column().view.header().sortIndicatorOrder()
+                    self.focused_column().view.sortByColumn(sorted_column, 1 - order)
+                    self.focused_column().view.sortByColumn(sorted_column, order)
 
-            # update id_index_dict
-            child_index_list = []
-            for child_position, child_item in enumerate(item.childItems):
-                child_index = source_model.index(child_position, 0, index)
-                source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
-                source_model.pointer_set.add(child_index.internalId())
-                child_index_list.append((child_index, child_item.id))
+            elif method == 'added':
+                id_list = change_dict['id_list']
+                source_model.beginInsertRows(index, position, position + len(id_list) - 1)
+                for i, added_item_id in enumerate(id_list):
+                    item.add_child(position + i, added_item_id, index)
+                source_model.endInsertRows()
+                if my_edit:
+                    index_first_added = source_model.index(position, 0, index)
+                    index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
+                    if not change_dict['set_edit_focus']:
+                        self.set_selection(index_first_added, index_last_added)
+                    else:  # update selection_and_edit
+                        if index_first_added.model() is self.item_model:
+                            index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
+                            self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
+                            self.focusWidget().edit(index_first_added)
+                        else:  # bookmark
+                            self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
-            if my_edit:
-                # select first moved item
-                self.set_selection(index_first_moved_item, index_last_moved_item)
-
-                # restore expanded states
-                if not bool_moved_bookmark:
-                    for child_index, child_item_id in child_index_list:
+                    # restore horizontally moved items expanded states + expanded states of their childrens
+                    for child_id in self.removed_id_expanded_state_dict:
+                        child_index = QModelIndex(source_model.id_index_dict[child_id])
                         proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                        expanded_state = id_expanded_state_dict[child_item_id]
+                        expanded_state = self.removed_id_expanded_state_dict[child_id]
                         self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                    self.removed_id_expanded_state_dict = {}
 
-        elif method == model.DELETED:
-            if source_model.db[item_id][model.DELETED] == '':
-                source_model.pointer_set.add(index.internalId())
-            else:
-                source_model.pointer_set.remove(index.internalId())
-            self.setup_tag_model()
+            elif method == 'removed':
+                # for move horizontally: save expanded states of moved + children of moved
+                if source_model is self.item_model:  # not for bookmarks
+                    self.removed_id_expanded_state_dict = {}
+                    # save and restore expanded state
+                    def save_childs(parent, from_child, to_child):
+                        for child_item in parent.childItems[from_child:to_child]:
+                            child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                            proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                            self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+                            save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
+
+                    save_childs(item, position, position + count)
+
+                source_model.beginRemoveRows(index, position, position + count - 1)
+                item.childItems[position:position + count] = []
+                source_model.endRemoveRows()
+                self.fill_bookmarkShortcutsMenu()
+                if my_edit:
+                    # select the item below
+                    if position == len(item.childItems):  # there is no item below, so select the one above
+                        position -= 1
+                    if len(item.childItems) > 0:
+                        index_next_child = source_model.index(position, 0, index)
+                        self.set_selection(index_next_child, index_next_child)
+                    else:  # all childs deleted, select parent
+                        self.set_selection(index, index)
+
+            elif method == 'moved_vertical':
+                if my_edit:  # save expanded states
+                    bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
+                    id_expanded_state_dict = {}
+                    if not bool_moved_bookmark:
+                        for child_position, child_item in enumerate(item.childItems):
+                            child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                            proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                            id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+
+                source_model.layoutAboutToBeChanged.emit([QPersistentModelIndex(index)])
+                up_or_down = change_dict['up_or_down']
+                if up_or_down == -1:
+                    # if we want to move several items up, we can move the item-above below the selection instead:
+                    item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
+                elif up_or_down == +1:
+                    item.childItems.insert(position, item.childItems.pop(position + count))
+                index_first_moved_item = source_model.index(position + up_or_down, 0, index)
+                index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
+                source_model.layoutChanged.emit([QPersistentModelIndex(index)])
+
+                # update id_index_dict
+                child_index_list = []
+                for child_position, child_item in enumerate(item.childItems):
+                    child_index = source_model.index(child_position, 0, index)
+                    source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
+                    source_model.pointer_set.add(child_index.internalId())
+                    child_index_list.append((child_index, child_item.id))
+
+                if my_edit:
+                    # select first moved item
+                    self.set_selection(index_first_moved_item, index_last_moved_item)
+
+                    # restore expanded states
+                    if not bool_moved_bookmark:
+                        for child_index, child_item_id in child_index_list:
+                            proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                            expanded_state = id_expanded_state_dict[child_item_id]
+                            self.focused_column().view.setExpanded(proxy_index, expanded_state)
+
+            elif method == model.DELETED:
+                if source_model.db[item_id][model.DELETED] == '':
+                    source_model.pointer_set.add(index.internalId())
+                else:
+                    source_model.pointer_set.remove(index.internalId())
+                self.setup_tag_model()
+        except Exception as e:
+            QMessageBox.warning(self, '', 'Error when receiving changes: ' + str(e))
 
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
