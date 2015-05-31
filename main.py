@@ -11,8 +11,10 @@ import tag_model
 import socket
 import webbrowser
 import re
+import subprocess
 import time
 import couchdb
+import sys
 from functools import partial
 
 EDIT_BOOKMARK = 'Edit bookmark'
@@ -28,346 +30,348 @@ DEL_DB = 'Delete selected database bookmark'
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
+        try:  # catch db connect errors
+            app.focusChanged.connect(self.update_actions)
 
-        app.focusChanged.connect(self.update_actions)
+            app.setStyle("Fusion")
+            self.light_palette = app.palette()
 
-        app.setStyle("Fusion")
-        self.light_palette = app.palette()
+            self.dark_palette = QPalette()
+            self.dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.BrightText, Qt.red)
+            self.dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            self.dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
+            self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
+            self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-        self.dark_palette = QPalette()
-        self.dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
-        self.dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
-        self.dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
-        self.dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
-        self.dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.BrightText, Qt.red)
-        self.dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-        self.dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
-        self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
-        self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
-        self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
+            font = QFont('Arial', 16)
+            app.setFont(font)
 
-        font = QFont('Arial', 16)
-        app.setFont(font)
+            self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
+            self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
+            self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
-        self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
-        self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
-        self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
+            self.server_model = server_model.ServerModel()
 
-        self.server_model = server_model.ServerModel()
+            # load databases
+            settings = QSettings()
+            servers = settings.value('databases', [('Local', '', 'local'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'jans_raspberry')])  # second value is loaded, if nothing was saved before in the settings
+            for bookmark_name, url, db_name in servers:
+                new_server = server_model.Server(bookmark_name, url, db_name, self.get_db(url, db_name))
+                new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
+                self.server_model.add_server(new_server)
 
-        # load databases
-        settings = QSettings()
-        servers = settings.value('databases', [('Local', '', 'local'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'jans_raspberry')])  # second value is loaded, if nothing was saved before in the settings
-        for bookmark_name, url, db_name in servers:
-            new_server = server_model.Server(bookmark_name, url, db_name)
-            new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
-            self.server_model.add_server(new_server)
+            self.item_model = self.server_model.servers[0].model
 
-        self.item_model = self.server_model.servers[0].model
+            self.bookmark_model = model.TreeModel(self.get_db('', 'local_bookmarks'), header_list=['Bookmarks'])
+            self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
-        self.bookmark_model = model.TreeModel(server_model.get_db('', 'local_bookmarks'), header_list=['Bookmarks'])
-        self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
+            self.mainSplitter = QSplitter(Qt.Horizontal)
+            self.mainSplitter.setHandleWidth(0)  # thing to grab the splitter
 
-        self.mainSplitter = QSplitter(Qt.Horizontal)
-        self.mainSplitter.setHandleWidth(0)  # thing to grab the splitter
+            # first column
 
-        # first column
+            self.servers_view = QTreeView()
+            self.servers_view.setModel(self.server_model)
+            self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
+            self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
 
-        self.servers_view = QTreeView()
-        self.servers_view.setModel(self.server_model)
-        self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
-        self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
+            self.quicklinks_view = QTreeView()
+            self.quicklinks_view.setModel(self.item_model)
+            self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
+            self.quicklinks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
+            self.quicklinks_view.clicked.connect(self.focus_index)
+            self.quicklinks_view.setHeader(CustomHeaderView('Quick links'))
+            self.quicklinks_view.header().setToolTip('Focus on the clicked row')
+            self.quicklinks_view.hideColumn(1)
+            self.quicklinks_view.hideColumn(2)
+            quicklinks_holder = QWidget()  # needed to add space
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
+            layout.addWidget(self.quicklinks_view)
+            quicklinks_holder.setLayout(layout)
 
-        self.quicklinks_view = QTreeView()
-        self.quicklinks_view.setModel(self.item_model)
-        self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
-        self.quicklinks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.quicklinks_view.clicked.connect(self.focus_index)
-        self.quicklinks_view.setHeader(CustomHeaderView('Quick links'))
-        self.quicklinks_view.header().setToolTip('Focus on the clicked row')
-        self.quicklinks_view.hideColumn(1)
-        self.quicklinks_view.hideColumn(2)
-        quicklinks_holder = QWidget()  # needed to add space
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.quicklinks_view)
-        quicklinks_holder.setLayout(layout)
+            self.bookmarks_view = QTreeView()
+            self.bookmarks_view.setModel(self.bookmark_model)
+            self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
+            self.bookmarks_view.clicked.connect(self.filter_bookmark_click)
+            self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
+            self.bookmarks_view.hideColumn(1)
+            self.bookmarks_view.hideColumn(2)
+            bookmarks_holder = QWidget()  # needed to add space
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
+            layout.addWidget(self.bookmarks_view)
+            bookmarks_holder.setLayout(layout)
 
-        self.bookmarks_view = QTreeView()
-        self.bookmarks_view.setModel(self.bookmark_model)
-        self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
-        self.bookmarks_view.clicked.connect(self.filter_bookmark_click)
-        self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
-        self.bookmarks_view.hideColumn(1)
-        self.bookmarks_view.hideColumn(2)
-        bookmarks_holder = QWidget()  # needed to add space
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.bookmarks_view)
-        bookmarks_holder.setLayout(layout)
+            self.first_column_splitter = QSplitter(Qt.Vertical)
+            self.first_column_splitter.setHandleWidth(0)
+            self.first_column_splitter.addWidget(self.servers_view)
+            self.first_column_splitter.addWidget(quicklinks_holder)
+            self.first_column_splitter.addWidget(bookmarks_holder)
+            self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
 
-        self.first_column_splitter = QSplitter(Qt.Vertical)
-        self.first_column_splitter.setHandleWidth(0)
-        self.first_column_splitter.addWidget(self.servers_view)
-        self.first_column_splitter.addWidget(quicklinks_holder)
-        self.first_column_splitter.addWidget(bookmarks_holder)
-        self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
+            # second column
 
-        # second column
+            self.item_views_splitter = QSplitter(Qt.Horizontal)
+            self.item_views_splitter.setHandleWidth(0)  # thing to grab the splitter
 
-        self.item_views_splitter = QSplitter(Qt.Horizontal)
-        self.item_views_splitter.setHandleWidth(0)  # thing to grab the splitter
+            # third column
 
-        # third column
+            filter_label = QLabel(self.tr('ADD FILTERS'))
 
-        filter_label = QLabel(self.tr('ADD FILTERS'))
+            def init_dropdown(key, *item_names):
+                comboBox = QComboBox()
+                comboBox.addItems(item_names)
+                comboBox.currentIndexChanged[str].connect(lambda: self.filter(key, comboBox.currentText()))
+                return comboBox
 
-        def init_dropdown(key, *item_names):
-            comboBox = QComboBox()
-            comboBox.addItems(item_names)
-            comboBox.currentIndexChanged[str].connect(lambda: self.filter(key, comboBox.currentText()))
-            return comboBox
+            self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
+            self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
+            self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
-        self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+            self.flattenViewCheckBox = QCheckBox('Flatten view')
+            self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
+            self.hideTagsCheckBox = QCheckBox('Hide rows with a tag')
+            self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
+            self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
+            self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
+            self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
+            self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
-        self.flattenViewCheckBox = QCheckBox('Flatten view')
-        self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
-        self.hideTagsCheckBox = QCheckBox('Hide rows with a tag')
-        self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
-        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
-        self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
-        self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
-        self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
+            bookmarks_holder = QWidget()  # needed to add space
+            layout = QGridLayout()
+            layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
+            layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
+            layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
+            layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
+            layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
+            layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
+            layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
+            layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
+            layout.addWidget(self.flattenViewCheckBox, 4, 0, 1, 2)
+            layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
+            layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
+            layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
+            layout.setColumnStretch(1, 10)
+            bookmarks_holder.setLayout(layout)
 
-        bookmarks_holder = QWidget()  # needed to add space
-        layout = QGridLayout()
-        layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
-        layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
-        layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
-        layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
-        layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
-        layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
-        layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
-        layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
-        layout.addWidget(self.flattenViewCheckBox, 4, 0, 1, 2)
-        layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
-        layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
-        layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
-        layout.setColumnStretch(1, 10)
-        bookmarks_holder.setLayout(layout)
+            self.tag_view = QTreeView()
+            self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
+            self.tag_view.setModel(tag_model.TagModel())
+            self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
 
-        self.tag_view = QTreeView()
-        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
-        self.tag_view.setModel(tag_model.TagModel())
-        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+            third_column = QWidget()
+            layout = QVBoxLayout()
+            layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
+            layout.addWidget(bookmarks_holder)
+            layout.addWidget(self.tag_view)
+            third_column.setLayout(layout)
 
-        third_column = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
-        layout.addWidget(bookmarks_holder)
-        layout.addWidget(self.tag_view)
-        third_column.setLayout(layout)
+            # add columns to main
 
-        # add columns to main
+            self.mainSplitter.addWidget(self.first_column_splitter)
+            self.mainSplitter.addWidget(self.item_views_splitter)
+            self.mainSplitter.addWidget(third_column)
+            self.mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
+            self.mainSplitter.setStretchFactor(1, 6)
+            self.mainSplitter.setStretchFactor(2, 2)
+            self.setCentralWidget(self.mainSplitter)
 
-        self.mainSplitter.addWidget(self.first_column_splitter)
-        self.mainSplitter.addWidget(self.item_views_splitter)
-        self.mainSplitter.addWidget(third_column)
-        self.mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
-        self.mainSplitter.setStretchFactor(1, 6)
-        self.mainSplitter.setStretchFactor(2, 2)
-        self.setCentralWidget(self.mainSplitter)
+            # list of actions which depend on a specific view
+            self.item_view_actions = []
+            self.tag_view_actions = []
+            self.bookmark_view_actions = []
+            self.quick_links_view_actions = []
+            self.all_actions = []
 
-        # list of actions which depend on a specific view
-        self.item_view_actions = []
-        self.tag_view_actions = []
-        self.bookmark_view_actions = []
-        self.quick_links_view_actions = []
-        self.all_actions = []
+            def add_action(name, qaction, list=None):
+                setattr(self, name, qaction)
+                self.all_actions.append(qaction)
+                if list is not None:
+                    list.append(qaction)
 
-        def add_action(name, qaction, list=None):
-            setattr(self, name, qaction)
-            self.all_actions.append(qaction)
-            if list is not None:
-                list.append(qaction)
+            add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
+            add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
+            add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
+            add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
+            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
+            # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
+            # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
+            add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
+            add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection), list=self.item_view_actions)
+            add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
+            add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
+            add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
+            add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
+            add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
+            add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
+            add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
+            add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
+            add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
+            add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
+            add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
+            add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
+            add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
+            add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
+            add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
+            add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
+            add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
+            add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
+            add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
+            add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection), list=self.bookmark_view_actions)
+            add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
+            add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
+            add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
+            add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat), list=self.item_view_actions)
+            add_action('undoAction', self.item_model.undoStack.createUndoAction(self))
+            self.undoAction.setShortcut('CTRL+Z')
+            add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
+            self.redoAction.setShortcut('CTRL+Shift+Z')
 
-        add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
-        add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
-        add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
-        add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-        add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
-        # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
-        # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
-        add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
-        add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection), list=self.item_view_actions)
-        add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
-        add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
-        add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
-        add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
-        add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
-        add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-        add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
-        add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
-        add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
-        add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
-        add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
-        add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
-        add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
-        add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
-        add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
-        add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
-        add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
-        add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
-        add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
-        add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
-        add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
-        add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection), list=self.bookmark_view_actions)
-        add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
-        add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
-        add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
-        add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat), list=self.item_view_actions)
-        add_action('undoAction', self.item_model.undoStack.createUndoAction(self))
-        self.undoAction.setShortcut('CTRL+Z')
-        add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
-        self.redoAction.setShortcut('CTRL+Shift+Z')
+            self.fileMenu = self.menuBar().addMenu(self.tr('Databases list'))
+            self.fileMenu.addAction(self.addDatabaseAct)
+            self.fileMenu.addAction(self.deleteDatabaseAct)
+            self.fileMenu.addAction(self.editDatabaseAct)
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('Databases list'))
-        self.fileMenu.addAction(self.addDatabaseAct)
-        self.fileMenu.addAction(self.deleteDatabaseAct)
-        self.fileMenu.addAction(self.editDatabaseAct)
+            self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
+            self.fileMenu.addAction(self.undoAction)
+            self.fileMenu.addAction(self.redoAction)
+            self.fileMenu.addAction(self.editShortcutAction)
+            self.fileMenu.addAction(self.editBookmarkAction)
+            self.fileMenu.addAction(self.deleteBookmarkAction)
+            self.fileMenu.addAction(self.moveBookmarkUpAction)
+            self.fileMenu.addAction(self.moveBookmarkDownAction)
+            self.fileMenu.addAction(self.renameTagAction)
+            self.fileMenu.addAction(self.settingsAct)
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
-        self.fileMenu.addAction(self.undoAction)
-        self.fileMenu.addAction(self.redoAction)
-        self.fileMenu.addAction(self.editShortcutAction)
-        self.fileMenu.addAction(self.editBookmarkAction)
-        self.fileMenu.addAction(self.deleteBookmarkAction)
-        self.fileMenu.addAction(self.moveBookmarkUpAction)
-        self.fileMenu.addAction(self.moveBookmarkDownAction)
-        self.fileMenu.addAction(self.renameTagAction)
-        self.fileMenu.addAction(self.settingsAct)
+            self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
+            self.structureMenu.addAction(self.insertRowAction)
+            self.structureMenu.addAction(self.insertChildAction)
+            self.structureMenu.addAction(self.deleteSelectedRowsAction)
 
-        self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
-        self.structureMenu.addAction(self.insertRowAction)
-        self.structureMenu.addAction(self.insertChildAction)
-        self.structureMenu.addAction(self.deleteSelectedRowsAction)
+            self.moveMenu = self.structureMenu.addMenu(self.tr('&Move row'))
+            self.moveMenu.addAction(self.moveUpAction)
+            self.moveMenu.addAction(self.moveDownAction)
+            self.moveMenu.addAction(self.moveLeftAction)
+            self.moveMenu.addAction(self.moveRightAction)
 
-        self.moveMenu = self.structureMenu.addMenu(self.tr('&Move row'))
-        self.moveMenu.addAction(self.moveUpAction)
-        self.moveMenu.addAction(self.moveDownAction)
-        self.moveMenu.addAction(self.moveLeftAction)
-        self.moveMenu.addAction(self.moveRightAction)
+            self.taskMenu = self.menuBar().addMenu(self.tr('&Edit row'))
+            self.taskMenu.addAction(self.editRowAction)
+            self.taskMenu.addAction(self.toggleTaskAction)
+            self.taskMenu.addAction(self.toggleProjectAction)
+            self.taskMenu.addAction(self.appendRepeatAction)
+            self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected rows'))
+            self.colorMenu.addAction(self.colorGreenAction)
+            self.colorMenu.addAction(self.colorYellowAction)
+            self.colorMenu.addAction(self.colorBlueAction)
+            self.colorMenu.addAction(self.colorRedAction)
+            self.colorMenu.addAction(self.colorOrangeAction)
+            self.colorMenu.addAction(self.colorNoColorAction)
 
-        self.taskMenu = self.menuBar().addMenu(self.tr('&Edit row'))
-        self.taskMenu.addAction(self.editRowAction)
-        self.taskMenu.addAction(self.toggleTaskAction)
-        self.taskMenu.addAction(self.toggleProjectAction)
-        self.taskMenu.addAction(self.appendRepeatAction)
-        self.colorMenu = self.taskMenu.addMenu(self.tr('&Color selected rows'))
-        self.colorMenu.addAction(self.colorGreenAction)
-        self.colorMenu.addAction(self.colorYellowAction)
-        self.colorMenu.addAction(self.colorBlueAction)
-        self.colorMenu.addAction(self.colorRedAction)
-        self.colorMenu.addAction(self.colorOrangeAction)
-        self.colorMenu.addAction(self.colorNoColorAction)
+            self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
+            self.viewMenu.addAction(self.expandAllChildrenAction)
+            self.viewMenu.addAction(self.collapseAllChildrenAction)
+            # self.viewMenu.addAction(self.splitWindowAct)
+            # self.viewMenu.addAction(self.unsplitWindowAct)
+            self.viewMenu.addAction(self.focusSearchBarAction)
+            self.viewMenu.addAction(self.openLinkAction)
+            self.viewMenu.addAction(self.resetViewAction)
 
-        self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
-        self.viewMenu.addAction(self.expandAllChildrenAction)
-        self.viewMenu.addAction(self.collapseAllChildrenAction)
-        # self.viewMenu.addAction(self.splitWindowAct)
-        # self.viewMenu.addAction(self.unsplitWindowAct)
-        self.viewMenu.addAction(self.focusSearchBarAction)
-        self.viewMenu.addAction(self.openLinkAction)
-        self.viewMenu.addAction(self.resetViewAction)
+            self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
+            self.fill_bookmarkShortcutsMenu()
 
-        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
-        self.fill_bookmarkShortcutsMenu()
+            self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
+            self.helpMenu.addAction(self.aboutAct)
 
-        self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
-        self.helpMenu.addAction(self.aboutAct)
+            # make single key menu shortcuts work on Mac OS X, too
+            # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
+            if sys.platform == "darwin":
+                self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
+                self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
+                for action in self.all_actions:
+                    if action is self.moveBookmarkUpAction or \
+                                    action is self.moveBookmarkDownAction or \
+                                    action is self.deleteBookmarkAction:  # the shortcuts of these are already used
+                        continue
+                    keySequence = action.shortcut()
+                    if keySequence.count() == 1:
+                        shortcut = QShortcut(keySequence, self)
+                        shortcut.activated.connect(self.signalMapper.map)
+                        self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
+                        action.shortcut = QKeySequence()  # disable the old shortcut
 
-        # make single key menu shortcuts work on Mac OS X, too
-        # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
-        if sys.platform == "darwin":
-            self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
-            self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-            for action in self.all_actions:
-                if action is self.moveBookmarkUpAction or \
-                                action is self.moveBookmarkDownAction or \
-                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
-                    continue
-                keySequence = action.shortcut()
-                if keySequence.count() == 1:
-                    shortcut = QShortcut(keySequence, self)
-                    shortcut.activated.connect(self.signalMapper.map)
-                    self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
-                    action.shortcut = QKeySequence()  # disable the old shortcut
+            self.split_window()
+            self.reset_view()  # inits checkboxes
+            self.focused_column().view.setFocus()
+            self.update_actions()
 
-        self.split_window()
-        self.reset_view()  # inits checkboxes
-        self.focused_column().view.setFocus()
-        self.update_actions()
+            # restore previous position etc
+            self.resize(settings.value('size', QSize(800, 600)))
+            self.move(settings.value('pos', QPoint(200, 200)))
 
-        # restore previous position etc
-        self.resize(settings.value('size', QSize(800, 600)))
-        self.move(settings.value('pos', QPoint(200, 200)))
+            mainSplitter_state = settings.value('mainSplitter')
+            if mainSplitter_state is not None:
+                self.mainSplitter.restoreState(mainSplitter_state)
 
-        mainSplitter_state = settings.value('mainSplitter')
-        if mainSplitter_state is not None:
-            self.mainSplitter.restoreState(mainSplitter_state)
+            first_column_splitter_state = settings.value('first_column_splitter')
+            if first_column_splitter_state is not None:
+                self.first_column_splitter.restoreState(first_column_splitter_state)
 
-        first_column_splitter_state = settings.value('first_column_splitter')
-        if first_column_splitter_state is not None:
-            self.first_column_splitter.restoreState(first_column_splitter_state)
+            # restore selected database
+            last_db_name = settings.value('database')
+            if last_db_name is not None:
+                for idx, server in enumerate(self.server_model.servers):
+                    if server.bookmark_name == last_db_name:
+                        server_index = self.server_model.index(idx, 0, QModelIndex())
+                        break
+            else:
+                server_index = self.server_model.index(0, 0, QModelIndex())  # top_most_index
+            self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
+            self.change_active_database(server_index)
 
-        # restore selected database
-        last_db_name = settings.value('database')
-        if last_db_name is not None:
-            for idx, server in enumerate(self.server_model.servers):
-                if server.bookmark_name == last_db_name:
-                    server_index = self.server_model.index(idx, 0, QModelIndex())
-                    break
-        else:
-            server_index = self.server_model.index(0, 0, QModelIndex())  # top_most_index
-        self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
-        self.change_active_database(server_index)
+            # restore expanded item states
+            expanded_ids_list_dict = settings.value(EXPANDED_ITEMS_DICT)
+            if expanded_ids_list_dict is not None:  # and last_db_name in self.expanded_ids_list_dict:
+                self.expanded_ids_list_dict = expanded_ids_list_dict
+                self.expand_saved()
 
-        # restore expanded item states
-        expanded_ids_list_dict = settings.value(EXPANDED_ITEMS_DICT)
-        if expanded_ids_list_dict is not None:  # and last_db_name in self.expanded_ids_list_dict:
-            self.expanded_ids_list_dict = expanded_ids_list_dict
-            self.expand_saved()
+            # restore expanded quick link states
+            for item_id in settings.value(EXPANDED_QUICKLINKS, []):
+                if item_id in self.item_model.id_index_dict:
+                    index = self.item_model.id_index_dict[item_id]
+                    self.quicklinks_view.expand(QModelIndex(index))
 
-        # restore expanded quick link states
-        for item_id in settings.value(EXPANDED_QUICKLINKS, []):
-            if item_id in self.item_model.id_index_dict:
-                index = self.item_model.id_index_dict[item_id]
-                self.quicklinks_view.expand(QModelIndex(index))
+            # restore selection
+            selection_item_id = settings.value(SELECTED_ID, None)
+            if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
+                index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
+                self.set_selection(index, index)
 
-        # restore selection
-        selection_item_id = settings.value(SELECTED_ID, None)
-        if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
-            index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
-            self.set_selection(index, index)
-
-        # restore palette
-        palette = settings.value('theme')
-        if palette is not None:
-            palette = self.light_palette if palette == 'light' else self.dark_palette
-        else:
-            palette = self.dark_palette  # standard theme
-        self.set_palette(palette)
+            # restore palette
+            palette = settings.value('theme')
+            if palette is not None:
+                palette = self.light_palette if palette == 'light' else self.dark_palette
+            else:
+                palette = self.dark_palette  # standard theme
+            self.set_palette(palette)
+        except Exception as e:
+            print(e)  # exception handling is in get_db
 
     def expand_saved(self):
         current_server_name = self.get_server_name()
@@ -422,6 +426,41 @@ class MainWindow(QMainWindow):
                 expand_node(child_index, bool_expand)
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
+
+    def get_db(self, url, database_name):
+        if sys.platform == "darwin":
+            subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
+
+        def get_create_db(self, url, new_db_name):
+            if url != '':
+                server = couchdb.Server(url)
+            else:  # local db
+                server = couchdb.Server()
+            try:
+                return server, server[new_db_name]
+            except couchdb.http.ResourceNotFound:
+                new_db = server.create(new_db_name)
+                new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
+                print("Database does not exist. Created the database.")
+                return server, new_db
+            except couchdb.http.Unauthorized as err:
+                QMessageBox.warning(self, 'Unauthorized', '')
+            except couchdb.http.ServerError as err:
+                QMessageBox.warning(self, 'ServerError', '')
+            except ConnectionRefusedError:
+                QMessageBox.warning(self, '', 'ConnectionRefusedError: Is couchdb started?')
+            except Exception as err:
+                QMessageBox.warning(self, '', 'Unknown Error: Contact the developer.')
+
+        local_server, local_db = get_create_db(self, '', database_name)
+
+        # if new db is also on a server: enable replication
+        if url != '':
+            get_create_db(self, url, database_name)
+            local_server.replicate(database_name, url + database_name, continuous=True)
+            local_server.replicate(url + database_name, database_name, continuous=True)
+
+        return local_db
 
     def change_active_database(self, new_index, old_index=None):
         self.save_expanded_state(old_index)
