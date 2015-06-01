@@ -7,8 +7,7 @@
 ##
 ##  This program is free software: you can redistribute it and/or modify
 ##  it under the terms of the GNU General Public License as published by
-##  the Free Software Foundation, either version 3 of the License, or
-##  (at your option) any later version.
+##  the Free Software Foundation, version 3 of the License.
 #################################################################################
 
 import socket
@@ -21,11 +20,13 @@ from functools import partial
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import couchdb
+import couchdb.tools.load
 
+import qrc_resources
 import model
 import server_model
 import tag_model
+import dump
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
@@ -217,6 +218,8 @@ class MainWindow(QMainWindow):
             add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
+            add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
+            add_action('importDatabaseAct', QAction(self.tr('Import selected database'), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
             add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox().exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
@@ -254,10 +257,12 @@ class MainWindow(QMainWindow):
             add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
             self.redoAction.setShortcut('CTRL+Shift+Z')
 
-            self.fileMenu = self.menuBar().addMenu(self.tr('Databases list'))
-            self.fileMenu.addAction(self.addDatabaseAct)
-            self.fileMenu.addAction(self.deleteDatabaseAct)
-            self.fileMenu.addAction(self.editDatabaseAct)
+            self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
+            self.databasesMenu.addAction(self.addDatabaseAct)
+            self.databasesMenu.addAction(self.deleteDatabaseAct)
+            self.databasesMenu.addAction(self.editDatabaseAct)
+            self.databasesMenu.addAction(self.exportDatabaseAct)
+            self.databasesMenu.addAction(self.importDatabaseAct)
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
             self.fileMenu.addAction(self.undoAction)
@@ -384,7 +389,7 @@ class MainWindow(QMainWindow):
             print(e)  # exception handling is in get_db
 
     def expand_saved(self):
-        current_server_name = self.get_server_name()
+        current_server_name = self.get_current_server().bookmark_name
         if current_server_name in self.expanded_ids_list_dict:
             for item_id in self.expanded_ids_list_dict[current_server_name]:
                 if item_id in self.item_model.id_index_dict:
@@ -436,6 +441,18 @@ class MainWindow(QMainWindow):
                 expand_node(child_index, bool_expand)
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
+
+    def export_db(self):
+        current_server = self.get_current_server()
+        proposed_file_name = current_server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
+        file_name = QFileDialog.getSaveFileName(self, "Save", proposed_file_name + ".txt", "*.txt")
+        with open(file_name[0], 'wb') as file:
+            dburl = current_server.url + current_server.database_name
+            dump.dump_db(dburl, output=file)
+
+    def import_db(self):
+        # todo create new db
+        couchdb.tools.load(dburl)
 
     def get_db(self, url, database_name):
         if sys.platform == "darwin":
@@ -513,7 +530,7 @@ class MainWindow(QMainWindow):
         settings.setValue('theme', theme)
 
         # save selected database
-        settings.setValue('database', self.get_server_name())
+        settings.setValue('database', self.get_current_server().bookmark_name)
 
         self.item_model.updater.terminate()
 
@@ -521,10 +538,10 @@ class MainWindow(QMainWindow):
             if sys.platform == "darwin":
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
-    def get_server_name(self, index=None):
+    def get_current_server(self, index=None):
         if index is None:
             index = self.servers_view.selectionModel().currentIndex()
-        return self.server_model.get_server(index).bookmark_name
+        return self.server_model.get_server(index)
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.all_actions:
@@ -825,7 +842,7 @@ class MainWindow(QMainWindow):
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
-        current_server_name = self.get_server_name(index)
+        current_server_name = self.get_current_server(index).bookmark_name
         for index in self.focused_column().filter_proxy.persistentIndexList():
             if self.focused_column().view.isExpanded(index):
                 expanded_list_current_view.append(self.focused_column().filter_proxy.getItem(index).id)
@@ -1146,7 +1163,7 @@ class AboutBox(QDialog):
             <br>\
             Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)<br>\
             <br>\
-            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>\
+            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.<br>\
             <br>\
             I hope you enjoy this application. Consider a donation to my freedom-loving hoster <a href="http://www.wissenschaftsladen-dortmund.de/spenden/">Wissenschaftsladen Dortmund</a>.'))
         label.setOpenExternalLinks(True)
