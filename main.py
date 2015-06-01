@@ -16,11 +16,12 @@ import re
 import subprocess
 import sys
 from functools import partial
+import json
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import couchdb.tools.load
+import couchdb
 
 import qrc_resources
 import model
@@ -33,9 +34,10 @@ EDIT_QUICKLINK = 'Edit quick link shortcut'
 EXPANDED_ITEMS_DICT = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
 SELECTED_ID = 'SELECTED_ID'
-CREATE_DB = 'Create bookmark to a server database'
+CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
+IMPORT_DB = 'Import into a new  database'
 
 
 class MainWindow(QMainWindow):
@@ -219,7 +221,7 @@ class MainWindow(QMainWindow):
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
-            add_action('importDatabaseAct', QAction(self.tr('Import selected database'), self, triggered=self.import_db))
+            add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=lambda: DatabaseDialog(self, import_db=True).exec_()))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
             add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox().exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
@@ -443,18 +445,17 @@ class MainWindow(QMainWindow):
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
     def export_db(self):
-        current_server = self.get_current_server()
-        proposed_file_name = current_server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
+        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
         file_name = QFileDialog.getSaveFileName(self, "Save", proposed_file_name + ".txt", "*.txt")
-        with open(file_name[0], 'wb') as file:
-            dburl = current_server.url + current_server.database_name
-            dump.dump_db(dburl, output=file)
+        with open(file_name[0], 'w') as file:
+            row_list = []
+            map = "function(doc) { \
+            if (doc." + model.DELETED + " == '') \
+                emit(doc, null); }"
+            res = self.item_model.db.query(map, include_docs=True)
+            file.write(json.dumps([row.doc for row in res], indent=4))
 
-    def import_db(self):
-        # todo create new db
-        couchdb.tools.load(dburl)
-
-    def get_db(self, url, database_name):
+    def get_db(self, url, database_name, create_root=True):
         if sys.platform == "darwin":
             subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
@@ -467,7 +468,8 @@ class MainWindow(QMainWindow):
                 return server, server[new_db_name]
             except couchdb.http.ResourceNotFound:
                 new_db = server.create(new_db_name)
-                new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
+                if create_root:
+                    new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
                 print("Database does not exist. Created the database.")
                 return server, new_db
             except couchdb.http.Unauthorized as err:
@@ -880,7 +882,7 @@ class MainWindow(QMainWindow):
             selected_tags = self.tag_view.selectionModel().selectedRows()
             if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
                 self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
-                # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar...
+                # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar
 
         # flatten + filter
         if model.FLATTEN in search_text:
@@ -964,6 +966,8 @@ class MainWindow(QMainWindow):
         if index.isValid():
             menu.addAction(self.editDatabaseAct)
             menu.addAction(self.deleteDatabaseAct)
+            menu.addAction(self.exportDatabaseAct)
+        menu.addAction(self.importDatabaseAct)
         menu.exec_(self.servers_view.viewport().mapToGlobal(point))
 
     # structure menu actions
@@ -1347,11 +1351,14 @@ class SettingsDialog(QDialog):
 
 class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
-    def __init__(self, parent, index=None):
+    def __init__(self, parent, index=None, import_db=False):
         super(DatabaseDialog, self).__init__(parent)
+        if import_db:
+            self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.txt")
         self.setMinimumWidth(910)
         self.parent = parent
         self.index = index
+        self.import_db = import_db
         name = ''
         url = ''
         database_name = ''
@@ -1362,6 +1369,7 @@ class DatabaseDialog(QDialog):
             database_name = server.database_name
         self.bookmark_name_edit = QLineEdit(name)
         self.url_edit = QLineEdit(url)
+        self.url_edit.setPlaceholderText('Leave empty for a local database.')
         self.database_name_edit = QLineEdit(database_name)
         self.database_name_edit.setPlaceholderText('Different to existing database names. Only lowercase characters (a-z), digits (0-9) or _ allowed.')
 
@@ -1378,14 +1386,25 @@ class DatabaseDialog(QDialog):
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        if self.index is None:
+        if import_db:
+            self.setWindowTitle(IMPORT_DB)
+        elif self.index is None:
             self.setWindowTitle(CREATE_DB)
         else:
             self.setWindowTitle(EDIT_DB)
 
     def apply(self):
         if self.index is None:
-            new_server = server_model.Server(self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
+            url = self.url_edit.text()
+            db_name = self.database_name_edit.text()
+            if self.import_db:
+                db = self.parent.get_db(url, db_name, create_root=False)
+                with open(self.file_name[0], 'r') as file:
+                    doc_list = json.load(file)
+                    db.update(doc_list)
+            else:
+                db = self.parent.get_db(url, db_name)
+            new_server = server_model.Server(self.bookmark_name_edit.text(), url, db_name, db)
             self.parent.server_model.add_server(new_server)
         else:
             self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
