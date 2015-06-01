@@ -1,4 +1,16 @@
 # -*- coding: utf-8 -*-
+#################################################################################
+##  TreeNote
+##  A collaboratively usable outliner for personal knowledge and task management.
+##
+##  Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
+##
+##  This program is free software: you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation, either version 3 of the License, or
+##  (at your option) any later version.
+#################################################################################
+
 import socket
 import webbrowser
 import re
@@ -45,7 +57,7 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.Button, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ButtonText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.BrightText, Qt.red)
-            self.dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            self.dark_palette.setColor(QPalette.Link, QColor('#8A9ADD'))  # light blue
             self.dark_palette.setColor(QPalette.Highlight, model.SELECTION_GRAY)
             self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
@@ -206,7 +218,7 @@ class MainWindow(QMainWindow):
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=self.about))
+            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox().exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
             # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
             add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
@@ -645,8 +657,6 @@ class MainWindow(QMainWindow):
             position = change_dict.get('position')
             count = change_dict.get('count')
             item_id = db_item['_id']
-
-            raise ValueError('A very specific bad thing happened')
 
             # ignore cases when the 'update delete marker' change comes before the corresponding item is created
             if item_id not in source_model.id_index_dict:
@@ -1127,10 +1137,29 @@ class MainWindow(QMainWindow):
         if self.item_views_splitter.count() == 1:
             self.unsplitWindowAct.setEnabled(False)
 
-    # help menu actions
 
-    def about(self):
-        QMessageBox.about(self, self.tr('About'), self.tr('teeeext'))
+class AboutBox(QDialog):
+    def __init__(self):
+        super(AboutBox, self).__init__()
+        label = QLabel(self.tr('\
+            TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
+            <br>\
+            Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)<br>\
+            <br>\
+            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>\
+            <br>\
+            I hope you enjoy this application. Consider a donation to my freedom-loving hoster <a href="http://www.wissenschaftsladen-dortmund.de/spenden/">Wissenschaftsladen Dortmund</a>.'))
+        label.setOpenExternalLinks(True)
+        label.setTextFormat(Qt.RichText)
+        label.setWordWrap(True)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self.reject)
+        grid = QGridLayout()
+        grid.setContentsMargins(20, 20, 20, 20)
+        grid.setSpacing(20)
+        grid.addWidget(label, 0, 0)  # row, column
+        grid.addWidget(buttonBox, 1, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
+        self.setLayout(grid)
 
 
 class SearchBarQLineEdit(QLineEdit):
