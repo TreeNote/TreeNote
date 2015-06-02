@@ -221,7 +221,7 @@ class MainWindow(QMainWindow):
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
-            add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=lambda: DatabaseDialog(self, import_db=True).exec_()))
+            add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
             add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox().exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
@@ -454,6 +454,11 @@ class MainWindow(QMainWindow):
                 emit(doc, null); }"
             res = self.item_model.db.query(map, include_docs=True)
             file.write(json.dumps([row.doc for row in res], indent=4))
+
+    def import_db(self):
+        self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.txt")
+        if self.file_name[0] != '':
+            DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
     def get_db(self, url, database_name, create_root=True):
         def get_create_db(self, url, new_db_name):
@@ -1348,16 +1353,12 @@ class SettingsDialog(QDialog):
 
 class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
-    def __init__(self, parent, index=None, import_db=False):
+    def __init__(self, parent, index=None, import_file_name=None):
         super(DatabaseDialog, self).__init__(parent)
-        if import_db:
-            self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.txt")
-            if self.file_name[0] == '':
-                pass  # todo close
         self.setMinimumWidth(910)
         self.parent = parent
         self.index = index
-        self.import_db = import_db
+        self.import_file_name = import_file_name
         name = ''
         url = ''
         database_name = ''
@@ -1385,7 +1386,7 @@ class DatabaseDialog(QDialog):
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        if import_db:
+        if import_file_name:
             self.setWindowTitle(IMPORT_DB)
         elif self.index is None:
             self.setWindowTitle(CREATE_DB)
@@ -1396,9 +1397,9 @@ class DatabaseDialog(QDialog):
         if self.index is None:
             url = self.url_edit.text()
             db_name = self.database_name_edit.text()
-            if self.import_db:
+            if self.import_file_name:
                 db = self.parent.get_db(url, db_name, create_root=False)
-                with open(self.file_name[0], 'r') as file:
+                with open(self.import_file_name, 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
