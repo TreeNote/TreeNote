@@ -456,9 +456,6 @@ class MainWindow(QMainWindow):
             file.write(json.dumps([row.doc for row in res], indent=4))
 
     def get_db(self, url, database_name, create_root=True):
-        if sys.platform == "darwin":
-            subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
-
         def get_create_db(self, url, new_db_name):
             if url != '':
                 server = couchdb.Server(url)
@@ -1355,6 +1352,8 @@ class DatabaseDialog(QDialog):
         super(DatabaseDialog, self).__init__(parent)
         if import_db:
             self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.txt")
+            if self.file_name[0] == '':
+                pass  # todo close
         self.setMinimumWidth(910)
         self.parent = parent
         self.index = index
@@ -1405,7 +1404,10 @@ class DatabaseDialog(QDialog):
             else:
                 db = self.parent.get_db(url, db_name)
             new_server = server_model.Server(self.bookmark_name_edit.text(), url, db_name, db)
+            new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.parent.db_change_signal)
             self.parent.server_model.add_server(new_server)
+            new_index = self.parent.server_model.index(len(self.parent.server_model.servers) - 1, 0, QModelIndex())
+            self.parent.servers_view.selectionModel().setCurrentIndex(new_index, QItemSelectionModel.ClearAndSelect)
         else:
             self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
         super(DatabaseDialog, self).accept()
@@ -1451,8 +1453,11 @@ class CustomHeaderView(QHeaderView):
 
 
 if __name__ == '__main__':
+    if sys.platform == "darwin":
+        subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
+
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNoteeee'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNoteeeee'))
     app.setWindowIcon(QIcon(':/icon.png'))
 
     form = MainWindow()
