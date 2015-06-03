@@ -17,6 +17,7 @@ import subprocess
 import sys
 from functools import partial
 import json
+import time
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -461,7 +462,7 @@ class MainWindow(QMainWindow):
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
     def get_db(self, url, database_name, create_root=True):
-        def get_create_db(self, url, new_db_name):
+        def get_create_db(self, url, new_db_name, connection_attempts=0):
             if url != '':
                 server = couchdb.Server(url)
             else:  # local db
@@ -479,7 +480,13 @@ class MainWindow(QMainWindow):
             except couchdb.http.ServerError as err:
                 QMessageBox.warning(self, 'ServerError', '')
             except ConnectionRefusedError:
-                QMessageBox.warning(self, '', 'ConnectionRefusedError: Is couchdb started?')
+                print('couchdb ist not started yet, so wait and try to connect again')
+                connection_attempts += 1
+                if connection_attempts < 9:
+                    time.sleep(0.3)
+                    return get_create_db(self, url, new_db_name, connection_attempts=connection_attempts)
+                else:
+                    QMessageBox.warning(self, '', 'Could not connect to the server. Is the url correct?')
             except OSError:
                 QMessageBox.warning(self, '', 'Could not connect to the server. Synchronisation is disabled. Local changes will be merged when you go online again.')
             except Exception as err:
@@ -1383,8 +1390,16 @@ class DatabaseDialog(QDialog):
         grid.addWidget(QLabel('URL:'), 1, 0)
         grid.addWidget(QLabel('Database name:'), 2, 0)
         grid.addWidget(self.bookmark_name_edit, 0, 1)
-        grid.addWidget(self.url_edit, 1, 1)
-        grid.addWidget(self.database_name_edit, 2, 1)
+        if index is None:
+            grid.addWidget(self.url_edit, 1, 1)
+            grid.addWidget(self.database_name_edit, 2, 1)
+        else:  # don't allow edit of existing databases
+            url_label = QLabel(url)
+            url_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            grid.addWidget(url_label, 1, 1)
+            database_label = QLabel(database_name)
+            database_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            grid.addWidget(database_label, 2, 1)
         grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
