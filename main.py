@@ -507,6 +507,8 @@ class MainWindow(QMainWindow):
         self.item_model = self.server_model.get_server(new_index).model
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
+        self.quicklinks_view.setModel(self.item_model)
+        self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.old_search_text = 'dont save expanded states of next db when switching to next db'
         self.reset_view()
 
@@ -1345,11 +1347,15 @@ class SettingsDialog(QDialog):
         current_palette_index = 0 if QApplication.palette() == self.parent.light_palette else 1
         theme_dropdown.setCurrentIndex(current_palette_index)
         theme_dropdown.currentIndexChanged[int].connect(self.change_theme)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
+        buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
 
         grid = QGridLayout()
         grid.addWidget(QLabel('UI Theme:'), 0, 0)  # row, column
         grid.addWidget(theme_dropdown, 0, 1)
+        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
         grid.setContentsMargins(20, 20, 20, 20)
+        grid.setSpacing(20)
         self.setLayout(grid)
         self.setWindowTitle(self.tr('Preferences'))
 
@@ -1415,6 +1421,9 @@ class DatabaseDialog(QDialog):
         if self.index is None:
             url = self.url_edit.text()
             db_name = self.database_name_edit.text()
+            if not re.search('^[a-z0-9_]+$',db_name): # ^ is start of string, [] is a character class, + is preceding expression  one or more times, $ is end of string
+                QMessageBox.warning(self, '', 'Only lowercase characters (a-z), digits (0-9) or _ allowed.')
+                return
             if self.import_file_name:
                 db = self.parent.get_db(url, db_name, create_root=False)
                 with open(self.import_file_name, 'r') as file:
