@@ -480,6 +480,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, 'ServerError', '')
             except ConnectionRefusedError:
                 QMessageBox.warning(self, '', 'ConnectionRefusedError: Is couchdb started?')
+            except OSError:
+                QMessageBox.warning(self, '', 'Could not connect to the server. Synchronisation is disabled. Local changes will be merged when you go online again.')
             except Exception as err:
                 QMessageBox.warning(self, '', 'Unknown Error: Contact the developer.')
 
@@ -487,10 +489,10 @@ class MainWindow(QMainWindow):
 
         # if new db is also on a server: enable replication
         if url != '':
-            get_create_db(self, url, database_name)
-            local_server.replicate(database_name, url + database_name, continuous=True)
-            local_server.replicate(url + database_name, database_name, continuous=True)
-
+            success = get_create_db(self, url, database_name)
+            if success:
+                local_server.replicate(database_name, url + database_name, continuous=True)
+                local_server.replicate(url + database_name, database_name, continuous=True)
         return local_db
 
     def change_active_database(self, new_index, old_index=None):
@@ -842,6 +844,7 @@ class MainWindow(QMainWindow):
         self.color_dropdown.setCurrentIndex(0)
         self.set_searchbar_text_and_search('')
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
+        self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
 
     def save_expanded_state(self, index=None):
