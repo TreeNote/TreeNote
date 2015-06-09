@@ -1,0 +1,90 @@
+[
+    {
+        "children": "94f70662481a54200ef7d21f12077af9 94f70662481a54200ef7d21f1207687c 94f70662481a54200ef7d21f12075c73 94f70662481a54200ef7d21f120771c8",
+        "estimate": "",
+        "_id": "0",
+        "text": "",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "29-37c7b21b873181bd0ebfb226470ebb94",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "up_or_down": 1,
+            "method": "moved_vertical",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12075c73",
+        "text": "Red rows",
+        "search_text": "c=red",
+        "date": "",
+        "shortcut": "Ctrl+5",
+        "type": "note",
+        "_rev": "6-24f27bef80f165be7b5ae3e313270395",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1207687c",
+        "text": "Doable tasks",
+        "search_text": " t=todo  flatten=yes  hide_future_date=yes  has_tag=no ",
+        "date": "",
+        "shortcut": "Ctrl+4",
+        "type": "note",
+        "_rev": "9-ec7b19b9f1ee9f3c83ff43325ad45d1c",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120771c8",
+        "text": "Short estimate",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-79a2b9e4b90cf3ee1f69b9ba77ba4b63",
+        "color": "NO_COLOR",
+        "search_text": " flatten=yes  e<60 sort=estimate_ascending ",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12077af9",
+        "text": "Upcoming",
+        "deleted": "",
+        "date": "",
+        "shortcut": "Ctrl+3",
+        "type": "note",
+        "_rev": "6-a129ccc8dda3ec8b95633cb10101aebb",
+        "color": "NO_COLOR",
+        "search_text": " only_date=yes  sort=startdate_ascending  flatten=yes ",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    }
+]

@@ -1,0 +1,38 @@
+[
+    {
+        "children": "5979ddae1dc3117413069f91a6000128",
+        "estimate": "",
+        "_id": "0",
+        "text": "",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "55-c76ef012fbb0275154b4534bce2cc68e",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 1,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "5979ddae1dc3117413069f91a6000128",
+        "text": "aaaa",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "19-8ab3965909486ee02edc04e6664f2566",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    }
+]

@@ -78,11 +78,31 @@ class MainWindow(QMainWindow):
 
             # load databases
             settings = QSettings()
-            servers = settings.value('databases', [('Local', '', 'local'), ('Jans Raspberry', 'http://192.168.178.42:5984/', 'jans_raspberry')])  # second value is loaded, if nothing was saved before in the settings
-            for bookmark_name, url, db_name in servers:
-                new_server = server_model.Server(bookmark_name, url, db_name, self.get_db(url, db_name))
+            servers = settings.value('databases')  # second value is loaded, if nothing was saved before in the settings
+
+            def add_db(bookmark_name, url, db_name, db):
+                new_server = server_model.Server(bookmark_name, url, db_name, db)
                 new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
                 self.server_model.add_server(new_server)
+
+            if servers is None:
+                def load_db_from_file(bookmark_name, db_name):
+                    db = self.get_db('', db_name, create_root=False)
+                    with open(db_name + '.txt', 'r') as file:
+                        doc_list = json.load(file)
+                        db.update(doc_list)
+                    add_db(bookmark_name, '', db_name, db)
+
+                load_db_from_file('Local', 'local')
+                load_db_from_file('Manual', 'manual')
+
+                db = self.get_db('', 'local_bookmarks', create_root=False)
+                with open('local_bookmarks.txt', 'r') as file:
+                    doc_list = json.load(file)
+                    db.update(doc_list)
+            else:
+                for bookmark_name, url, db_name in servers:
+                    add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
 
             self.item_model = self.server_model.servers[0].model
 
@@ -1422,7 +1442,7 @@ class DatabaseDialog(QDialog):
         if self.index is None:
             url = self.url_edit.text()
             db_name = self.database_name_edit.text()
-            if not re.search('^[a-z0-9_]+$',db_name): # ^ is start of string, [] is a character class, + is preceding expression  one or more times, $ is end of string
+            if not re.search('^[a-z0-9_]+$', db_name):  # ^ is start of string, [] is a character class, + is preceding expression  one or more times, $ is end of string
                 QMessageBox.warning(self, '', 'Only lowercase characters (a-z), digits (0-9) or _ allowed.')
                 return
             if self.import_file_name:

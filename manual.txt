@@ -1,0 +1,3074 @@
+[
+    {
+        "children": "94f70662481a54200ef7d21f12075bf9 94f70662481a54200ef7d21f12025586 94f70662481a54200ef7d21f12024a04 e9c8cdcdba2e31357ed2fccc69003766",
+        "estimate": "",
+        "_id": "0",
+        "text": "",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "38-b4722f5484a2f9487cef72614386b8ca",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "up_or_down": -1,
+            "method": "moved_vertical",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1207792c e9c8cdcdba2e31357ed2fccc69005bc3 94f70662481a54200ef7d21f120070fb e9c8cdcdba2e31357ed2fccc69003a40 94f70662481a54200ef7d21f1204ca2e e9c8cdcdba2e31357ed2fccc69005825 94f70662481a54200ef7d21f12007b90 94f70662481a54200ef7d21f1200caa1",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12000d36",
+        "text": "Tasks",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "32-7c24c64d4e0e62609ab4a6e4e14b422d",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "up_or_down": -1,
+            "method": "moved_vertical",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1200176a 94f70662481a54200ef7d21f1200256b 94f70662481a54200ef7d21f1201dd4d 94f70662481a54200ef7d21f1200390f 94f70662481a54200ef7d21f120026c6 94f70662481a54200ef7d21f12005bb5",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12001545",
+        "text": "Knowledge",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "30-c7ff0828495395471b032f041a3f8913",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 0,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f120236ce",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200176a",
+        "text": "Recipes",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-751c4a27f60d41bbdbeb78cf72a8c4ce",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f120236ce"
+            ],
+            "set_edit_focus": true,
+            "position": 0,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200256b",
+        "text": "Nutrition",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-4fb7277477b809c6e46ada0886d0c90e",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f120030f8",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120026c6",
+        "text": "Garden",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-022203cd1c345f141173b429259db076",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f120030f8"
+            ],
+            "position": 0,
+            "set_edit_focus": true,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120030f8",
+        "text": "Herbs",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-18ecd87d332d1990f91787f678b9a51f",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f120053ce",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200390f",
+        "text": "Health",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-52e1fc44270ba526336cc4c54756ed38",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 0,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120053ce",
+        "text": "Dental care",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-3b9b419fa7a3cc437e9a3d3e3c8e98b8",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12006789 94f70662481a54200ef7d21f12006782",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12005bb5",
+        "text": "History",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-768408ad286a28aede3daf94899db273",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12006789"
+            ],
+            "position": 0,
+            "set_edit_focus": true,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12006782",
+        "text": "",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-f2f47e92389cc5e7f11929dc7f90d575",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12006789",
+        "text": "Nayirah testimony",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-dada32dc5856eeffc642273c1a9ca99e",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12006ef5",
+        "text": "join a CSA farm",
+        "deleted": "",
+        "_rev": "11-73cdf6be83f81e32d271358ec87939df",
+        "shortcut": "",
+        "type": "sequential",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12033ecb 94f70662481a54200ef7d21f12035b5c 94f70662481a54200ef7d21f1200ac89 94f70662481a54200ef7d21f1200b562 94f70662481a54200ef7d21f1200c4d2 94f70662481a54200ef7d21f12013c00 94f70662481a54200ef7d21f1201d1d4 94f70662481a54200ef7d21f120228b3 94f70662481a54200ef7d21f120504b2 94f70662481a54200ef7d21f1205023b 94f70662481a54200ef7d21f12034ff1 94f70662481a54200ef7d21f1201a407",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120070fb",
+        "text": "Next",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "parallel",
+        "_rev": "45-d48d5f5d1b4723bdb4aee0f472bd7719",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 11,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12007b90",
+        "text": "Read",
+        "deleted": "",
+        "_rev": "6-6b31b8907e320035f24be2b951d98fa6",
+        "shortcut": "",
+        "type": "parallel",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12008613",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12007fac",
+        "text": "University",
+        "deleted": "",
+        "_rev": "11-3a2e34440f4ed612bf18a6dd9d5a3a85",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12010f5a 94f70662481a54200ef7d21f12011053",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12008613",
+        "text": "degrowth seminar",
+        "deleted": "",
+        "_rev": "11-a5fd78384128643ea43f653e0e7656c4",
+        "shortcut": "",
+        "type": "parallel",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12011053"
+            ],
+            "method": "added",
+            "position": 1,
+            "set_edit_focus": true,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120087a9",
+        "text": "buy a clay pot :city:hardware-store",
+        "deleted": "",
+        "_rev": "8-673af3a07c4d065eeb3afdf1e58aa707",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120090b4",
+        "text": "buy a basil plant :city",
+        "deleted": "",
+        "_rev": "9-9c73b6d259e6d2399ca6370fd106da8c",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12009496",
+        "text": "buy soil :city:hardware-store",
+        "deleted": "",
+        "_rev": "7-65982ea05e7b07b7b90850a0b4f2b3a8",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "5",
+        "_id": "94f70662481a54200ef7d21f12009ea6",
+        "text": "how to water basil?",
+        "deleted": "",
+        "_rev": "11-bcfce05373fd38d539372aad908d6445",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "10",
+        "_id": "94f70662481a54200ef7d21f1200ac89",
+        "text": "change the bedding repeat=3w",
+        "deleted": "",
+        "_rev": "15-8c6fbc5416471301adb51c7bf3943579",
+        "shortcut": "",
+        "type": "todo",
+        "date": "27.07.15",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200b562",
+        "text": "get the packet from the post :city :relaxing ",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "9-c390ee4cfae7d7b371ae7265b34cd2b7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200b6d9",
+        "text": "learn the guitar",
+        "deleted": "",
+        "_rev": "6-2672671a45aaeaa2a09187d3082c1f11",
+        "shortcut": "",
+        "type": "parallel",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1201d0fe",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200c4d2",
+        "text": "install email encryption",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "11-165285f3617eeba593ad19b5db724d29",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1201d0fe"
+            ],
+            "set_edit_focus": true,
+            "position": 0,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1200ce6e 94f70662481a54200ef7d21f1200d5ce 94f70662481a54200ef7d21f1200f10c 94f70662481a54200ef7d21f1200f414",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200caa1",
+        "text": "Personal change reminders repeat=2m",
+        "search_text": "",
+        "date": "27.07.15",
+        "shortcut": "",
+        "type": "parallel",
+        "_rev": "34-f5fb94a177c34bf1551255958a06b49f",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200ce6e",
+        "text": "eat slowly and enjoy the meal",
+        "deleted": "",
+        "_rev": "6-47c792694263e79c3da3fe6b6f9fb26f",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200d5ce",
+        "text": "criticise other people from a first person view",
+        "deleted": "",
+        "_rev": "9-8def89d5dca8eff322dde1614f9da179",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200d8bc",
+        "text": "the human brain does not understands the word 'not'",
+        "deleted": "",
+        "_rev": "17-d55b295d1a55120330252b72756f5b36",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "position": 0,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200ed8b",
+        "text": "e.g. 'avoid' is better than 'don't use'",
+        "deleted": "",
+        "_rev": "4-e3bd50d0504c72fbf78922fafcfe3b8f",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1200d8bc 94f70662481a54200ef7d21f1200ed8b",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200f10c",
+        "text": "avoid the word 'not'",
+        "deleted": "",
+        "_rev": "6-c8a258144429c3ab27519a5075b9f73c",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1200ed8b"
+            ],
+            "method": "added",
+            "position": 1,
+            "set_edit_focus": false,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1200f414",
+        "text": "use half the salt",
+        "deleted": "",
+        "_rev": "6-ec9f338c4c26cbd1ac574a1326c6bdaa",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12010799 94f70662481a54200ef7d21f12010dfb 94f70662481a54200ef7d21f120367a0",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120106d2",
+        "text": "Wishlist",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-085dc44119229e6fc5f60d324d069ec2",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f120367a0"
+            ],
+            "set_edit_focus": true,
+            "position": 2,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12010799",
+        "text": "e-reader",
+        "deleted": "",
+        "_rev": "5-547159ed3a3c1030e7f5733e5355d7c1",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12010dfb",
+        "text": "big kitchen knife",
+        "deleted": "",
+        "_rev": "4-9d87b562cebaf1c8e480cb386df4db9c",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12010f5a",
+        "text": "http://www.theguardian.com/commentisfree/2011/sep/25/crisis-bigness-leopold-kohr",
+        "deleted": "",
+        "_rev": "4-68516b9afc2749a453ef2fd7e032866f",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1201142f",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12011053",
+        "text": "demurrage currency presentation",
+        "deleted": "",
+        "_rev": "12-06078d2af6724811e9d439165e074474",
+        "shortcut": "",
+        "type": "parallel",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201142f",
+        "text": "next steps?",
+        "deleted": "",
+        "_rev": "7-91c248de8583f5e9644e5a1722ee6ab2",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12012642",
+        "text": "move to linux",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "paused",
+        "_rev": "7-e4a5aa085f6ce1a65ecb57c2f5bee6c8",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12012f7a",
+        "text": "write a personal mission statement",
+        "deleted": "",
+        "_rev": "10-2f03b8fded150ed2333b4d061cca9ed3",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12013733",
+        "text": "write letters to old friends",
+        "deleted": "",
+        "_rev": "6-6a58b319b657240f2d9479001875e70c",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "5",
+        "_id": "94f70662481a54200ef7d21f12013c00",
+        "text": "look for old stuff to sell on ebayclassifieds.com",
+        "deleted": "",
+        "_rev": "12-47dd2f9c1fc46ed4ff372319ecab5678",
+        "shortcut": "",
+        "type": "todo",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120158d8",
+        "text": "look for a 'learn typing' program",
+        "deleted": "",
+        "_rev": "6-9ee937d9b6be7c8491c8e8a01c906a08",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120166ef",
+        "text": "Bus connections",
+        "deleted": "",
+        "_rev": "4-e85d1038667aad7f95bdf7d53a444282",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201709a",
+        "text": "Openstreetmap link to my home",
+        "deleted": "",
+        "_rev": "5-58109ef95e5ab3b789ecdaa0777c8680",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12017bc1",
+        "text": "My visual acuity",
+        "deleted": "",
+        "_rev": "6-8e74cd9e2d5f7af3b6e9f4293a666b1a",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1201cb84 94f70662481a54200ef7d21f1201c51f 94f70662481a54200ef7d21f1201b8c9 94f70662481a54200ef7d21f1201a8f7",
+        "estimate": "5",
+        "_id": "94f70662481a54200ef7d21f1201a407",
+        "text": "improve firefox",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "24-27d4bf616f145aa4bede926de32bd3b6",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "position": 2,
+            "count": 1,
+            "up_or_down": 1,
+            "method": "moved_vertical",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201a8f7",
+        "text": "https://addons.mozilla.org/de/firefox/addon/tree-style-tab/",
+        "deleted": "",
+        "_rev": "6-b036858a45bce6d4ec44e9d9c8850141",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201b8c9",
+        "text": "https://addons.mozilla.org/de/firefox/addon/unmht/",
+        "deleted": "",
+        "_rev": "6-ac70f40efafae39a15751cb2beaba261",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201c51f",
+        "text": "https://addons.mozilla.org/de/firefox/addon/download-youtube/",
+        "deleted": "",
+        "_rev": "6-37fe95bafc92085fb09521de83ea0925",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201cb84",
+        "text": "https://www.ublock.org/",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-52564d77957e23113c5e1346ec6f1c47",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201d0fe",
+        "text": "https://prism-break.org",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-fd359f06adc9cd597e389f56e61cf8f2",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201d1d4",
+        "text": ":People:Niklas Musik geben",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "9-1aa3ae97860be71e51449a760a8e822b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1202094d 94f70662481a54200ef7d21f12020b5a 94f70662481a54200ef7d21f120212a6 94f70662481a54200ef7d21f1202163b 94f70662481a54200ef7d21f12021ecf 94f70662481a54200ef7d21f12022627",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201d58c",
+        "text": "My roles",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "10-03ba390fe8d917df4a980b47639476a2",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12022627"
+            ],
+            "set_edit_focus": true,
+            "position": 5,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1201ddba 94f70662481a54200ef7d21f1201e4e1 94f70662481a54200ef7d21f1201f101 94f70662481a54200ef7d21f1201fdb5",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201dd4d",
+        "text": "Basic needs",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-eb88f914148dfdfac2fb60d718cfcde3",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1201fdb5"
+            ],
+            "set_edit_focus": true,
+            "position": 3,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201ddba",
+        "text": "life",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-a038841329aa3eabb1a0a088283fdbf0",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201e4e1",
+        "text": "love",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-57142850ad60413455c1f2b1ecb42133",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201f101",
+        "text": "learn",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-1cb673cb83ae09a214c91dafb24dc294",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1201fdb5",
+        "text": "leave a legacy",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-56208f98576dc644c64b6aec11b362e7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202094d",
+        "text": "husband",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-91167f66bde4442fc99744239fa15404",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12020b5a",
+        "text": "dad",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-34ee10c17d6b5235d475fce8fb368dfd",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120212a6",
+        "text": "house owner",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-40e33ed8560b4a6ca389c0687e6395f0",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202163b",
+        "text": "friend",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-fc2a237d282f192ee8e5f3597264f46e",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12021ecf",
+        "text": "entrepreneur",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-a171d19cd4cdc06612f1823dd5472d65",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12022627",
+        "text": "personal development",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-af9f493d9295e41e2cb2e581b1cb2ef4",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120228b3",
+        "text": "empty the trash bin :relaxing",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "5-907b24150240df7a3465639057bccb3c",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120236ce",
+        "text": "www.forksoverknives.com",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-b5c85df4be37b25aa5ac01e8bcfcc7ea",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1202f329 94f70662481a54200ef7d21f1202f165 94f70662481a54200ef7d21f12026b2a 94f70662481a54200ef7d21f1204052c 94f70662481a54200ef7d21f12071188 94f70662481a54200ef7d21f12056132 94f70662481a54200ef7d21f1202c822 94f70662481a54200ef7d21f1202d99e 94f70662481a54200ef7d21f12037a3b 94f70662481a54200ef7d21f120397b8 94f70662481a54200ef7d21f12040cc7 94f70662481a54200ef7d21f1204b2da 94f70662481a54200ef7d21f1206de80 94f70662481a54200ef7d21f1206e795",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12024a04",
+        "text": "Using TreeFlow",
+        "deleted": "",
+        "_rev": "53-b6a105d8a4f5bb6077802914677ddf05",
+        "shortcut": "",
+        "type": "note",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "user": "jans-laptop.local",
+            "count": 1,
+            "method": "removed",
+            "position": 14
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1204e5a9 94f70662481a54200ef7d21f12050c14 94f70662481a54200ef7d21f1205edb6 94f70662481a54200ef7d21f120664c5 94f70662481a54200ef7d21f12073f4f 94f70662481a54200ef7d21f120748a9",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12025586",
+        "text": "Time management basics",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "13-88d5461ec1a99b86f05d1460143efebf",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f120748a9"
+            ],
+            "method": "added",
+            "position": 5,
+            "set_edit_focus": true,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1202729c 94f70662481a54200ef7d21f1202a1bf 94f70662481a54200ef7d21f12028056 94f70662481a54200ef7d21f12028cc7",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12026b2a",
+        "text": "Editing",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-b94235eba25f890febadb8cbbd0af078",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 4,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202729c",
+        "text": "Press tab to edit the text",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-e1254cb344756d57a1db306d911ed5d5",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12029ee4 94f70662481a54200ef7d21f120295d3 94f70662481a54200ef7d21f1202ab85",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12028056",
+        "text": "Press tab twice to edit the date",
+        "deleted": "",
+        "date": "01.06.15",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "26-28167139ec164d5f6c7a5009f4cef617",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 3,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12028cc7",
+        "text": "Press tab three times to edit 'Estimate' and guess the time in minutes it will take",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "13-b011e8f3dc2e27042ce29b19df138829",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120295d3",
+        "text": "Or type 125 for the 12.05.",
+        "deleted": "",
+        "date": "12.05.15",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "16-33cbbc9748bbf9f17465f6d81a9e02a7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12029ee4",
+        "text": "Use arrow keys to select a day",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-cacc9c9a114e1930897bef257d98a4dd",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202a1bf",
+        "text": "Enter finishes editing",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-1d048d65288e19446197021f315a01a9",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202ab85",
+        "text": "Press del to remove a date",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-d422a0a75a5326a5e98236ba470a0105",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1202ca71",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202c822",
+        "text": "Press L to open an url inside the selected row in your browser",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-0bd9797750ea78d7ffefc259ee6982b7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1202ca71"
+            ],
+            "set_edit_focus": true,
+            "position": 0,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202ca71",
+        "text": "If it contains no url, the text is googled",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-64a798d9530ec688618e9fcc9629b900",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12031da6 94f70662481a54200ef7d21f1203142e 94f70662481a54200ef7d21f1202e3d8 94f70662481a54200ef7d21f1205cb07",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202d99e",
+        "text": "Filtering",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "26-7f00e039eaa8d9b836c857477c1a65d9",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 3,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202e3d8",
+        "text": "Press 'arrow down' to focus the tree again",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-e7cd63e6a60189ba9c852fb0f9c56e5f",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202f165",
+        "text": "'Arrow left' collapses the selected row or navigates to the top",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-25b6a5dafb98d6a4506399eeb97cab14",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1202f329",
+        "text": "Try as you read (-:",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "9-6dc820ea0540752443f6a15ca6ba2b79",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12032234 94f70662481a54200ef7d21f12032467",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203142e",
+        "text": "Select anything from the right column",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-3e1863257fef1fef54e48bd7f505a862",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 2,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12031da6",
+        "text": "Pressing esc reset all filters",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-1ccd2412231e863c6536e34793b8d812",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12032234",
+        "text": "It will add text to the search bar",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-c366333da4c08d58080203589a546e71",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12032773 94f70662481a54200ef7d21f1203374d",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12032467",
+        "text": "Keyboard user may prefer this way:",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-20b3feef9087d823fe9c30c7857f1b27",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1203374d"
+            ],
+            "set_edit_focus": true,
+            "position": 1,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12032773",
+        "text": "Press 'ctrl F' to focus the search bar",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-dc9db321d648a0e95ed7d7c969df22fa",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203374d",
+        "text": "Type 't=t' to search for todos or 'c=r' for red colored items",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "14-f92dba4844cee7b8151efec6aa7376ef",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12033ecb",
+        "text": "cook",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "6-c145f6779cbb2fa5a3747a3d2b725563",
+        "color": "#ce3535",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12034ff1",
+        "text": "water the plants repeat=1w",
+        "deleted": "",
+        "date": "15.06.15",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "10-ebe3ee2c4a99bf8e0e64b9672dcfff44",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12035b5c",
+        "text": "water the sprouts",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "4-61f188cbce31a7b88d214f777709b845",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120367a0",
+        "text": "bread baking machine",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-44562740d9b8feb44ed8bf486273aa77",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1201d58c 94f70662481a54200ef7d21f120106d2 94f70662481a54200ef7d21f120166ef 94f70662481a54200ef7d21f1201709a 94f70662481a54200ef7d21f12017bc1",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12037307",
+        "text": "Data",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-db56271c3d93047e0fa6e479b96c757b",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1201d58c",
+                "94f70662481a54200ef7d21f120106d2",
+                "94f70662481a54200ef7d21f120166ef",
+                "94f70662481a54200ef7d21f1201709a",
+                "94f70662481a54200ef7d21f12017bc1"
+            ],
+            "set_edit_focus": false,
+            "position": 0,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12038653 94f70662481a54200ef7d21f12038755",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12037a3b",
+        "text": "The Quick link at the left are a representation of the whole database",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-c70ef1346e7fbe4e8932850423f12ba4",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12038755"
+            ],
+            "set_edit_focus": true,
+            "position": 1,
+            "method": "added",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12038653",
+        "text": "I you click on a row there, that row is focused in the middle",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-32fd153de384d24d28b11919b19ba5c7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12038755",
+        "text": "Rightclick a row there to add a keyboard shortcut",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-5a89722d49a5c0d8e4746cb2ece86b8f",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1203a49d",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120397b8",
+        "text": "Sort the rows by clicking on a header, e.g. 'Start date'",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-2d0909cb803b38836dab0c73ffdaf84a",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 1,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1203ad5f",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203a49d",
+        "text": "Since many entries are deeply nested, you may check 'Flatten view'",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-011802b307e954652d8acc348b1908e0",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 1,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203ad5f",
+        "text": "Combining 'Focus' and 'Flatten view' takes a while. We will fix this.",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-47069ec3eee7062435ba2fe23e01fb9b",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203ce6c",
+        "text": "Edit a task so it contains repeat=1w and has a start date",
+        "deleted": "",
+        "date": "23.06.15",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "35-0e91f77ebe10f0a43ef94b8c3f0ebd19",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203da80",
+        "text": "You can also use 1d 1w 1m 1y for day, week month or year",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "11-2bd7cd29b9d29b0c472fe6d2a9732403",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1203ce6c 94f70662481a54200ef7d21f1203f218 94f70662481a54200ef7d21f1203da80",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203e32f",
+        "text": "Recurring tasks",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-239ac773eff9800fa1ae6cca4b235a84",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "position": 3,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1203f218",
+        "text": "If you complete it, its start date is increased by one week",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "10-60a7704e427c439eec24c37b3b35116a",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12051e95 94f70662481a54200ef7d21f1203e32f 94f70662481a54200ef7d21f1204a691",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204052c",
+        "text": "Tasks",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "14-1bb8e803df6f944e62dfdef1c1f6da1b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1205d3cc",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12040cc7",
+        "text": "The rows expanded states and the current selection are saved...",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "11-362c35c13a8325c4248c0bcfa1285aad",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1204b199",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204a691",
+        "text": "Projects",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-7dde4d54f9fabb3ad5a4a4701f37c7e7",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204b199",
+        "text": "not available tasks in a sequential project are grey",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-ae36af61fa32d702c88eae424b6b6f83",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1204b9ba",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204b2da",
+        "text": "Archiving",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "9-28730a312315f826bfaf35c6461d4a82",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204b9ba",
+        "text": "When you complete a project, turn it into a note and move it to completed projects",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-6c4b6284824c94c0ebc9356ee6746843",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204ca2e",
+        "text": "Completed Projects",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-d1f5df0c002b2fe8ff77fc7a85d2400a",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1204eb5c 94f70662481a54200ef7d21f1204f2d3",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204e5a9",
+        "text": "Define a project by adding two notes below it:",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-37d322eea6f12f72a5e617bde3538f7b",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204eb5c",
+        "text": "1. Purpose and principles",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "6-a0d9a49a509b4448575eeb85880a8b55",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1204f2d3",
+        "text": "2. Desired outcome",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-4328209e525328a2506d237dc9183132",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205023b",
+        "text": "check if 'Shantaram' is available at the library now",
+        "deleted": "",
+        "date": "23.06.15",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "13-f72709cb33de5197f3e52cfac8f12ba2",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120504b2",
+        "text": "make a backup of my computer",
+        "search_text": "",
+        "date": "30.06.15",
+        "shortcut": "",
+        "type": "todo",
+        "_rev": "7-c4b69ba92512a52758ef3a4b5cd1bb35",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12050c14",
+        "text": "Start date",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-70ffcdc0c36f07bb2b8e6c58e3ea07d3",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12051970",
+        "text": "New rows will have the same type as their parent",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "14-26e3748c99c47704f1703be071f3c45c",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1205e01b 94f70662481a54200ef7d21f12051970",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12051e95",
+        "text": "Types",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-80f2f7c262a54694741f18e2dea00bf9",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 0,
+            "up_or_down": 1,
+            "method": "moved_vertical",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12056fc3 94f70662481a54200ef7d21f12057f42 94f70662481a54200ef7d21f120599f9",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12056132",
+        "text": "Check the 'Edit structure' menu to see what is possible",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-fe8686990930f8ddccb16c95908a02b8",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f120599f9"
+            ],
+            "method": "added",
+            "position": 2,
+            "set_edit_focus": false,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12056fc3",
+        "text": "Especially moving items around with w a s d is very useful",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-8d8912e544447bc6d3cd42c3d58faa51",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12058cff",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12057f42",
+        "text": "You can select several items by holding ctrl and clicking rows,",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "13-51bdb0f30c65c7022cdb9dcfd64e7e41",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12058cff",
+        "text": "or by pressing shift + arrow keys",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-e79426f6a99351300482144145af5b3b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120599f9",
+        "text": "You can move or delete several items at once",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-d5b2d2dbe6dc7a79131d550fe55f68f3",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205bb5a",
+        "text": "You can rename a tag by rightclicking on it",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "7-a80dd6e1d465c218aeccf0064c5ef5ce",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1205cc4e 94f70662481a54200ef7d21f1205bb5a 94f70662481a54200ef7d21f1205cc27 94f70662481a54200ef7d21f1205d0f4",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205cb07",
+        "text": "Tags",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-d2700b04dcbb35e0708b0b5d3d8b3faa",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 4,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205cc27",
+        "text": "Nest tags by concatenating them, e.g. :People:Mum",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "9-067fa73def715a019a371e0e52db7372",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205cc4e",
+        "text": "Every word starting with a colon will be listed in the Tag view at the right",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-ed255dab1be065299275b0930520e2ab",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205d0f4",
+        "text": "When you edit a row and type colon M the accoding tag will be suggested",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "9-0020e3eaca2879fba378c9e5e6e6616b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205d3cc",
+        "text": "... between seaches and when you shutdown this program",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-ecb0e8c6b8ca9a82c50ae11b1dffe9e1",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205e01b",
+        "text": "Press space to change the task's type",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-32c2b5d11c7497952ab495494893c34c",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1205fa52 94f70662481a54200ef7d21f1205fb84 94f70662481a54200ef7d21f12060020 94f70662481a54200ef7d21f12060fdc 94f70662481a54200ef7d21f12061b26 94f70662481a54200ef7d21f12066385 94f70662481a54200ef7d21f12062782 94f70662481a54200ef7d21f12062d53 94f70662481a54200ef7d21f12063858 94f70662481a54200ef7d21f12064763 94f70662481a54200ef7d21f120656f6",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205edb6",
+        "text": "Project verbs",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "17-a6a9d8b6eb23ac712f6ba97dee083723",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 5,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205fa52",
+        "text": "Finalize",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-97c3e892792029272893a94a8471199b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1205fb84",
+        "text": "Resolve",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-f73c75caf2d30e459e37bb4bf07b6e48",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12060020",
+        "text": "Handle",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-e4ade9099235867fb5e3b15a57446439",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12060fdc",
+        "text": "Submit",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-38ea9e58a675f6264f24ee0859aa5250",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12061b26",
+        "text": "Look into",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-b62ba249f14b4643546052ae107e8024",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12062782",
+        "text": "Design",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-0f8e1ebf2ea47737ced55123e05d5a9b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12062d53",
+        "text": "Complete",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-998212afcb6739160ee2729fd98e304a",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12063858",
+        "text": "Update",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-8bfdef8977f11ee3eaf8092c40ade1f7",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12064763",
+        "text": "Implement",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-e59e2157e259e08d5fcfe0e8bb0379fd",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120656f6",
+        "text": "Install",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-8b3fe13d8b2e1918cdfce62238ff7bfe",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12066385",
+        "text": "Ensure",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-98b0031104a4f01d9c91f5c68f2c999a",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12066af9 94f70662481a54200ef7d21f12066f24 94f70662481a54200ef7d21f12067858 94f70662481a54200ef7d21f120684a1 94f70662481a54200ef7d21f12068936 94f70662481a54200ef7d21f1206948b 94f70662481a54200ef7d21f1206a0a3 94f70662481a54200ef7d21f1206aecd 94f70662481a54200ef7d21f1206b525 94f70662481a54200ef7d21f1206c027 94f70662481a54200ef7d21f1206c6e2 94f70662481a54200ef7d21f1206d0dd",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120664c5",
+        "text": "Next-action verbs",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "16-e48ea703db13824bcb70fdcfc811862e",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f1206d0dd"
+            ],
+            "method": "added",
+            "position": 11,
+            "set_edit_focus": true,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12066af9",
+        "text": "Call",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-94c4f77c9895e7f41e9b538c0bf3054b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12066f24",
+        "text": "Review",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-1024e7b2dba8f73b96b2df35df383a45",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12067858",
+        "text": "Buy",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-7c2350ab2ec9644c8695803c45ca02ad",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120684a1",
+        "text": "Fill out",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-6aa12436d3e81c6b8270d5f568288d20",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12068936",
+        "text": "Find",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-f804407569101d3939f23cc7fe7349b2",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206948b",
+        "text": "Look into (Web)",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-e64a4a125f3add1654370e4a13bb6840",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206a0a3",
+        "text": "Gather",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-8c24973de9505359c7b15eaa158e2abb",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206aecd",
+        "text": "Print",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-12ea003c71e8b93e2d4041956797f2a9",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206b525",
+        "text": "Take",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-1b0d53c8e32e518d8920edac96a2fcb3",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206c027",
+        "text": "Wait for",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-20110338b4240903b836721c34c30bff",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206c6e2",
+        "text": "Darft",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-9b3d8a28b97c08deae160dcde10f21ae",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206d0dd",
+        "text": "Email",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-083a6e8420ca211496e1f4e7d0380319",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206de80",
+        "text": "Databases",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-507c1e9fd689d4d5f73c1741ab6c0710",
+        "color": "#ce3535",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1206e795",
+        "text": "Bookmarks",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-d191d13ed3c2a1aaf9dd101a2457fa97",
+        "color": "#ce3535",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f1207172f 94f70662481a54200ef7d21f120726e0",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12071188",
+        "text": "Colors",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-a54b8af463070ded73bf7c20f58c849e",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 2,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1207172f",
+        "text": "You can color a row red by pressing R",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-abc12ea156b289259566ac61b0d54f1b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120726e0",
+        "text": "All available colors are listed in the 'Edit row' menu",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-4e0de6f65ecef8b437020459189ae3e2",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12075021 94f70662481a54200ef7d21f12075762",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12073f4f",
+        "text": "Use tags for locations and people.",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "8-24e47ad57447e0d91393e49706d418c2",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12075762"
+            ],
+            "method": "added",
+            "position": 1,
+            "set_edit_focus": true,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f120748a9",
+        "text": "You may use colors to mark what you want to do today",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-aee16f5bb52780bce724c855740c6946",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12075021",
+        "text": "When I work a lot mentally, I feel exhausted...",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-c3f0ceb429bf440b16f26bfa2c99ed9b",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12075762",
+        "text": "...to refresh, I do a :relaxing task like emptying the waste",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "11-ebe5f7d8fe14c3c9ca4b3952dbc944a9",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f12075bf9",
+        "text": "Use arrow keys to navigate. 'arrow right' expands the selected row",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "5-05d2afbfaf064acfdb7e42883582d0f7",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "94f70662481a54200ef7d21f1207792c",
+        "text": "Working",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "4-57c5d587da4925fc58e9c04244114be7",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12000d36 94f70662481a54200ef7d21f12001545 94f70662481a54200ef7d21f12037307",
+        "estimate": "",
+        "_id": "e9c8cdcdba2e31357ed2fccc69003766",
+        "text": "Example usage system",
+        "search_text": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "27-980d573fd8615e10a76c1bdecf7078bf",
+        "color": "NO_COLOR",
+        "deleted": "",
+        "change": {
+            "count": 1,
+            "position": 1,
+            "method": "removed",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f12007fac e9c8cdcdba2e31357ed2fccc69005063 94f70662481a54200ef7d21f12006ef5 94f70662481a54200ef7d21f1200b6d9 94f70662481a54200ef7d21f12012642",
+        "estimate": "",
+        "_id": "e9c8cdcdba2e31357ed2fccc69003a40",
+        "text": "Active Projects",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "note",
+        "_rev": "12-5666fb554842b7d6fce0fd907bea47eb",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f120087a9 94f70662481a54200ef7d21f12009496 94f70662481a54200ef7d21f120090b4 94f70662481a54200ef7d21f12009ea6",
+        "estimate": "",
+        "_id": "e9c8cdcdba2e31357ed2fccc69005063",
+        "text": "grow herbs in the kitchen",
+        "deleted": "",
+        "_rev": "18-1dbc76a8cb60af3521fd3eea4535ed2c",
+        "shortcut": "",
+        "type": "parallel",
+        "date": "",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "id_list": [
+                "94f70662481a54200ef7d21f12009ea6"
+            ],
+            "method": "added",
+            "position": 3,
+            "set_edit_focus": true,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "94f70662481a54200ef7d21f120158d8 94f70662481a54200ef7d21f12012f7a 94f70662481a54200ef7d21f12013733",
+        "estimate": "",
+        "_id": "e9c8cdcdba2e31357ed2fccc69005825",
+        "text": "Someday",
+        "deleted": "",
+        "date": "",
+        "shortcut": "",
+        "type": "parallel",
+        "_rev": "19-bca27bd9cd940445f88a4fabc14ce2db",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "count": 1,
+            "method": "removed",
+            "position": 0,
+            "user": "jans-laptop.local"
+        }
+    },
+    {
+        "children": "",
+        "estimate": "",
+        "_id": "e9c8cdcdba2e31357ed2fccc69005bc3",
+        "text": "Inbox",
+        "deleted": "",
+        "date": "",
+        "shortcut": "Ctrl+1",
+        "type": "note",
+        "_rev": "7-9a6ed5cb5d2828b534b5d37ecbb22071",
+        "color": "NO_COLOR",
+        "search_text": "",
+        "change": {
+            "method": "updated",
+            "user": "jans-laptop.local"
+        }
+    }
+]
