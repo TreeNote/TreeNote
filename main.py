@@ -19,6 +19,7 @@ from functools import partial
 import json
 import time
 
+import sip # for pyinstaller
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -530,6 +531,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.setModel(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.old_search_text = 'dont save expanded states of next db when switching to next db'
+        self.setup_tag_model()
         self.reset_view()
 
     def closeEvent(self, event):
@@ -895,7 +897,7 @@ class MainWindow(QMainWindow):
         # sort
         if model.SORT in search_text:
             if model.ASC in search_text:
-                order = Qt.DescendingOrder  # it's somehow reverted :/
+                order = Qt.DescendingOrder  # it's somehow reverted
             elif model.DESC in search_text:
                 order = Qt.AscendingOrder
             if model.STARTDATE in search_text:
@@ -1507,7 +1509,7 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     app.setApplicationName(QApplication.translate('main', 'TreeNote'))
-    app.setWindowIcon(QIcon(':/icon.png'))
+    app.setWindowIcon(QIcon(':/icon'))
 
     form = MainWindow()
     form.show()
