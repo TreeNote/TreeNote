@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.WindowText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.Base, model.BACKGROUND_GRAY)
-            self.dark_palette.setColor(QPalette.AlternateBase, model.FOREGROUND_GRAY)
+            self.dark_palette.setColor(QPalette.AlternateBase, model.ALTERNATE_BACKGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipBase, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.Text, model.TEXT_GRAY)
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow):
             self.structureMenu.addAction(self.insertChildAction)
             self.structureMenu.addAction(self.deleteSelectedRowsAction)
 
-            self.moveMenu = self.structureMenu.addMenu(self.tr('&Move row'))
+            self.moveMenu = self.structureMenu.addMenu(self.tr('&Move selected rows'))
             self.moveMenu.addAction(self.moveUpAction)
             self.moveMenu.addAction(self.moveDownAction)
             self.moveMenu.addAction(self.moveLeftAction)
@@ -1129,6 +1129,7 @@ class MainWindow(QMainWindow):
 
         new_column.view = QTreeView()
         new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }')
+        new_column.view.setAlternatingRowColors(True)
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
@@ -1485,7 +1486,7 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNoteeeee'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon.png'))
 
     form = MainWindow()

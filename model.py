@@ -777,6 +777,8 @@ class Delegate(QStyledItemDelegate):
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
+        elif option.features == QStyleOptionViewItem.Alternate:
+            color = QApplication.palette().alternateBase()
         else:
             color = QApplication.palette().base()
         text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
@@ -955,6 +957,7 @@ ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
 SELECTION_GRAY = QColor('#555B6E')
 BACKGROUND_GRAY = QColor(57, 57, 57)  # darker
+ALTERNATE_BACKGROUND_GRAY = QColor(59, 59, 59) # slightly brighter
 FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
 HIGHLIGHT_ORANGE = QColor(195, 144, 72)
 TAG_COLOR = QColor('#71CD58')  # green
