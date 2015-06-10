@@ -23,8 +23,7 @@ Fedora
 
 Windows
 -------
-*	| Download `Python 3 <https://www.python.org/downloads/>`_
-	| Install, but when you are at the window "customize python" check the box "add python.exe to path"
+* Download `Python 3 <https://www.python.org/downloads/>`_. Install, but when you are at the window "customize python" check the box "add python.exe to path"
 * Install the `Qt + PyQt binary package <http://www.riverbankcomputing.com/software/pyqt/download5>`_
 * Install `CouchDB <http://couchdb.apache.org/#download>`_
 * Open cmd.exe and enter ``python -m pip install couchdb``
@@ -34,9 +33,7 @@ OS X
 ------
 * Install `Python 3 <https://www.python.org/downloads/>`_
 * Install `Qt <http://www.qt.io/download-open-source/>`_
-*	| Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_
-	| Unarchive and run:
-
+* Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_. Unarchive it and run:
 	::	
 
 	    python3 configure.py
