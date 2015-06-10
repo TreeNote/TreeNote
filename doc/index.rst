@@ -39,3 +39,8 @@ License
 -------
 
 The project is licensed under the BSD license.
+
+.. toctree::
+   :maxdepth: 2
+
+   setup
