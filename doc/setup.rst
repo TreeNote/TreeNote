@@ -23,36 +23,29 @@ Fedora
 
 Windows
 -------
-| Download `Python 3 <https://www.python.org/downloads/>`_
-| Install, but when you are at the window "customize python" check the box "add python.exe to path"
-
-Install the `Qt + PyQt binary package <http://www.riverbankcomputing.com/software/pyqt/download5>`_
-
-Install `CouchDB <http://couchdb.apache.org/#download>`_
-
-Open cmd.exe and enter ``python -m pip install couchdb``
+*	| Download `Python 3 <https://www.python.org/downloads/>`_
+	| Install, but when you are at the window "customize python" check the box "add python.exe to path"
+* Install the `Qt + PyQt binary package <http://www.riverbankcomputing.com/software/pyqt/download5>`_
+* Install `CouchDB <http://couchdb.apache.org/#download>`_
+* Open cmd.exe and enter ``python -m pip install couchdb``
 
 
 OS X
 ------
-Install `Python 3 <https://www.python.org/downloads/>`_
+* Install `Python 3 <https://www.python.org/downloads/>`_
+* Install `Qt <http://www.qt.io/download-open-source/>`_
+*	| Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_
+	| Unarchive and run:
 
-Install `Qt <http://www.qt.io/download-open-source/>`_
+	::	
 
-| Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_
-| Unarchive and run:
+	    python3 configure.py
+	    make
+	    sudo make install
 
-::
-
-    python3 configure.py
-    make
-    sudo make install
-
-Install the `PyQt source package <http://www.riverbankcomputing.com/software/pyqt/download5>`_ in the same way.
-
-Install `CouchDB <http://couchdb.apache.org/#download>`_
-
-Run ``sudo pip3 install couchdb``
+* Install the `PyQt source package <http://www.riverbankcomputing.com/software/pyqt/download5>`_ in the same way.
+* Install `CouchDB <http://couchdb.apache.org/#download>`_
+* Run ``sudo pip3 install couchdb``
 
 
 Integrated development environment
@@ -62,4 +55,4 @@ I can recommend `PyCharm <https://www.jetbrains.com/pycharm>`_.
 
 Edit this documentation
 -----------------------
-Read the `syntax manual <http://sphinx-doc.org/rest.html>`_ and use `preview-software <https://mg.pov.lt/restview/>`_.
+Read the `syntax manual <http://rest-sphinx-memo.readthedocs.org/en/latest/ReST.html>`_ and use `preview-software <https://mg.pov.lt/restview/>`_.
