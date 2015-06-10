@@ -94,8 +94,8 @@ class MainWindow(QMainWindow):
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
 
-                load_db_from_file('Local', 'local')
                 load_db_from_file('Manual', 'manual')
+                load_db_from_file('Local', 'local')
 
                 db = self.get_db('', 'local_bookmarks', create_root=False)
                 with open('local_bookmarks.txt', 'r') as file:
@@ -663,7 +663,7 @@ class MainWindow(QMainWindow):
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, item_id):
         new_search_bar_text = self.bookmark_model.db[item_id][model.SEARCH_TEXT]
-        self.focused_column().search_bar.setText(new_search_bar_text)
+        self.set_searchbar_text_and_search(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
         index = self.bookmark_model.id_index_dict[item_id]
         self.set_selection(index, index)
@@ -1508,7 +1508,7 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
+    app.setApplicationName(QApplication.translate('main', 'uuerta'))
     app.setWindowIcon(QIcon(':/icon'))
 
     form = MainWindow()
