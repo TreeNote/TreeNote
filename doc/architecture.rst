@@ -7,6 +7,7 @@ The application uses two data structures: The persistent CouchDB database and a 
 The ``QTreeView`` interacts with the underlying data structure through the class ``TreeModel``, a subclass of the ``QAbstractItemModel``. The overwritten methods can be divided into two categories:
 
 1. When the *views needs data* to build or change itself, it calls the following methods:
+
 	* Each ``QModelIndex`` contains a pointer to a ``Tree_item``. It can be retrieved with ``getItem(index)``.
 	* ``index(row, parent_index)`` and ``parent(index)`` return a specific ``QModelIndex``
 	* ``rowCount(index)`` returns not just the row count of the ``Tree_item`` to the given ``index``, but calls ``Tree_item : init_childs`` to get the children from the database and insert them as new ``Tree_item`` objects into the local data instance.
