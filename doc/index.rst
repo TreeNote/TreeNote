@@ -6,8 +6,8 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-	intro
-	setup
-	architecture
-	features
-	deploy
+    intro
+    setup
+    architecture
+    features
+    deploy
