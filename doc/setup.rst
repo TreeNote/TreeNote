@@ -34,6 +34,7 @@ OS X
 * Install `Python 3 <https://www.python.org/downloads/>`_
 * Install `Qt <http://www.qt.io/download-open-source/>`_
 * Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_. Unarchive it and run:
+
 	::	
 
 	    python3 configure.py
