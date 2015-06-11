@@ -68,8 +68,8 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-            font = QFont('Arial', 16)
-            app.setFont(font)
+            # font = QFont('Arial', 16)
+            # app.setFont(font)
 
             self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
             self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
@@ -1202,7 +1202,9 @@ class AboutBox(QDialog):
         label = QLabel(self.tr('\
             TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
             <br>\
-            Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)<br>\
+            Copyright (C) 2015 Jan Korte<br>\
+            <br>\
+            Contact me through <a href="http://www.treenote.de/">www.treenote.de</a> if you have ideas or problems!<br>\
             <br>\
             This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.<br>\
             <br>\
@@ -1508,7 +1510,7 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'uuerta'))
+    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon'))
 
     form = MainWindow()

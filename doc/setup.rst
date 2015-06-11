@@ -53,4 +53,5 @@ I can recommend `PyCharm <https://www.jetbrains.com/pycharm>`_.
 
 Edit this documentation
 -----------------------
-Read the `syntax manual <http://rest-sphinx-memo.readthedocs.org/en/latest/ReST.html>`_ and use `preview-software <https://mg.pov.lt/restview/>`_.
+This documentation is built from the sources in GitHub. Click on the link at the top right to edit them.
+It is written in reStructuredText, so have a short look at the `syntax manual <http://rest-sphinx-memo.readthedocs.org/en/latest/ReST.html>`_. You may want to use a `preview-software <https://mg.pov.lt/restview/>`_.
