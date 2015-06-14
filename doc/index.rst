@@ -10,4 +10,4 @@ Contents:
     setup
     architecture
     features
-    deploy
+    deployment
