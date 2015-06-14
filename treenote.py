@@ -29,7 +29,6 @@ import qrc_resources
 import model
 import server_model
 import tag_model
-import dump
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
