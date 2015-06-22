@@ -41,7 +41,14 @@ OS X
 	    make
 	    sudo make install
 
-* Install the `PyQt source package <http://www.riverbankcomputing.com/software/pyqt/download5>`_ in the same way.
+* Download the `PyQt source package <http://www.riverbankcomputing.com/software/pyqt/download5>`_. Unarchive it and run:
+
+	::	
+
+	    python3 configure.py
+	    make
+	    sudo make install
+
 * Install `CouchDB <http://couchdb.apache.org/#download>`_
 * Run ``sudo pip3 install couchdb``
 
