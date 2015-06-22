@@ -286,6 +286,7 @@ class MainWindow(QMainWindow):
             self.databasesMenu.addAction(self.editDatabaseAct)
             self.databasesMenu.addAction(self.exportDatabaseAct)
             self.databasesMenu.addAction(self.importDatabaseAct)
+            self.databasesMenu.addAction(self.settingsAct)
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
             self.fileMenu.addAction(self.undoAction)
@@ -296,7 +297,6 @@ class MainWindow(QMainWindow):
             self.fileMenu.addAction(self.moveBookmarkUpAction)
             self.fileMenu.addAction(self.moveBookmarkDownAction)
             self.fileMenu.addAction(self.renameTagAction)
-            self.fileMenu.addAction(self.settingsAct)
 
             self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
             self.structureMenu.addAction(self.insertRowAction)

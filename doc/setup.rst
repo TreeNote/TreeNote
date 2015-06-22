@@ -32,12 +32,12 @@ Windows
 OS X
 ------
 * Install `Python 3 <https://www.python.org/downloads/>`_
-* Install `Qt <http://www.qt.io/download-open-source/>`_
+* Install `Qt <http://www.qt.io/download-open-source/>`_. You may check to install the sources, too.
 * Download the `SIP source package <http://www.riverbankcomputing.com/software/sip/download>`_. Unarchive it and run:
 
 	::	
 
-	    python3 configure.py
+	    python3 configure.py --qmake=/Users/YourUsername/Qt/5.4/clang_64/bin/qmake 
 	    make
 	    sudo make install
 

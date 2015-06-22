@@ -20,4 +20,8 @@ Execute in cmd.exe / terminal:
 :: 
 
 	cd treenote_git_folder
-	pyinstaller --windowed treenote.py
+	pyinstaller --windowed --icon=<FILE.ico> treenote.py
+
+* Only on OS X: Add icon
+	* Prepare an .icns file with your own graphic; open in it Preview.app; select-all and copy; in the Finder, Get Info on your app; click the icon in the info display and paste.
+	* `GraphicConverter <http://www.lemkesoft.de/en/products/graphic-converter/>`_ is one of several applications that can save a JPEG or PNG image in the .icns format.

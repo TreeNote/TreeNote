@@ -1,6 +1,13 @@
 Architecture
 ============
 
+TreeNote uses the gui toolkit Qt. It has a really nice documentation. If you want to know what a particular class is able to to, just google it, e.g. 'qtreeview 5' (the 5 is for Qt version 5) and it will give you http://doc.qt.io/qt-5/qtreeview.html
+
+If you don't know how to do something:
+
+* Look at the `PyQt examples <https://github.com/baoboa/pyqt5/tree/master/examples>`_
+* Look into the book `Rapid GUI Programming with Python and Qt <http://www.amazon.com/Programming-Python-Prentice-Software-Development/dp/0132354187>`_.
+* Google e.g. 'drag drop qt' and you will find some results on stackoverflow.com. All the C++ Qt code is easily convertable to Python.
 
 The application uses two data structures: The persistent CouchDB database and a pile of connected ``Tree_item`` instances, which are created from the database each time the application opens. If the user or a distant participant does an edit, the shared database is edited. This database change is detected and reflected to the local ``Tree_item`` instances.
 
