@@ -1082,6 +1082,10 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def edit_row(self):
+        if sys.platform == "darwin" or self.current_index().column() != 1:
+            self.edit_row_without_check()
+
+    def edit_row_without_check(self):
         current_index = self.current_index()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:  # change column with tab key
             next_column_number = (current_index.column() + 1) % 3

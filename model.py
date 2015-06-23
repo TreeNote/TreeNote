@@ -862,6 +862,12 @@ class BookmarkDelegate(QStyledItemDelegate):
 
 
 class EscCalendarWidget(QCalendarWidget):
+    def __init__(self, parent):
+        super(EscCalendarWidget, self).__init__(parent)
+        if sys.platform != "darwin": # sadly, capture of the tab key is different on Windows and Mac. so we need it here for windows and at OpenPopupDateEdit for Mac
+            self.installEventFilter(self)
+            self.sent = False
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
             open_popup_date_edit = self.parent().parent()
@@ -869,12 +875,25 @@ class EscCalendarWidget(QCalendarWidget):
             current_index = open_popup_date_edit.delegate.main_window.current_index()
             open_popup_date_edit.delegate.main_window.set_selection(current_index,current_index)
 
+    def eventFilter(self, obj, event):
+        open_popup_date_edit = self.parent().parent()
+        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
+            if not self.sent: # annoying bug that this event get's sent two times. so filter one event out.
+                open_popup_date_edit.delegate.main_window.edit_row_without_check()
+                self.sent = True
+        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
+            open_popup_date_edit.setSpecialValueText(' ')
+            open_popup_date_edit.setDate(QDateFromString(EMPTY_DATE))  # workaround to set empty date
+            open_popup_date_edit.commit()
+        return False  # don't stop the event being handled further
+
 
 class OpenPopupDateEdit(QDateEdit):
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
-        self.installEventFilter(self)
+        if sys.platform == "darwin":
+            self.installEventFilter(self)
 
     def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
         self.calendarWidget().activated.connect(self.commit)  # commit edit as soon as the user goes back from the calendar popup to the dateEdit
