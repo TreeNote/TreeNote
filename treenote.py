@@ -280,16 +280,19 @@ class MainWindow(QMainWindow):
             self.databasesMenu.addAction(self.addDatabaseAct)
             self.databasesMenu.addAction(self.deleteDatabaseAct)
             self.databasesMenu.addAction(self.editDatabaseAct)
+            self.databasesMenu.addSeparator()
             self.databasesMenu.addAction(self.exportDatabaseAct)
             self.databasesMenu.addAction(self.importDatabaseAct)
             self.databasesMenu.addAction(self.settingsAct)
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
             self.fileMenu.addAction(self.editShortcutAction)
+            self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.editBookmarkAction)
             self.fileMenu.addAction(self.deleteBookmarkAction)
             self.fileMenu.addAction(self.moveBookmarkUpAction)
             self.fileMenu.addAction(self.moveBookmarkDownAction)
+            self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.renameTagAction)
 
             self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
@@ -541,6 +544,7 @@ class MainWindow(QMainWindow):
         self.make_single_key_menu_shortcuts_work_on_mac([self.undoAction,self.redoAction])
         self.fileMenu.insertAction(self.editShortcutAction,self.undoAction)
         self.fileMenu.insertAction(self.editShortcutAction,self.redoAction)
+        self.fileMenu.insertAction(self.editShortcutAction, self.fileMenu.addSeparator())
 
     def closeEvent(self, event):
         settings = QSettings()
