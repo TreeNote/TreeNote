@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
                     list.append(qaction)
 
             add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
-            add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=lambda: self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())))
+            add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=self.delete_database))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
             # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
             add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
-            add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.removeSelection), list=self.item_view_actions)
+            add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.remove_selection), list=self.item_view_actions)
             add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
             add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
             add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
             add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
             add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
             add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
-            add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmarks'), self, triggered=self.removeBookmarkSelection), list=self.bookmark_view_actions)
+            add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection), list=self.bookmark_view_actions)
             add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
@@ -1050,14 +1050,21 @@ class MainWindow(QMainWindow):
             # commit data by changing the current selection
             self.focused_column().view.selectionModel().currentChanged.emit(index, index)
 
-    def removeSelection(self):
+    def remove_selection(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
         self.focused_column().filter_proxy.remove_rows(indexes)
 
-    def removeBookmarkSelection(self):
-        self.bookmarks_view.setFocus()
-        indexes = self.focusWidget().selectionModel().selectedRows()
-        self.bookmark_model.insert_remove_rows(indexes=indexes)
+    def remove_bookmark_selection(self):
+        reply = QMessageBox.question(self, '', 'Delete this bookmark?', QMessageBox.Yes, QMessageBox.Cancel)
+        if reply == QMessageBox.Yes:
+            self.bookmarks_view.setFocus()
+            indexes = self.focusWidget().selectionModel().selectedRows()
+            self.bookmark_model.insert_remove_rows(indexes=indexes)
+
+    def delete_database(self):
+        reply = QMessageBox.question(self, '', 'Delete this database?', QMessageBox.Yes, QMessageBox.Cancel)
+        if reply == QMessageBox.Yes:
+            self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())
 
     # task menu actions
 
