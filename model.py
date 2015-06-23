@@ -825,6 +825,14 @@ class Delegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         QStyledItemDelegate.setModelData(self, editor, model, index)
 
+    def eventFilter(self, editor, event):
+        if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:
+            current_index = self.main_window.current_index()
+            self.closeEditor.emit(editor, QAbstractItemDelegate.NoHint)
+            self.main_window.set_selection(current_index,current_index)
+            return False
+        return QStyledItemDelegate.eventFilter(self, editor, event);
+
 
 class BookmarkDelegate(QStyledItemDelegate):
     def __init__(self, parent, model):
@@ -858,6 +866,8 @@ class EscCalendarWidget(QCalendarWidget):
         if event.key() == Qt.Key_Escape:
             open_popup_date_edit = self.parent().parent()
             open_popup_date_edit.delegate.closeEditor.emit(open_popup_date_edit, QAbstractItemDelegate.NoHint)
+            current_index = open_popup_date_edit.delegate.main_window.current_index()
+            open_popup_date_edit.delegate.main_window.set_selection(current_index,current_index)
 
 
 class OpenPopupDateEdit(QDateEdit):

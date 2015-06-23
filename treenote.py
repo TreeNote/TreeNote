@@ -571,7 +571,7 @@ class MainWindow(QMainWindow):
         settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
 
         # save selection
-        current_index = self.focused_column().view.selectionModel().currentIndex()
+        current_index = self.current_index()
         settings.setValue(SELECTED_ID, self.focused_column().filter_proxy.getItem(current_index).id)
 
         # save theme
@@ -1049,14 +1049,14 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), +1)
 
     def insert_child(self):
-        index = self.focused_column().view.selectionModel().currentIndex()
+        index = self.current_index()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:
             # save the edit of the yet open editor
             self.focused_column().view.selectionModel().currentChanged.emit(index, index)
         self.focused_column().filter_proxy.insert_row(0, index)
 
     def insert_row(self):
-        index = self.focused_column().view.selectionModel().currentIndex()
+        index = self.current_index()
         if self.focused_column().view.hasFocus():
             self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
         elif self.focused_column().view.state() == QAbstractItemView.EditingState:
@@ -1082,7 +1082,7 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def edit_row(self):
-        current_index = self.focused_column().view.selectionModel().currentIndex()
+        current_index = self.current_index()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:  # change column with tab key
             next_column_number = (current_index.column() + 1) % 3
             sibling_index = current_index.sibling(current_index.row(), next_column_number)
@@ -1093,6 +1093,9 @@ class MainWindow(QMainWindow):
         else:
             self.focused_column().view.setFocus()
 
+    def current_index(self):
+        return self.focused_column().view.selectionModel().currentIndex()
+
     def toggle_task(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
             self.focused_column().filter_proxy.toggle_task(row_index)
@@ -1102,7 +1105,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.toggle_project(row_index)
 
     def append_repeat(self):
-        current_index = self.focused_column().view.selectionModel().currentIndex()
+        current_index = self.current_index()
         self.focused_column().filter_proxy.set_data(current_index.data() + ' repeat=1w', index=current_index)
         self.edit_row()
 
@@ -1141,7 +1144,7 @@ class MainWindow(QMainWindow):
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        new_column.focus_button.clicked.connect(lambda: self.focus_index(self.focused_column().view.selectionModel().currentIndex()))
+        new_column.focus_button.clicked.connect(lambda: self.focus_index(self.current_index()))
 
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
