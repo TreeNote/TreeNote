@@ -275,10 +275,6 @@ class MainWindow(QMainWindow):
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('undoAction', self.item_model.undoStack.createUndoAction(self))
-            self.undoAction.setShortcut('CTRL+Z')
-            add_action('redoAction', self.item_model.undoStack.createRedoAction(self))
-            self.redoAction.setShortcut('CTRL+Shift+Z')
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -289,8 +285,6 @@ class MainWindow(QMainWindow):
             self.databasesMenu.addAction(self.settingsAct)
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
-            self.fileMenu.addAction(self.undoAction)
-            self.fileMenu.addAction(self.redoAction)
             self.fileMenu.addAction(self.editShortcutAction)
             self.fileMenu.addAction(self.editBookmarkAction)
             self.fileMenu.addAction(self.deleteBookmarkAction)
@@ -337,22 +331,7 @@ class MainWindow(QMainWindow):
             self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
             self.helpMenu.addAction(self.aboutAct)
 
-            # make single key menu shortcuts work on Mac OS X, too
-            # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
-            if sys.platform == "darwin":
-                self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
-                self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-                for action in self.all_actions:
-                    if action is self.moveBookmarkUpAction or \
-                                    action is self.moveBookmarkDownAction or \
-                                    action is self.deleteBookmarkAction:  # the shortcuts of these are already used
-                        continue
-                    keySequence = action.shortcut()
-                    if keySequence.count() == 1:
-                        shortcut = QShortcut(keySequence, self)
-                        shortcut.activated.connect(self.signalMapper.map)
-                        self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
-                        action.shortcut = QKeySequence()  # disable the old shortcut
+            self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
 
             self.split_window()
             self.reset_view()  # inits checkboxes
@@ -405,11 +384,28 @@ class MainWindow(QMainWindow):
             palette = settings.value('theme')
             if palette is not None:
                 palette = self.light_palette if palette == 'light' else self.dark_palette
-            else:
-                palette = self.dark_palette  # standard theme
+            else: # set standard theme
+                palette = self.light_palette  if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
         except Exception as e:
             print(e)  # exception handling is in get_db
+
+    def make_single_key_menu_shortcuts_work_on_mac(self, actions):
+        # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
+        if sys.platform == "darwin":
+            self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
+            self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
+            for action in actions:
+                if action is self.moveBookmarkUpAction or \
+                                action is self.moveBookmarkDownAction or \
+                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
+                    continue
+                keySequence = action.shortcut()
+                if keySequence.count() == 1:
+                    shortcut = QShortcut(keySequence, self)
+                    shortcut.activated.connect(self.signalMapper.map)
+                    self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
+                    action.shortcut = QKeySequence()  # disable the old shortcut
 
     def expand_saved(self):
         current_server_name = self.get_current_server().bookmark_name
@@ -529,9 +525,22 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
         self.quicklinks_view.setModel(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
+        self.set_undo_actions()
         self.old_search_text = 'dont save expanded states of next db when switching to next db'
         self.setup_tag_model()
         self.reset_view()
+
+    def set_undo_actions(self):
+        if hasattr(self, 'undoAction'):
+            self.fileMenu.removeAction(self.undoAction)
+            self.fileMenu.removeAction(self.redoAction)
+        self.undoAction = self.item_model.undoStack.createUndoAction(self)
+        self.undoAction.setShortcut('CTRL+Z')
+        self.redoAction = self.item_model.undoStack.createRedoAction(self)
+        self.redoAction.setShortcut('CTRL+Shift+Z')
+        self.make_single_key_menu_shortcuts_work_on_mac([self.undoAction,self.redoAction])
+        self.fileMenu.insertAction(self.editShortcutAction,self.undoAction)
+        self.fileMenu.insertAction(self.editShortcutAction,self.redoAction)
 
     def closeEvent(self, event):
         settings = QSettings()

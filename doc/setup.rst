@@ -62,3 +62,8 @@ Edit this documentation
 -----------------------
 This documentation is built from the sources in GitHub. Click on the link at the top right to edit them.
 It is written in reStructuredText, so have a short look at the `syntax manual <http://rest-sphinx-memo.readthedocs.org/en/latest/ReST.html>`_. You may want to use a `preview-software <https://mg.pov.lt/restview/>`_.
+
+
+Close issues
+------------
+By using a commit message like ``fixed #18 'Ask when the user deletes a database'``
