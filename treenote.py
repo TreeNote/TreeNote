@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
             add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
-            add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, triggered=self.append_repeat), list=self.item_view_actions)
+            add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
             add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='F', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
@@ -1111,8 +1111,10 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.toggle_project(row_index)
 
     def append_repeat(self):
-        current_index = self.current_index()
-        self.focused_column().filter_proxy.set_data(current_index.data() + ' repeat=1w', index=current_index)
+        index = self.current_index()
+        self.focused_column().filter_proxy.set_data(model.TASK, index=index, field='type')
+        self.focused_column().filter_proxy.set_data(QDate.currentDate().toString('dd.MM.yy'), index=index, field='date')
+        self.focused_column().filter_proxy.set_data(index.data() + ' repeat=1w', index=index)
         self.edit_row()
 
     @pyqtSlot(str)
