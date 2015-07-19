@@ -16,6 +16,6 @@ Set up the deployment environment
 
 Deploy
 ^^^^^^^^^^^^^
-* Windows: Execute in cmd.exe: ``pyinstaller --windowed --icon=/images/logo_32.ico treenote.py``
+* Windows: Execute in cmd.exe: ``pyinstaller --windowed --icon=/images/logo.ico treenote.py``
 
-* Ubuntu: ``pyinstaller --windowed --icon=/images/logo_32.png treenote.py``
+* Ubuntu: ``pyinstaller --windowed --icon=/images/logo.png treenote.py``
