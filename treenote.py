@@ -21,6 +21,7 @@ import time
 import os
 import logging
 import traceback
+import json
 
 import sip  # for pyinstaller
 from PyQt5.QtCore import *
@@ -107,6 +108,7 @@ class MainWindow(QMainWindow):
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
+                servers = json.loads(servers)
                 for bookmark_name, url, db_name in servers:
                     add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
 
@@ -566,7 +568,7 @@ class MainWindow(QMainWindow):
         server_list = []
         for server in self.server_model.servers:
             server_list.append((server.bookmark_name, server.url, server.database_name))
-        settings.setValue('databases', server_list)
+        settings.setValue('databases', json.dumps(server_list))
 
         # save expanded items
         self.save_expanded_state()
