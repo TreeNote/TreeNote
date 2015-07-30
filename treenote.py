@@ -18,8 +18,11 @@ import sys
 from functools import partial
 import json
 import time
+import os
+import logging
+import traceback
 
-import sip # for pyinstaller
+import sip  # for pyinstaller
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -29,6 +32,9 @@ import qrc_resources
 import model
 import server_model
 import tag_model
+
+logging.basicConfig(filename=os.path.dirname(sys.executable) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
@@ -78,7 +84,7 @@ class MainWindow(QMainWindow):
 
             # load databases
             settings = QSettings()
-            servers = settings.value('databases')  # second value is loaded, if nothing was saved before in the settings
+            servers = settings.value('databases')
 
             def add_db(bookmark_name, url, db_name, db):
                 new_server = server_model.Server(bookmark_name, url, db_name, db)
@@ -88,7 +94,7 @@ class MainWindow(QMainWindow):
             if servers is None:
                 def load_db_from_file(bookmark_name, db_name):
                     db = self.get_db('', db_name, create_root=False)
-                    with open(db_name + '.txt', 'r') as file:
+                    with open(os.path.dirname(sys.executable) + os.sep + db_name + '.txt', 'r') as file:
                         doc_list = json.load(file)
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
@@ -97,7 +103,7 @@ class MainWindow(QMainWindow):
                 load_db_from_file('Local', 'local')
 
                 db = self.get_db('', 'local_bookmarks', create_root=False)
-                with open('local_bookmarks.txt', 'r') as file:
+                with open(os.path.dirname(sys.executable) + os.sep + 'local_bookmarks.txt', 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
@@ -275,7 +281,7 @@ class MainWindow(QMainWindow):
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='F', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='C', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -344,7 +350,7 @@ class MainWindow(QMainWindow):
             self.update_actions()
 
             # restore previous position etc
-            self.resize(settings.value('size', QSize(800, 600)))
+            self.resize(settings.value('size', QSize(800, 600)))  # second value is loaded, if nothing was saved before in the settings
             self.move(settings.value('pos', QPoint(200, 200)))
 
             mainSplitter_state = settings.value('mainSplitter')
@@ -389,11 +395,12 @@ class MainWindow(QMainWindow):
             palette = settings.value('theme')
             if palette is not None:
                 palette = self.light_palette if palette == 'light' else self.dark_palette
-            else: # set standard theme
-                palette = self.light_palette  if sys.platform == "win32" else self.dark_palette
+            else:  # set standard theme
+                palette = self.light_palette if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
-        except Exception as e:
-            print(e)  # exception handling is in get_db
+        except Exception as e:  # exception handling is in get_db
+            traceback.print_exc()
+            logger.exception(e)
 
     def make_single_key_menu_shortcuts_work_on_mac(self, actions):
         # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
@@ -543,9 +550,9 @@ class MainWindow(QMainWindow):
         self.undoAction.setShortcut('CTRL+Z')
         self.redoAction = self.item_model.undoStack.createRedoAction(self)
         self.redoAction.setShortcut('CTRL+Shift+Z')
-        self.make_single_key_menu_shortcuts_work_on_mac([self.undoAction,self.redoAction])
-        self.fileMenu.insertAction(self.editShortcutAction,self.undoAction)
-        self.fileMenu.insertAction(self.editShortcutAction,self.redoAction)
+        self.make_single_key_menu_shortcuts_work_on_mac([self.undoAction, self.redoAction])
+        self.fileMenu.insertAction(self.editShortcutAction, self.undoAction)
+        self.fileMenu.insertAction(self.editShortcutAction, self.redoAction)
         self.fileMenu.insertAction(self.editShortcutAction, self.fileMenu.addSeparator())
 
     def closeEvent(self, event):
