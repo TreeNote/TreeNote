@@ -13,10 +13,10 @@ import sys
 import socket
 import re
 from pprint import pprint
-
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from xml.sax.saxutils import escape
 
 
 def QDateFromString(string):
@@ -760,11 +760,12 @@ class Delegate(QStyledItemDelegate):
         super(Delegate, self).__init__(parent)
         self.model = model
         self.main_window = parent
+        self.index_height_dict = {}
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
 
-        html = index.data()
+        html = escape(index.data())
         # color tags by surrounding them with coloring html brackets
         html = re.sub(r'( ' + DELIMITER + r'\w*($| |\n))', r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
@@ -776,6 +777,7 @@ class Delegate(QStyledItemDelegate):
 
         text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
         html = "<font color={}>{}</font>".format(text_color, html)
+        html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
         document = QTextDocument()
         textOption = QTextOption()
@@ -787,10 +789,12 @@ class Delegate(QStyledItemDelegate):
         painter.save()
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        textRect = self.textRect(index, option)
-        painter.translate(textRect.x(), textRect.y())
+        painter.translate(option.rect.left() + GAP_FOR_CHECKBOX, option.rect.top() + self.main_window.padding)
         document.drawContents(painter)
         painter.restore()
+        if document.size().height() != self.index_height_dict.get(index, None):
+            self.index_height_dict[index] = document.size().height()
+            self.sizeHintChanged.emit(index)
 
         if item.type != NOTE and index.column() == 0:  # set icon of task or project
             painter.save()
@@ -800,15 +804,13 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
-    def textRect(self, index, option):  # source: http://3adly.blogspot.de/2013/09/qt-custom-qlistview-delegate-with-word.html
-        font = QApplication.font()
-        fontMetrics = QFontMetrics(font)
-        gap_for_checkbox = 17
-        return fontMetrics.boundingRect(option.rect.left() + gap_for_checkbox, option.rect.top() + self.main_window.padding, option.rect.width(), 0,
-                                        Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, index.data())
-
-    def sizeHint(self, option, index):
-        return QSize(0, self.textRect(index, option).height() + self.main_window.padding * 2)
+    def sizeHint(self, option, index):  # source: http://3adly.blogspot.de/2013/09/qt-custom-qlistview-delegate-with-word.html
+        if index not in self.index_height_dict:
+            # since the following two lines don't work, we save the row height in a dict and return that height
+            # boundingRect = option.fontMetrics.boundingRect(option.rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, index.data())
+            # return QSize(boundingRect.width(), boundingRect.height() + self.main_window.padding * 2) # padding at top and bottom, therefore * 2
+            return QSize(1, 1)
+        return QSize(0, self.index_height_dict[index] + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
@@ -1044,3 +1046,4 @@ TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'children', 'type', 'date', 'color', DELETED,
 NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_COLOR, DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
+GAP_FOR_CHECKBOX = 17
