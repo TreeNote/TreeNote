@@ -12,11 +12,12 @@
 import sys
 import socket
 import re
-from pprint import pprint
+
+from xml.sax.saxutils import escape
+
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from xml.sax.saxutils import escape
 
 
 def QDateFromString(string):
@@ -783,7 +784,7 @@ class Delegate(QStyledItemDelegate):
         textOption = QTextOption()
         textOption.setWrapMode(QTextOption.WordWrap)
         document.setDefaultTextOption(textOption)
-        document.setTextWidth(option.rect.width())
+        document.setTextWidth(option.rect.width() - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
         document.setHtml(html)
 
         painter.save()
@@ -931,10 +932,10 @@ class OpenPopupDateEdit(QDateEdit):
 
 
 class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
-    def __init__(self, parent, model, delegate, separator=' '):
+    def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
         self.delegate = delegate
-        self._separator = separator
+        self._separator = ' '
         self._completer = QCompleter(model)
         self._completer.setFilterMode(Qt.MatchContains)
         self._completer.setWidget(self)
@@ -965,7 +966,7 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             if event.modifiers() & Qt.MetaModifier:  # new line on ctrl + enter
-                pass
+                self.setFixedHeight(self.document().size().height() + self.delegate.main_window.padding * 2)
             else:  # complete edit on enter
                 self.delegate.commitData.emit(self)
                 self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
