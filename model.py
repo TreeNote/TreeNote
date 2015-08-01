@@ -764,31 +764,42 @@ class Delegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
 
-        word_list = index.data().split()
-        for idx, word in enumerate(word_list):
-            if word[0] == DELIMITER:
-                word_list[idx] = "<font color={}>{}</font>".format(TAG_COLOR.name(), word)
-            elif len(re.findall(r'repeat=\d(d|w|m|y)($| )', word)) > 0:
-                word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
-        document = QTextDocument()
-        html = ' '.join(word_list)
+        # word_list = index.data().split()
+        # for idx, word in enumerate(word_list):
+        #     if word[0] == DELIMITER:
+        #         word_list[idx] = "<font color={}>{}</font>".format(TAG_COLOR.name(), word)
+        #     elif len(re.findall(r'repeat=\d(d|w|m|y)($| )', word)) > 0:
+        #         word_list[idx] = "<font color={}>{}</font>".format(REPEAT_COLOR.name(), word)
+        # document = QTextDocument()
+        # html = ' '.join(word_list)
         is_not_available = item.type == TASK and not self.model.is_task_available(index)
-        if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
-            html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
-        if option.state & QStyle.State_Selected:
-            color = self.main_window.palette().highlight().color()
-        elif option.features == QStyleOptionViewItem.Alternate:
-            color = QApplication.palette().alternateBase()
-        else:
-            color = QApplication.palette().base()
-        text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
-        html = "<font color={}>{}</font>".format(text_color, html)
-        document.setHtml(html)
+        # if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
+        #     html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
+        # if option.state & QStyle.State_Selected:
+        #     color = self.main_window.palette().highlight().color()
+        # elif option.features == QStyleOptionViewItem.Alternate:
+        #     color = QApplication.palette().alternateBase()
+        # else:
+        #     color = QApplication.palette().base()
+        # text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
+        # html = "<font color={}>{}</font>".format(text_color, html)
+        # document.setHtml(html)
+        # painter.save()
+        # painter.fillRect(option.rect, color)
+        # gap_for_checkbox = 17
+        # # painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
+        # # document.drawContents(painter)
+        # painter.setFont(QFont('Arial',  15))
+        # painter.drawText(option.rect.x() + gap_for_checkbox - 2,option.rect.y() - 3,"THIS IS");
+        # painter.setPen(Qt.green)
+        # painter.drawText(option.rect.x() + gap_for_checkbox - 2 + 20,option.rect.y() - 3,"THIS IS MY GREEN PDF TEXT..");
+        # painter.restore()
+
+
         painter.save()
-        painter.fillRect(option.rect, color)
-        gap_for_checkbox = 17
-        painter.translate(option.rect.x() + gap_for_checkbox - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
-        document.drawContents(painter)
+        if option.state & QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        painter.drawText(self.textRect(index, option), Qt.AlignLeft|Qt.AlignTop|Qt.TextWordWrap, index.data())
         painter.restore()
 
         if item.type != NOTE and index.column() == 0:  # set icon of task or project
@@ -799,11 +810,21 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
+    def textRect(self, index, option):
+        font = QApplication.font()
+        fontMetrics = QFontMetrics(font)
+        gap_for_checkbox = 17
+        return fontMetrics.boundingRect(option.rect.left() + gap_for_checkbox, option.rect.top() + self.main_window.padding, option.rect.width(), 0,
+                                            Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, index.data())
+
+    def sizeHint(self, option, index):
+        return QSize(0,self.textRect(index, option).height() + self.main_window.padding * 2)
+
     def createEditor(self, parent, option, index):
         if index.column() == 0:
             suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False)
-            edit = AutoCompleteEdit(parent, list(suggestions_model))
-            edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
+            edit = AutoCompleteEdit(parent, list(suggestions_model), self)
+            edit.setStyleSheet('AutoCompleteEdit {padding-left: 12px;padding-top: ' + str(self.main_window.padding - 5) + 'px;}')
             return edit
         if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
@@ -820,10 +841,10 @@ class Delegate(QStyledItemDelegate):
             return line_edit
 
     def setEditorData(self, editor, index):
-        QStyledItemDelegate.setEditorData(self, editor, index)
+        editor.setText(index.data())
 
     def setModelData(self, editor, model, index):
-        QStyledItemDelegate.setModelData(self, editor, model, index)
+        model.setData(index, editor.toPlainText())
 
     def eventFilter(self, editor, event):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:
@@ -917,9 +938,10 @@ class OpenPopupDateEdit(QDateEdit):
         return False  # don't stop the event being handled further
 
 
-class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
-    def __init__(self, parent, model, separator=' '):
+class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+    def __init__(self, parent, model, delegate, separator=' '):
         super(AutoCompleteEdit, self).__init__(parent)
+        self.delegate = delegate
         self._separator = separator
         self._completer = QCompleter(model)
         self._completer.setFilterMode(Qt.MatchContains)
@@ -939,15 +961,24 @@ class AutoCompleteEdit(QLineEdit):  # source: http://blog.elentok.com/2011/08/au
         self.setText(old_text_minus_new_word + completion + ' ')
 
     def textUnderCursor(self):
-        text = self.text()
+        text = self.toPlainText()
         textUnderCursor = ''
-        i = self.cursorPosition() - 1
+        i = self.textCursor().position() - 1
         while i >= 0 and text[i] != self._separator:
             textUnderCursor = text[i] + textUnderCursor
             i -= 1
         return textUnderCursor
 
     def keyPressEvent(self, event):
+        # multiline editing
+        if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+            if event.modifiers() & Qt.MetaModifier: # new line on ctrl + enter
+                pass
+            else: # complete edit on enter
+                self.delegate.commitData.emit(self)
+                self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
+
+        # completer stuff
         if self._completer.popup().isVisible():
             if event.key() in self._keysToIgnore:
                 event.ignore()

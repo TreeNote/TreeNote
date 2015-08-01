@@ -22,6 +22,7 @@ import os
 import logging
 import traceback
 import json
+import requests
 
 import sip  # for pyinstaller
 from PyQt5.QtCore import *
@@ -76,6 +77,21 @@ class MainWindow(QMainWindow):
 
             # font = QFont('Arial', 16)
             # app.setFont(font)
+            self.padding = 17
+
+            data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
+            print(data['tag_name'])  # version number
+            print(data['published_at'])
+            print(data['body'])  # changelog
+            for download in data['assets']:
+                if sys.platform == "win32" and 'win' not in download['name']:
+                    continue
+                elif sys.platform == "linux" and 'linux' not in download['name']:
+                    continue
+                elif sys.platform == "darwin" and 'mac' not in download['name']:
+                    continue
+                print(download['browser_download_url'])
+                break
 
             self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
             self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
