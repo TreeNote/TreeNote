@@ -802,11 +802,12 @@ class Delegate(QStyledItemDelegate):
             type = NOT_AVAILABLE_TASK if is_not_available else item.type
             icon = QImage(':/' + type)
             qImage = icon.scaledToHeight(iconsize.height())
-            painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height()/2, qImage) # place in the middle of the row
+            painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)  # place in the middle of the row
             painter.restore()
 
     def create_document(self, html, option):
         document = QTextDocument()
+        document.setDefaultFont(QFont(FONT, self.main_window.fontsize))
         textOption = QTextOption()
         textOption.setWrapMode(QTextOption.WordWrap)
         document.setDefaultTextOption(textOption)
@@ -1061,3 +1062,4 @@ NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_C
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
 GAP_FOR_CHECKBOX = 17
+FONT = 'Source Sans Pro'

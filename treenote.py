@@ -48,7 +48,6 @@ EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import into a new  database'
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -74,10 +73,6 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-
-            # font = QFont('Arial', 16)
-            # app.setFont(font)
-            self.padding = 3
 
             data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
             print(data['tag_name'])  # version number
@@ -127,6 +122,11 @@ class MainWindow(QMainWindow):
                 servers = json.loads(servers)
                 for bookmark_name, url, db_name in servers:
                     add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
+
+            # set font-size and padding
+            app.setFont(QFont(model.FONT, 15))
+            self.fontsize = settings.value('fontsize', 15)  # second value is loaded, if nothing was saved before in the settings
+            self.padding = 2
 
             self.item_model = self.server_model.servers[0].model
 
@@ -300,6 +300,8 @@ class MainWindow(QMainWindow):
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
             add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='C', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('increaseFontAction', QAction(self.tr('&Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
+            add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -353,6 +355,8 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.focusAction)
             self.viewMenu.addAction(self.openLinkAction)
             self.viewMenu.addAction(self.resetViewAction)
+            self.viewMenu.addAction(self.increaseFontAction)
+            self.viewMenu.addAction(self.decreaseFontAction)
 
             self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
             self.fill_bookmarkShortcutsMenu()
@@ -579,6 +583,7 @@ class MainWindow(QMainWindow):
         settings.setValue('size', self.size())
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
         settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
+        settings.setValue('fontsize', self.fontsize)
 
         # save databases
         server_list = []
@@ -916,6 +921,10 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
+
+    def change_font_size(self, step):
+        self.fontsize += step
+        self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
@@ -1567,6 +1576,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName(QApplication.translate('main', 'TreeNote'))
     app.setWindowIcon(QIcon(':/icon'))
+    QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
 
     form = MainWindow()
     form.show()
