@@ -801,7 +801,8 @@ class Delegate(QStyledItemDelegate):
             iconsize = option.decorationSize
             type = NOT_AVAILABLE_TASK if is_not_available else item.type
             icon = QImage(':/' + type)
-            painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
+            qImage = icon.scaledToHeight(iconsize.height())
+            painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height()/2, qImage) # place in the middle of the row
             painter.restore()
 
     def create_document(self, html, option):
@@ -868,7 +869,8 @@ class BookmarkDelegate(QStyledItemDelegate):
             shortcut = shortcut.replace('Ctrl+', '')
         if shortcut != '':
             shortcut += ' '
-        document.setPlainText(shortcut + db_item[TEXT])
+        first_text_row = re.sub(r'\n(.|\n)*', ' ...', db_item[TEXT])
+        document.setPlainText(shortcut + first_text_row)
         if option.state & QStyle.State_Selected:
             color = self.main_window.palette().highlight().color()
         else:
