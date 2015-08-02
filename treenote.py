@@ -48,6 +48,7 @@ EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import into a new  database'
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -93,6 +94,8 @@ class MainWindow(QMainWindow):
             self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
             self.server_model = server_model.ServerModel()
+
+            self.flatten = False
 
             # load databases
             settings = QSettings()
@@ -304,7 +307,6 @@ class MainWindow(QMainWindow):
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
             add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
-
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -696,6 +698,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(bool)
     def filter_flatten_view(self, flatten):
+        self.flatten = flatten
         if flatten:
             self.append_replace_to_searchbar(model.FLATTEN, 'yes')
         else:
@@ -1224,7 +1227,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 11, 0, 0)
         search_holder.setLayout(layout)
 
-        new_column.view = QTreeView()
+        new_column.view = ResizeTreeView()
         new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }')
         new_column.view.setAlternatingRowColors(True)
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -1239,7 +1242,7 @@ class MainWindow(QMainWindow):
         new_column.filter_proxy.filter = ''
 
         new_column.view.setModel(new_column.filter_proxy)
-        new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy))
+        new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy, new_column.view.header()))
         new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
@@ -1578,6 +1581,11 @@ class CustomHeaderView(QHeaderView):
         opt.rect = rect
         opt.text = self.text
         QApplication.style().drawControl(QStyle.CE_Header, opt, painter, self)
+
+
+class ResizeTreeView(QTreeView):
+    def resizeEvent(self, event):
+        self.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
 
 if __name__ == '__main__':

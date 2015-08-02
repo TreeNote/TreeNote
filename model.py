@@ -208,9 +208,6 @@ class TreeModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
-        if role == Qt.SizeHintRole:
-            return QSize(-1, 21)  # row height
-
         if role != Qt.DisplayRole and role != Qt.EditRole:
             return None
 
@@ -756,11 +753,11 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
-    def __init__(self, parent, model):
+    def __init__(self, parent, model, view_header):
         super(Delegate, self).__init__(parent)
         self.model = model
         self.main_window = parent
-        self.index_height_dict = {}
+        self.view_header = view_header
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
@@ -779,10 +776,7 @@ class Delegate(QStyledItemDelegate):
         html = "<font color={}>{}</font>".format(text_color, html)
         html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
-        document = self.create_document(html, option)
-        if document.size().height() != self.index_height_dict.get(index, None):
-            self.index_height_dict[index] = document.size().height()
-            self.sizeHintChanged.emit(index)
+        document = self.create_document(html, option.rect.width())
 
         painter.save()
         pen = QPen()
@@ -809,22 +803,28 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)  # place in the middle of the row
             painter.restore()
 
-    def create_document(self, html, option):
+    def create_document(self, html, available_width):
         document = QTextDocument()
         document.setDefaultFont(QFont(FONT, self.main_window.fontsize))
         textOption = QTextOption()
         textOption.setWrapMode(QTextOption.WordWrap)
         document.setDefaultTextOption(textOption)
-        document.setTextWidth(option.rect.width() - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
+        document.setTextWidth(available_width - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
         document.setHtml(html)
         return document
 
-    def sizeHint(self, option, index):  # source: http://3adly.blogspot.de/2013/09/qt-custom-qlistview-delegate-with-word.html
-        if index not in self.index_height_dict:
-            html = escape(index.data())
-            document = self.create_document(html.replace('\n', '<br>'), option)
-            return QSize(0, document.size().height() + self.main_window.padding * 2)
-        return QSize(0, self.index_height_dict[index] + self.main_window.padding * 2)
+    def sizeHint(self, option, index):
+        html = escape(index.data())
+        column_width = self.view_header.sectionSize(0)
+        indention = self.indention_level(index) * 20  # 20 = space left of all rows
+        document = self.create_document(html.replace('\n', '<br>'), column_width - indention)
+        return QSize(0, document.size().height() + self.main_window.padding * 2)
+
+    def indention_level(self, index, level=1):
+        if self.main_window.flatten: return 1
+        if index.parent() == QModelIndex():
+            return level
+        return self.indention_level(index.parent(), level=level + 1)
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
@@ -954,8 +954,8 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.setFilterMode(Qt.MatchContains)
         self._completer.setWidget(self)
         self._completer.activated[str].connect(self._insertCompletion)
-        self._keysToIgnore = [Qt.Key_Enter,Qt.Key_Return, Qt.Key_Escape,Qt.Key_Tab]
-        self.setFont(QFont(FONT,self.delegate.main_window.fontsize))
+        self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
+        self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
 
     def _insertCompletion(self, completion):
         """
