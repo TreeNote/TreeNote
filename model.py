@@ -12,7 +12,6 @@
 import sys
 import socket
 import re
-
 from xml.sax.saxutils import escape
 
 from PyQt5.QtCore import *
@@ -768,7 +767,7 @@ class Delegate(QStyledItemDelegate):
 
         html = escape(index.data())
         # color tags by surrounding them with coloring html brackets
-        html = re.sub(r'( ' + DELIMITER + r'\w*($| |\n))', r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
+        html = re.sub(r'((\n|^| )' + DELIMITER + r'\w*($| |\n))', r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
@@ -950,8 +949,13 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         This is the event handler for the QCompleter.activated(QString) signal,
         it is called when the user selects an item in the completer popup.
         """
-        old_text_minus_new_word = self.toPlainText()[:-len(self._completer.completionPrefix())]
-        self.setText(old_text_minus_new_word + completion + ' ')
+        before_tag = self.toPlainText()[:self.textCursor().position() - len(self._completer.completionPrefix())]
+        after_tag = self.toPlainText()[self.textCursor().position():]
+        until_cursor = before_tag + completion + ' '
+        self.setText(until_cursor + after_tag)
+        cursor = self.textCursor()
+        cursor.setPosition(len(until_cursor))
+        self.setTextCursor(cursor)
 
     def textUnderCursor(self):
         text = self.toPlainText()
@@ -965,11 +969,12 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
     def keyPressEvent(self, event):
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
-            if event.modifiers() & Qt.MetaModifier:  # new line on ctrl + enter
+            if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier:  # new line on ctrl + enter
                 self.setFixedHeight(self.document().size().height() + self.delegate.main_window.padding * 2)
             else:  # complete edit on enter
-                self.delegate.commitData.emit(self)
-                self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
+                if not self._completer.popup().isVisible():
+                    self.delegate.commitData.emit(self)
+                    self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
 
         # completer stuff
         if self._completer.popup().isVisible():
