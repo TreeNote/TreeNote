@@ -760,6 +760,7 @@ class Delegate(QStyledItemDelegate):
         super(Delegate, self).__init__(parent)
         self.model = model
         self.main_window = parent
+        self.index_height_dict = {}
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
@@ -779,6 +780,9 @@ class Delegate(QStyledItemDelegate):
         html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
         document = self.create_document(html, option)
+        if document.size().height() != self.index_height_dict.get(index, None):
+            self.index_height_dict[index] = document.size().height()
+            self.sizeHintChanged.emit(index)
 
         painter.save()
         pen = QPen()
@@ -816,9 +820,11 @@ class Delegate(QStyledItemDelegate):
         return document
 
     def sizeHint(self, option, index):  # source: http://3adly.blogspot.de/2013/09/qt-custom-qlistview-delegate-with-word.html
-        html = escape(index.data())
-        document = self.create_document(html.replace('\n', '<br>'), option)
-        return QSize(0, document.size().height() + self.main_window.padding * 2)
+        if index not in self.index_height_dict:
+            html = escape(index.data())
+            document = self.create_document(html.replace('\n', '<br>'), option)
+            return QSize(0, document.size().height() + self.main_window.padding * 2)
+        return QSize(0, self.index_height_dict[index] + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
@@ -948,10 +954,8 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.setFilterMode(Qt.MatchContains)
         self._completer.setWidget(self)
         self._completer.activated[str].connect(self._insertCompletion)
-        self._keysToIgnore = [Qt.Key_Enter,
-                              Qt.Key_Return,
-                              Qt.Key_Escape,
-                              Qt.Key_Tab]
+        self._keysToIgnore = [Qt.Key_Enter,Qt.Key_Return, Qt.Key_Escape,Qt.Key_Tab]
+        self.setFont(QFont(FONT,self.delegate.main_window.fontsize))
 
     def _insertCompletion(self, completion):
         """
