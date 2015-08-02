@@ -16,18 +16,21 @@ import re
 import subprocess
 import sys
 from functools import partial
+import json
 import time
 import os
 import logging
 import traceback
 import json
-
 import requests
+
+import sip  # for pyinstaller
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import couchdb
 
+import qrc_resources
 import model
 import server_model
 import tag_model

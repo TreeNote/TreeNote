@@ -760,7 +760,6 @@ class Delegate(QStyledItemDelegate):
         super(Delegate, self).__init__(parent)
         self.model = model
         self.main_window = parent
-        self.index_height_dict = {}
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
@@ -779,12 +778,7 @@ class Delegate(QStyledItemDelegate):
         html = "<font color={}>{}</font>".format(text_color, html)
         html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
-        document = QTextDocument()
-        textOption = QTextOption()
-        textOption.setWrapMode(QTextOption.WordWrap)
-        document.setDefaultTextOption(textOption)
-        document.setTextWidth(option.rect.width() - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
-        document.setHtml(html)
+        document = self.create_document(html, option)
 
         painter.save()
         pen = QPen()
@@ -802,10 +796,6 @@ class Delegate(QStyledItemDelegate):
         document.drawContents(painter)
         painter.restore()
 
-        if document.size().height() != self.index_height_dict.get(index, None):
-            self.index_height_dict[index] = document.size().height()
-            self.sizeHintChanged.emit(index)
-
         if item.type != NOTE and index.column() == 0:  # set icon of task or project
             painter.save()
             iconsize = option.decorationSize
@@ -814,13 +804,19 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.y() + 3, icon.scaledToHeight(iconsize.height()))
             painter.restore()
 
+    def create_document(self, html, option):
+        document = QTextDocument()
+        textOption = QTextOption()
+        textOption.setWrapMode(QTextOption.WordWrap)
+        document.setDefaultTextOption(textOption)
+        document.setTextWidth(option.rect.width() - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
+        document.setHtml(html)
+        return document
+
     def sizeHint(self, option, index):  # source: http://3adly.blogspot.de/2013/09/qt-custom-qlistview-delegate-with-word.html
-        if index not in self.index_height_dict:
-            # since the following two lines don't work, we save the row height in a dict and return that height
-            # boundingRect = option.fontMetrics.boundingRect(option.rect, Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap, index.data())
-            # return QSize(boundingRect.width(), boundingRect.height() + self.main_window.padding * 2) # padding at top and bottom, therefore * 2
-            return QSize(1, 1)
-        return QSize(0, self.index_height_dict[index] + self.main_window.padding * 2)
+        html = escape(index.data())
+        document = self.create_document(html.replace('\n', '<br>'), option)
+        return QSize(0, document.size().height() + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
@@ -980,7 +976,7 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier:  # new line on ctrl + enter
-                self.setFixedHeight(self.document().size().height() + self.delegate.main_window.padding * 2)
+                self.setFixedHeight(self.document().size().height() + 25)
             else:  # complete edit on enter
                 if not self._completer.popup().isVisible():
                     self.delegate.commitData.emit(self)
