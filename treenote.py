@@ -16,21 +16,18 @@ import re
 import subprocess
 import sys
 from functools import partial
-import json
 import time
 import os
 import logging
 import traceback
 import json
-import requests
 
-import sip  # for pyinstaller
+import requests
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import couchdb
 
-import qrc_resources
 import model
 import server_model
 import tag_model
@@ -77,7 +74,7 @@ class MainWindow(QMainWindow):
 
             # font = QFont('Arial', 16)
             # app.setFont(font)
-            self.padding = 17
+            self.padding = 3
 
             data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
             print(data['tag_name'])  # version number

@@ -787,11 +787,21 @@ class Delegate(QStyledItemDelegate):
         document.setHtml(html)
 
         painter.save()
+        pen = QPen()
+        pen.setBrush(option.palette.highlight())
+        pen.setWidthF(0.2)
+        painter.setPen(pen)
+        y = option.rect.bottomLeft().y()
+        painter.drawLine(0, y, 5000, y)
+        painter.restore()
+
+        painter.save()
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
         painter.translate(option.rect.left() + GAP_FOR_CHECKBOX, option.rect.top() + self.main_window.padding)
         document.drawContents(painter)
         painter.restore()
+
         if document.size().height() != self.index_height_dict.get(index, None):
             self.index_height_dict[index] = document.size().height()
             self.sizeHintChanged.emit(index)
