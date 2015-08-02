@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
             # set font-size and padding
             app.setFont(QFont(model.FONT, 15))
             self.fontsize = settings.value('fontsize', 15)  # second value is loaded, if nothing was saved before in the settings
-            self.padding = 2
+            self.padding = settings.value('padding', 2)
 
             self.item_model = self.server_model.servers[0].model
 
@@ -302,6 +302,9 @@ class MainWindow(QMainWindow):
             add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='C', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
             add_action('increaseFontAction', QAction(self.tr('&Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
+            add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
+            add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
+
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -355,8 +358,11 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.focusAction)
             self.viewMenu.addAction(self.openLinkAction)
             self.viewMenu.addAction(self.resetViewAction)
+            self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
             self.viewMenu.addAction(self.decreaseFontAction)
+            self.viewMenu.addAction(self.increasePaddingAction)
+            self.viewMenu.addAction(self.decreasePaddingAction)
 
             self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
             self.fill_bookmarkShortcutsMenu()
@@ -584,6 +590,7 @@ class MainWindow(QMainWindow):
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
         settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
         settings.setValue('fontsize', self.fontsize)
+        settings.setValue('padding', self.padding)
 
         # save databases
         server_list = []
@@ -924,6 +931,10 @@ class MainWindow(QMainWindow):
 
     def change_font_size(self, step):
         self.fontsize += step
+        self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
+
+    def change_padding(self, step):
+        self.padding += step
         self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def save_expanded_state(self, index=None):
@@ -1574,7 +1585,8 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    app.setApplicationName(QApplication.translate('main', 'TreeNote'))
+    app.setApplicationName('TreeNote')
+    app.setOrganizationName('TreeNote')
     app.setWindowIcon(QIcon(':/icon'))
     QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
 
