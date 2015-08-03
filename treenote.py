@@ -34,6 +34,7 @@ import qrc_resources
 import model
 import server_model
 import tag_model
+import version
 
 logging.basicConfig(filename=os.path.dirname(sys.executable) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -47,6 +48,11 @@ CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import into a new  database'
+APP_FONT_SIZE = 15
+
+
+def git_tag_to_versionnr(git_tag):
+    return int(re.sub(r'\.|v', '', git_tag))
 
 
 class MainWindow(QMainWindow):
@@ -74,20 +80,6 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.HighlightedText, model.TEXT_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
-
-            data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
-            print(data['tag_name'])  # version number
-            print(data['published_at'])
-            print(data['body'])  # changelog
-            for download in data['assets']:
-                if sys.platform == "win32" and 'win' not in download['name']:
-                    continue
-                elif sys.platform == "linux" and 'linux' not in download['name']:
-                    continue
-                elif sys.platform == "darwin" and 'mac' not in download['name']:
-                    continue
-                print(download['browser_download_url'])
-                break
 
             self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
             self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
@@ -127,7 +119,7 @@ class MainWindow(QMainWindow):
                     add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
 
             # set font-size and padding
-            app.setFont(QFont(model.FONT, 15))
+            app.setFont(QFont(model.FONT, APP_FONT_SIZE))
             self.fontsize = settings.value('fontsize', 15)  # second value is loaded, if nothing was saved before in the settings
             self.padding = settings.value('padding', 2)
 
@@ -271,7 +263,7 @@ class MainWindow(QMainWindow):
             add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox().exec()))
+            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox(self).exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
             # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
             add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
@@ -428,9 +420,20 @@ class MainWindow(QMainWindow):
             else:  # set standard theme
                 palette = self.light_palette if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
+
+            self.update_available()
+
         except Exception as e:  # exception handling is in get_db
             traceback.print_exc()
             logger.exception(e)
+
+    def update_available(self):
+        self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
+        skip_this_version = QSettings().value('skip_version') is not None and QSettings().value('skip_version') == self.new_version_data['tag_name']
+        is_newer_version= git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
+        if not skip_this_version and is_newer_version:
+            UpdateDialog(self).exec_()
+        return is_newer_version
 
     def make_single_key_menu_shortcuts_work_on_mac(self, actions):
         # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
@@ -937,8 +940,9 @@ class MainWindow(QMainWindow):
         self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def change_padding(self, step):
-        self.padding += step
-        self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
+        if not (step == -1 and self.padding == 1):
+            self.padding += step
+            self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
@@ -1275,10 +1279,13 @@ class MainWindow(QMainWindow):
 
 
 class AboutBox(QDialog):
-    def __init__(self):
+    def __init__(self, parent):
         super(AboutBox, self).__init__()
-        label = QLabel(self.tr('\
-            TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
+        headline = QLabel('TreeNote')
+        headline.setFont(QFont(model.FONT, 25))
+        aktuell = ' (Update verfügbar)' if parent.update_available() else ' (TreeNote ist aktuell)'
+        label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + aktuell + '<br><br>\
+           TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
             <br>\
             Copyright (C) 2015 Jan Korte<br>\
             <br>\
@@ -1295,9 +1302,11 @@ class AboutBox(QDialog):
         grid = QGridLayout()
         grid.setContentsMargins(20, 20, 20, 20)
         grid.setSpacing(20)
-        grid.addWidget(label, 0, 0)  # row, column
-        grid.addWidget(buttonBox, 1, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(headline, 0, 0)  # row, column
+        grid.addWidget(label, 1, 0)  # row, column
+        grid.addWidget(buttonBox, 2, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
+
 
 
 class SearchBarQLineEdit(QLineEdit):
@@ -1439,6 +1448,55 @@ class RenameTagDialog(QDialog):
     def apply(self):
         self.parent.rename_tag(self.tag, self.line_edit.text())
         super(RenameTagDialog, self).accept()
+
+
+class UpdateDialog(QDialog):
+    def __init__(self, parent):
+        super(UpdateDialog, self).__init__(parent)
+        updateLabel = QLabel(self.tr('A new version of TreeNote is available!'))
+        updateLabel.setFont(QFont(model.FONT, 18))
+        releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
+        releaseNotesEdit.setReadOnly(True)
+        height = releaseNotesEdit.document().size().height() * QFontMetrics(QFont(model.FONT, APP_FONT_SIZE)).height() + 20
+        releaseNotesEdit.setMinimumHeight(height)
+        releaseNotesEdit.setMaximumHeight(height)
+        skipButton = QPushButton('Skip this version')
+        skipButton.clicked.connect(self.skip)
+        remindButton = QPushButton('Remind me later')
+        remindButton.clicked.connect(self.close)
+        downloadButton = QPushButton('Download new version')
+        downloadButton.clicked.connect(self.download)
+
+        grid = QGridLayout()
+        grid.addWidget(updateLabel, 0, 0, 1, -1)  # fromRow, fromColumn, rowSpan, columnSpan
+        grid.addItem(QSpacerItem(-1, 10), 1, 0, 1, 1)
+        grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] + ' is now available - you have ' +
+                                      version.version_nr[1:] + '. Would you like to download it now?')), 2, 0, 1, -1)
+        grid.addItem(QSpacerItem(-1, 10), 3, 0, 1, 1)
+        grid.addWidget(QLabel(self.tr('Release notes:')), 4, 0, 1, -1)
+        grid.addWidget(releaseNotesEdit, 5, 0, 1, -1)
+        grid.addItem(QSpacerItem(-1, 10), 6, 0, 1, 1)
+        grid.addWidget(skipButton, 7, 0, 1, 1, Qt.AlignLeft)
+        grid.addWidget(remindButton, 7, 2, 1, 1, Qt.AlignRight)
+        grid.addWidget(downloadButton, 7, 3, 1, 1, Qt.AlignRight)
+        grid.setContentsMargins(20, 20, 20, 20)
+        self.setLayout(grid)
+        self.setWindowTitle(self.tr('Software Update'))
+
+    def skip(self):
+        QSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
+        self.reject()
+
+    def download(self):
+        for download in self.parent().new_version_data['assets']:
+            if sys.platform == "win32" and 'win' not in download['name']:
+                continue
+            elif sys.platform == "linux" and 'linux' not in download['name']:
+                continue
+            elif sys.platform == "darwin" and 'mac' not in download['name']:
+                continue
+            webbrowser.open(download['browser_download_url'])
+            break
 
 
 class SettingsDialog(QDialog):

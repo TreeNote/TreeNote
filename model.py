@@ -784,7 +784,7 @@ class Delegate(QStyledItemDelegate):
         pen.setWidthF(0.2)
         painter.setPen(pen)
         y = option.rect.bottomLeft().y()
-        painter.drawLine(0, y, 5000, y)
+        painter.drawLine(0, y, self.view_header.length(), y)
         painter.restore()
 
         painter.save()
