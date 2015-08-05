@@ -299,6 +299,9 @@ class MainWindow(QMainWindow):
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
             add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
+            add_action('hideUnimportantViewsAction', QAction(self.tr('Hide unimportant views'), self, shortcut='Ctrl+Shift+H', triggered=self.hide_unimportant_views))
+            self.hideUnimportantViewsAction.setCheckable(True)
+            self.unimportant_views_hidden = False
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -352,6 +355,7 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.focusAction)
             self.viewMenu.addAction(self.openLinkAction)
             self.viewMenu.addAction(self.resetViewAction)
+            self.viewMenu.addAction(self.hideUnimportantViewsAction)
             self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
             self.viewMenu.addAction(self.decreaseFontAction)
@@ -943,6 +947,16 @@ class MainWindow(QMainWindow):
         if not (step == -1 and self.padding == 1):
             self.padding += step
             self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
+
+    def hide_unimportant_views(self):
+        if self.unimportant_views_hidden:
+            self.unimportant_views_hidden = False
+            self.mainSplitter.moveSplitter(250, 1)
+            self.mainSplitter.moveSplitter(self.width() - 200, 2)
+        else:
+            self.unimportant_views_hidden = True
+            self.mainSplitter.moveSplitter(0, 1)
+            self.mainSplitter.moveSplitter(self.width(), 2)
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
