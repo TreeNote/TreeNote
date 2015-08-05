@@ -25,6 +25,8 @@ Set up the deployment environment
 
 Deploy
 ^^^^^^^^^^^^^
+Increase version number in version.py
+
 * Windows
 	* Execute in cmd.exe: ``PyInstaller --windowed --icon=/images/logo.ico treenote.py``
 	* Copy and paste the .txt files into the new treenote folder

@@ -430,7 +430,7 @@ class MainWindow(QMainWindow):
     def update_available(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
         skip_this_version = QSettings().value('skip_version') is not None and QSettings().value('skip_version') == self.new_version_data['tag_name']
-        is_newer_version= git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
+        is_newer_version = git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
         if not skip_this_version and is_newer_version:
             UpdateDialog(self).exec_()
         return is_newer_version
@@ -1111,11 +1111,17 @@ class MainWindow(QMainWindow):
 
     def insert_row(self):
         index = self.current_index()
-        if self.focused_column().view.hasFocus():
-            self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
-        elif self.focused_column().view.state() == QAbstractItemView.EditingState:
-            # commit data by changing the current selection
-            self.focused_column().view.selectionModel().currentChanged.emit(index, index)
+        # if the user focused on an empty row, pressing enter shall create a child of the focused row
+        search_bar_text = self.focused_column().search_bar.text()
+        if model.FOCUS in search_bar_text and index == QModelIndex():
+            parent_id = search_bar_text[len(model.FOCUS + '='):]
+            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(0, parent_id)
+        else:
+            if self.focused_column().view.hasFocus():
+                self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
+            elif self.focused_column().view.state() == QAbstractItemView.EditingState:
+                # commit data by changing the current selection
+                self.focused_column().view.selectionModel().currentChanged.emit(index, index)
 
     def remove_selection(self):
         indexes = self.focusWidget().selectionModel().selectedRows()
@@ -1306,7 +1312,6 @@ class AboutBox(QDialog):
         grid.addWidget(label, 1, 0)  # row, column
         grid.addWidget(buttonBox, 2, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-
 
 
 class SearchBarQLineEdit(QLineEdit):
