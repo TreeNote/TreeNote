@@ -23,6 +23,8 @@ import logging
 import traceback
 import json
 import requests
+from operator import itemgetter
+import textwrap
 
 import sip  # for pyinstaller
 from PyQt5.QtCore import *
@@ -302,6 +304,9 @@ class MainWindow(QMainWindow):
             add_action('hideUnimportantViewsAction', QAction(self.tr('Hide unimportant views'), self, shortcut='Ctrl+Shift+H', triggered=self.hide_unimportant_views))
             self.hideUnimportantViewsAction.setCheckable(True)
             self.unimportant_views_hidden = False
+            add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
+            add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
+            add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -326,6 +331,10 @@ class MainWindow(QMainWindow):
             self.structureMenu.addAction(self.insertRowAction)
             self.structureMenu.addAction(self.insertChildAction)
             self.structureMenu.addAction(self.deleteSelectedRowsAction)
+            self.structureMenu.addSeparator()
+            self.structureMenu.addAction(self.cutAction)
+            self.structureMenu.addAction(self.copyAction)
+            self.structureMenu.addAction(self.pasteAction)
 
             self.moveMenu = self.structureMenu.addMenu(self.tr('&Move selected rows'))
             self.moveMenu.addAction(self.moveUpAction)
@@ -951,7 +960,7 @@ class MainWindow(QMainWindow):
     def hide_unimportant_views(self):
         if self.unimportant_views_hidden:
             self.unimportant_views_hidden = False
-            self.mainSplitter.moveSplitter(250, 1)
+            self.mainSplitter.moveSplitter(200, 1)
             self.mainSplitter.moveSplitter(self.width() - 200, 2)
         else:
             self.unimportant_views_hidden = True
@@ -1101,11 +1110,11 @@ class MainWindow(QMainWindow):
         self.bookmark_model.move_vertical(self.bookmarks_view.selectedIndexes(), 1)
 
     def move_up(self):
-        indexes = self.focusWidget().selectionModel().selectedRows()
+        indexes = self.selected_indexes()
         indexes[0].model().move_vertical(indexes, -1)
 
     def move_down(self):
-        indexes = self.focusWidget().selectionModel().selectedRows()
+        indexes = self.selected_indexes()
         indexes[0].model().move_vertical(indexes, +1)
 
     def move_left(self):
@@ -1138,20 +1147,54 @@ class MainWindow(QMainWindow):
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
 
     def remove_selection(self):
-        indexes = self.focusWidget().selectionModel().selectedRows()
-        self.focused_column().filter_proxy.remove_rows(indexes)
+        self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
+
+    def selected_indexes(self):
+        return self.focusWidget().selectionModel().selectedRows()
 
     def remove_bookmark_selection(self):
         reply = QMessageBox.question(self, '', 'Delete this bookmark?', QMessageBox.Yes, QMessageBox.Cancel)
         if reply == QMessageBox.Yes:
             self.bookmarks_view.setFocus()
-            indexes = self.focusWidget().selectionModel().selectedRows()
-            self.bookmark_model.insert_remove_rows(indexes=indexes)
+            self.bookmark_model.insert_remove_rows(indexes=self.selected_indexes())
 
     def delete_database(self):
         reply = QMessageBox.question(self, '', 'Delete this database?', QMessageBox.Yes, QMessageBox.Cancel)
         if reply == QMessageBox.Yes:
             self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())
+
+    def cut(self):
+        print("cut")
+
+    def copy(self):
+        # todo: try, and on except return flat
+        # todo: always look for parent and sort
+        # because the indexes are sorted randomly, we have to sort them by order
+        index_column_list = []
+        for index in self.selected_indexes():
+            print(index.data())
+            indention = model.indention_level(index) - 1
+            index_column_list.append([index, indention])
+
+        indention_levels = set(map(lambda x: x[1], index_column_list))
+        indexes_grouped_by_indention = [[y[0] for y in index_column_list if y[1] == x] for x in indention_levels]
+        index_column_list_sorted = indexes_grouped_by_indention[0]
+        for indention_level_list in indexes_grouped_by_indention[1:]:
+            for index in reversed(indention_level_list):
+                parent_position = index_column_list_sorted.index(index.parent())
+                index_column_list_sorted.insert(parent_position + 1, index)
+
+        rows_string = ''
+        for index in index_column_list_sorted:
+            indention_string = (model.indention_level(index) - 1) * '\t'
+            rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '  ') + '\n'
+
+        rows_string = textwrap.dedent(rows_string) # strip spaces in front of all until equal
+        print(rows_string) # todo remove
+        QApplication.clipboard().setText(rows_string)
+
+    def paste(self):
+        print("paste")
 
     # task menu actions
 

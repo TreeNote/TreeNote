@@ -7,7 +7,7 @@ Ubuntu
 ::
 
 	sudo apt-get install python3-pyqt5 couchdb
-	sudo pip3 install couchdb
+	sudo pip3 install couchdb, requests
 	python3 main.py
 
 
@@ -16,7 +16,7 @@ Fedora
 ::
 
 	sudo yum install python3-qt5 couchdb python3-pip
-	sudo pip3 install couchdb
+	sudo pip3 install couchdb, requests
 	sudo systemctl start couchdb.service
 	python3 main.py
 
@@ -26,7 +26,7 @@ Windows
 * Download `Python 3 <https://www.python.org/downloads/>`_. Install, but when you are at the window "customize python" check the box "add python.exe to path"
 * Install the `Qt + PyQt binary package <http://www.riverbankcomputing.com/software/pyqt/download5>`_
 * Install `CouchDB <http://couchdb.apache.org/#download>`_
-* Open cmd.exe and enter ``python -m pip install couchdb``
+* Open cmd.exe and enter ``python -m pip install couchdb, requests``
 
 
 OS X
@@ -50,7 +50,7 @@ OS X
 	    sudo make install
 
 * Install `CouchDB <http://couchdb.apache.org/#download>`_
-* Run ``sudo pip3 install couchdb``
+* Run ``sudo pip3 install couchdb, requests``
 
 
 Integrated development environment

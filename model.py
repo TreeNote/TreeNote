@@ -24,6 +24,10 @@ def QDateFromString(string):
     d.setDate(2000 + d.year() % 100, d.month(), d.day())
     return d
 
+def indention_level(index, level=1):
+    if index.parent() == QModelIndex():
+        return level
+    return indention_level(index.parent(), level=level + 1)
 
 class QUndoCommandStructure(QUndoCommand):
     # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
@@ -816,15 +820,9 @@ class Delegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
         html = escape(index.data())
         column_width = self.view_header.sectionSize(0)
-        indention = self.indention_level(index) * 20  # 20 = space left of all rows
-        document = self.create_document(html.replace('\n', '<br>'), column_width - indention)
+        indention = 1 if self.main_window.flatten else indention_level(index)
+        document = self.create_document(html.replace('\n', '<br>'), column_width - indention * 20) # 20 = space left of all rows
         return QSize(0, document.size().height() + self.main_window.padding * 2)
-
-    def indention_level(self, index, level=1):
-        if self.main_window.flatten: return 1
-        if index.parent() == QModelIndex():
-            return level
-        return self.indention_level(index.parent(), level=level + 1)
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
