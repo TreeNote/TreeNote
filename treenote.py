@@ -542,7 +542,7 @@ class MainWindow(QMainWindow):
             def tree_as_string(index=QModelIndex(), rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None:
-                    rows_string += indention_string + '- ' + index.data() + '\n'
+                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'  # microsoft word wants \r\n
                 for child_nr in range(self.item_model.rowCount(index)):
                     rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
                 return rows_string
@@ -1186,30 +1186,36 @@ class MainWindow(QMainWindow):
         print("cut")
 
     def copy(self):
-        # todo: try, and on except return flat
-        # todo: always look for parent and sort
-        # because the indexes are sorted randomly, we have to sort them by order
-        index_column_list = []
-        for index in self.selected_indexes():
-            print(index.data())
-            indention = model.indention_level(index) - 1
-            index_column_list.append([index, indention])
+        if self.flatten:
+            rows_string = '\r\n'.join(['- ' + index.data().replace('\n', '\r\n\t') for index in self.selected_indexes()])
+        else:
+            selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index) for index in self.selected_indexes()]
 
-        indention_levels = set(map(lambda x: x[1], index_column_list))
-        indexes_grouped_by_indention = [[y[0] for y in index_column_list if y[1] == x] for x in indention_levels]
-        index_column_list_sorted = indexes_grouped_by_indention[0]
-        for indention_level_list in indexes_grouped_by_indention[1:]:
-            for index in reversed(indention_level_list):
-                parent_position = index_column_list_sorted.index(index.parent())
-                index_column_list_sorted.insert(parent_position + 1, index)
+            def tree_as_string(index, rows_string=''):
+                indention_string = (model.indention_level(index) - 1) * '\t'
+                if index.data() is not None and index in selected_source_indexes:
+                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
+                for child_nr in range(self.item_model.rowCount(index)):
+                    child_index = self.item_model.index(child_nr, 0, index)
+                    rows_string = tree_as_string(child_index, rows_string)
+                return rows_string
 
-        rows_string = ''
-        for index in index_column_list_sorted:
-            indention_string = (model.indention_level(index) - 1) * '\t'
-            rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '  ') + '\n'
+            rows_string = tree_as_string(QModelIndex())
 
-        rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all until equal
-        print(rows_string)  # todo remove
+            # if a child is in the selection but not the parent: flatten
+            indention_level, left_most_index = min((model.indention_level(index), index) for index in selected_source_indexes)
+            for index in selected_source_indexes:
+                if index.parent() not in selected_source_indexes + [left_most_index.parent()]:
+                    lines = []
+                    for line in rows_string.split('\n'):
+                        line = line.strip()
+                        if not line.startswith('-'):
+                            line = '\t' + line
+                        lines.append(line)
+                    rows_string = '\r\n'.join(lines)
+                    break
+
+            rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all until equal
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
