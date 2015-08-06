@@ -49,7 +49,7 @@ SELECTED_ID = 'SELECTED_ID'
 CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
-IMPORT_DB = 'Import into a new  database'
+IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 15
 
 
@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
             if servers is None:
                 def load_db_from_file(bookmark_name, db_name):
                     db = self.get_db('', db_name, create_root=False)
-                    with open(os.path.dirname(sys.executable) + os.sep + db_name + '.txt', 'r') as file:
+                    with open(os.path.dirname(sys.executable) + os.sep + db_name + '.json', 'r') as file:
                         doc_list = json.load(file)
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
                 load_db_from_file('Local', 'local')
 
                 db = self.get_db('', 'local_bookmarks', create_root=False)
-                with open(os.path.dirname(sys.executable) + os.sep + 'local_bookmarks.txt', 'r') as file:
+                with open(os.path.dirname(sys.executable) + os.sep + 'local_bookmarks.json', 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
             add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=self.delete_database))
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
-            add_action('exportDatabaseAct', QAction(self.tr('Export selected database'), self, triggered=self.export_db))
+            add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
             add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox(self).exec()))
@@ -307,15 +307,19 @@ class MainWindow(QMainWindow):
             add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
+            add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
             self.databasesMenu.addAction(self.deleteDatabaseAct)
             self.databasesMenu.addAction(self.editDatabaseAct)
             self.databasesMenu.addSeparator()
-            self.databasesMenu.addAction(self.exportDatabaseAct)
+            self.exportMenu = self.databasesMenu.addMenu(self.tr('Export selected database'))
+            self.exportMenu.addAction(self.exportDatabaseAct)
+            self.exportMenu.addAction(self.exportPlainTextAction)
             self.databasesMenu.addAction(self.importDatabaseAct)
             self.databasesMenu.addAction(self.settingsAct)
+            self.databasesMenu.addSeparator()
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
             self.fileMenu.addAction(self.editShortcutAction)
@@ -520,9 +524,7 @@ class MainWindow(QMainWindow):
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
     def export_db(self):
-        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
-        file_name = QFileDialog.getSaveFileName(self, "Save", proposed_file_name + ".txt", "*.txt")
-        with open(file_name[0], 'w') as file:
+        with open(self.filename_from_dialog('.json'), 'w') as file:
             row_list = []
             map = "function(doc) { \
             if (doc." + model.DELETED + " == '') \
@@ -530,8 +532,25 @@ class MainWindow(QMainWindow):
             res = self.item_model.db.query(map, include_docs=True)
             file.write(json.dumps([row.doc for row in res], indent=4))
 
+    def filename_from_dialog(self, file_type):
+        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
+        file_name = QFileDialog.getSaveFileName(self, "Save", proposed_file_name + file_type, "*" + file_type)
+        return file_name[0]
+
+    def export_plain_text(self):
+        with open(self.filename_from_dialog('.txt'), 'w') as file:
+            def tree_as_string(index=QModelIndex(), rows_string=''):
+                indention_string = (model.indention_level(index) - 1) * '\t'
+                if index.data() is not None:
+                    rows_string += indention_string + '- ' + index.data() + '\n'
+                for child_nr in range(self.item_model.rowCount(index)):
+                    rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
+                return rows_string
+
+            file.write(tree_as_string())
+
     def import_db(self):
-        self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.txt")
+        self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.json")
         if self.file_name[0] != '':
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
@@ -1189,8 +1208,8 @@ class MainWindow(QMainWindow):
             indention_string = (model.indention_level(index) - 1) * '\t'
             rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '  ') + '\n'
 
-        rows_string = textwrap.dedent(rows_string) # strip spaces in front of all until equal
-        print(rows_string) # todo remove
+        rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all until equal
+        print(rows_string)  # todo remove
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
