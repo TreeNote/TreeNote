@@ -263,7 +263,7 @@ class TreeModel(QAbstractItemModel):
         return self.set_data_with_id(value, item_id, column, field)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
-    def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None):
+    def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None, set_edit_focus=None):
 
         # Delete design decision: We could delete items permanently. But if then the user renames, deletes and then undoes both actions, the undo of 'delete' would create an item with a new id. Therefore rename won't work.
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
@@ -339,8 +339,9 @@ class TreeModel(QAbstractItemModel):
                         self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
 
         if position is not None:  # insert command
-            if id_list is None:
-                # used from view, create a single new row / self.db item
+            if set_edit_focus is not None: # used when adding rows programmatically e.g. pasting
+                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
+            elif id_list is None: # used from view, create a single new row / self.db item
                 set_edit_focus = True
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
             else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand

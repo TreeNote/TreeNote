@@ -1219,7 +1219,21 @@ class MainWindow(QMainWindow):
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
-        print("paste")
+        start_index = self.current_index()
+        text = QApplication.clipboard().text().replace('\r\n', '\n')
+        lines = re.split(r'\n(?!\t)', text)  # split bei linebreaks, when the following line is not indented (the case at items with multiple rows)
+        for line in reversed(lines):
+            line = re.sub(r'^(-|\*)? *|\t*', '', line)  # remove -, *, spaces and tabs from the beginning of the line
+            self.paste_row(start_index, line)
+
+    def paste_row(self, start_index, text):
+        source_index = self.focused_column().filter_proxy.mapToSource(start_index)
+        new_position = source_index.row() + 1
+        parent_item_id = self.item_model.getItem(source_index.parent()).id
+        self.item_model.insert_remove_rows(new_position, parent_item_id, set_edit_focus=False)
+        children_list = self.item_model.db[parent_item_id]['children'].split()
+        item_id = children_list[new_position]
+        self.item_model.set_data_with_id(text, item_id, 0)
 
     # task menu actions
 
@@ -1475,6 +1489,7 @@ class BookmarkDialog(QDialog):
         if self.index is None:
             new_item_position = len(self.parent.bookmark_model.rootItem.childItems)
             self.parent.bookmark_model.insert_remove_rows(new_item_position, model.ROOT_ID)
+            # get id directly from db, because the db is changed instantly
             children_list = self.parent.bookmark_model.db[model.ROOT_ID]['children'].split()
             item_id = children_list[-1]
         else:
