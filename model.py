@@ -24,10 +24,12 @@ def QDateFromString(string):
     d.setDate(2000 + d.year() % 100, d.month(), d.day())
     return d
 
+
 def indention_level(index, level=1):
     if index.parent() == QModelIndex():
         return level
     return indention_level(index.parent(), level=level + 1)
+
 
 class QUndoCommandStructure(QUndoCommand):
     # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
@@ -339,9 +341,9 @@ class TreeModel(QAbstractItemModel):
                         self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
 
         if position is not None:  # insert command
-            if set_edit_focus is not None: # used when adding rows programmatically e.g. pasting
+            if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
-            elif id_list is None: # used from view, create a single new row / self.db item
+            elif id_list is None:  # used from view, create a single new row / self.db item
                 set_edit_focus = True
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
             else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
@@ -822,7 +824,7 @@ class Delegate(QStyledItemDelegate):
         html = escape(index.data())
         column_width = self.view_header.sectionSize(0)
         indention = 1 if self.main_window.flatten else indention_level(index)
-        document = self.create_document(html.replace('\n', '<br>'), column_width - indention * 20) # 20 = space left of all rows
+        document = self.create_document(html.replace('\n', '<br>'), column_width - indention * 20)  # 20 = space left of all rows
         return QSize(0, document.size().height() + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):

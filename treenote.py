@@ -1220,20 +1220,28 @@ class MainWindow(QMainWindow):
 
     def paste(self):
         start_index = self.current_index()
-        text = QApplication.clipboard().text().replace('\r\n', '\n')
-        lines = re.split(r'\n(?!\t)', text)  # split bei linebreaks, when the following line is not indented (the case at items with multiple rows)
-        for line in reversed(lines):
-            line = re.sub(r'^(-|\*)? *|\t*', '', line)  # remove -, *, spaces and tabs from the beginning of the line
-            self.paste_row(start_index, line)
+        text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')  # \r ist for windows compatibility. strip is to remove the last linebreak
+        lines = re.split(r'\n(?!\t+[^-])', text)  # Split at linebreaks, when the following line is not [indented (the case at entries with multiple rows) and not a new entry (begins with '-')].
 
-    def paste_row(self, start_index, text):
         source_index = self.focused_column().filter_proxy.mapToSource(start_index)
-        new_position = source_index.row() + 1
-        parent_item_id = self.item_model.getItem(source_index.parent()).id
+        indention_insert_position_dict = {0: source_index.row() + 1}
+        indention_parent_id_dict = {-1: self.item_model.getItem(source_index.parent()).id}
+        for line in lines:
+            indention = len(re.findall(r'\t+-', line))
+            line = re.sub(r'\t+-', '-', line)
+            line = re.sub(r'^(-|\*)? *|\t*', '', line)  # remove -, *, spaces and tabs from the beginning of the line
+            if indention not in indention_insert_position_dict:
+                indention_insert_position_dict[indention] = 0
+            child_id = self.paste_row_with_id(indention_insert_position_dict[indention], indention_parent_id_dict[indention - 1], line)
+            indention_insert_position_dict[indention] += 1
+            indention_parent_id_dict[indention] = child_id
+
+    def paste_row_with_id(self, new_position, parent_item_id, text):
         self.item_model.insert_remove_rows(new_position, parent_item_id, set_edit_focus=False)
         children_list = self.item_model.db[parent_item_id]['children'].split()
         item_id = children_list[new_position]
         self.item_model.set_data_with_id(text, item_id, 0)
+        return item_id
 
     # task menu actions
 
