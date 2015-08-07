@@ -1762,7 +1762,7 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
-    app.setOrganizationName('TreeNote')
+    app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/icon'))
     QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
 
