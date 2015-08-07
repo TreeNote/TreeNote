@@ -831,6 +831,8 @@ class MainWindow(QMainWindow):
 
             elif method == 'added':
                 id_list = change_dict['id_list']
+                if id_list[0] in [child.id for child in item.childItems]:
+                    return  # when pasting parent and children, the children gets automatically loaded, so don't load it manually additionally
                 source_model.beginInsertRows(index, position, position + len(id_list) - 1)
                 for i, added_item_id in enumerate(id_list):
                     item.add_child(position + i, added_item_id, index)
@@ -1219,21 +1221,28 @@ class MainWindow(QMainWindow):
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
+        # builds a tree structure out of indented rows
+        # idea: insert new rows from top to bottom.
+        # depending on the indention, the parent will be the last inserted row with one lower indention
+        # we count the row position to know where to insert the next row
         start_index = self.current_index()
         text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')  # \r ist for windows compatibility. strip is to remove the last linebreak
-        lines = re.split(r'\n(?!\t+[^-])', text)  # Split at linebreaks, when the following line is not [indented (the case at entries with multiple rows) and not a new entry (begins with '-')].
-
+        text = re.sub(r'\n(\t*-)', r'\r\1', text)
+        lines = re.split(r'\r', text)
         source_index = self.focused_column().filter_proxy.mapToSource(start_index)
         indention_insert_position_dict = {0: source_index.row() + 1}
         indention_parent_id_dict = {-1: self.item_model.getItem(source_index.parent()).id}
         for line in lines:
-            indention = len(re.findall(r'\t+-', line))
-            line = re.sub(r'\t+-', '-', line)
-            line = re.sub(r'^(-|\*)? *|\t*', '', line)  # remove -, *, spaces and tabs from the beginning of the line
+            stripped_line = line.lstrip('\t')
+            indention = len(line) - len(stripped_line)
+            cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)  # remove -, *, spaces and tabs from the beginning of the line
             if indention not in indention_insert_position_dict:
                 indention_insert_position_dict[indention] = 0
-            child_id = self.paste_row_with_id(indention_insert_position_dict[indention], indention_parent_id_dict[indention - 1], line)
+            child_id = self.paste_row_with_id(indention_insert_position_dict[indention], indention_parent_id_dict[indention - 1], cleaned_line)
             indention_insert_position_dict[indention] += 1
+            for key in indention_insert_position_dict.keys():
+                if key > indention:
+                    indention_insert_position_dict[key] = 0
             indention_parent_id_dict[indention] = child_id
 
     def paste_row_with_id(self, new_position, parent_item_id, text):
