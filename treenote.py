@@ -276,8 +276,8 @@ class MainWindow(QMainWindow):
             add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
             add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
             add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
-            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Ctrl+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Ctrl+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
             add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
             add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
             add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
@@ -296,7 +296,8 @@ class MainWindow(QMainWindow):
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('focusAction', QAction(self.tr('&Focus on current row'), self, shortcut='C', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('goDownAction', QAction(self.tr('Go into / Open selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('goUpAction', QAction(self.tr('Go up / Open parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
             add_action('increaseFontAction', QAction(self.tr('&Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
@@ -360,14 +361,17 @@ class MainWindow(QMainWindow):
             self.colorMenu.addAction(self.colorNoColorAction)
 
             self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
+            self.viewMenu.addAction(self.goDownAction)
+            self.viewMenu.addAction(self.goUpAction)
+            self.viewMenu.addAction(self.resetViewAction)
+            self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.expandAllChildrenAction)
             self.viewMenu.addAction(self.collapseAllChildrenAction)
+            self.viewMenu.addSeparator()
             # self.viewMenu.addAction(self.splitWindowAct)
             # self.viewMenu.addAction(self.unsplitWindowAct)
             self.viewMenu.addAction(self.focusSearchBarAction)
-            self.viewMenu.addAction(self.focusAction)
             self.viewMenu.addAction(self.openLinkAction)
-            self.viewMenu.addAction(self.resetViewAction)
             self.viewMenu.addAction(self.hideUnimportantViewsAction)
             self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
@@ -1298,7 +1302,11 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
-        item_id = index.model().get_db_item(index)['_id']
+        print(index)
+        if index.model() is None:  # for the case 'root item'
+            item_id = model.ROOT_ID
+        else:
+            item_id = index.model().get_db_item(index)['_id']
         self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
 
     def open_links(self):
