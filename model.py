@@ -653,7 +653,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                         continue
             elif token.startswith(SORT + '='):  # ignore
                 continue
-            elif token in index.data():
+            elif token.casefold() in index.data().casefold():
                 continue
             break  # user type stuff that's not found
         else:  # just executed when not breaked
