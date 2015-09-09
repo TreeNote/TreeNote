@@ -16,23 +16,19 @@ import re
 import subprocess
 import sys
 from functools import partial
-import json
 import time
 import os
 import logging
 import traceback
 import json
-import requests
-from operator import itemgetter
 import textwrap
 
-import sip  # for pyinstaller
+import requests
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import couchdb
 
-import qrc_resources
 import model
 import server_model
 import tag_model
@@ -302,9 +298,9 @@ class MainWindow(QMainWindow):
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
             add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
-            add_action('hideUnimportantViewsAction', QAction(self.tr('Hide unimportant views'), self, shortcut='Ctrl+Shift+H', triggered=self.hide_unimportant_views))
-            self.hideUnimportantViewsAction.setCheckable(True)
-            self.unimportant_views_hidden = False
+            add_action('toggleSidebarsAction', QAction(self.tr('Hide / show the sidebars'), self, triggered=self.toggle_sidebars))
+            self.toggleSidebarsAction.setCheckable(True)
+            self.sidebars_hidden = False
             add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
@@ -372,7 +368,7 @@ class MainWindow(QMainWindow):
             # self.viewMenu.addAction(self.unsplitWindowAct)
             self.viewMenu.addAction(self.focusSearchBarAction)
             self.viewMenu.addAction(self.openLinkAction)
-            self.viewMenu.addAction(self.hideUnimportantViewsAction)
+            self.viewMenu.addAction(self.toggleSidebarsAction)
             self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
             self.viewMenu.addAction(self.decreaseFontAction)
@@ -484,7 +480,7 @@ class MainWindow(QMainWindow):
 
     def set_palette(self, new_palette):
         QApplication.setPalette(new_palette)
-        self.focused_column().focus_button.setPalette(new_palette)
+        self.focused_column().toggle_sidebars_button.setPalette(new_palette)
         self.focused_column().bookmark_button.setPalette(new_palette)
         self.focused_column().search_bar.setPalette(new_palette)
         self.focused_column().view.setPalette(new_palette)
@@ -982,13 +978,13 @@ class MainWindow(QMainWindow):
             self.padding += step
             self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
-    def hide_unimportant_views(self):
-        if self.unimportant_views_hidden:
-            self.unimportant_views_hidden = False
+    def toggle_sidebars(self):
+        if self.sidebars_hidden:
+            self.sidebars_hidden = False
             self.mainSplitter.moveSplitter(200, 1)
             self.mainSplitter.moveSplitter(self.width() - 200, 2)
         else:
-            self.unimportant_views_hidden = True
+            self.sidebars_hidden = True
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
 
@@ -1324,14 +1320,15 @@ class MainWindow(QMainWindow):
     def split_window(self):  # creates another item_view
         new_column = QWidget()
 
-        new_column.focus_button = QPushButton()
-        new_column.focus_button.setToolTip('Focus on current row')
-        new_column.focus_button.setIcon(QIcon(':/focus'))
-        new_column.focus_button.setStyleSheet('QPushButton {\
+        new_column.toggle_sidebars_button = QPushButton()
+        new_column.toggle_sidebars_button.setToolTip('Hide / show the sidebars')
+        new_column.toggle_sidebars_button.setIcon(QIcon(':/toggle_sidebars'))
+        new_column.toggle_sidebars_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        new_column.focus_button.clicked.connect(lambda: self.focus_index(self.current_index()))
+        new_column.toggle_sidebars_button.setCheckable(True)
+        new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
@@ -1352,7 +1349,7 @@ class MainWindow(QMainWindow):
 
         search_holder = QWidget()
         layout = QHBoxLayout()
-        layout.addWidget(new_column.focus_button)
+        layout.addWidget(new_column.toggle_sidebars_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.setContentsMargins(0, 11, 0, 0)
