@@ -248,6 +248,7 @@ class MainWindow(QMainWindow):
 
             # list of actions which depend on a specific view
             self.item_view_actions = []
+            self.item_view_not_editing_actions = []
             self.tag_view_actions = []
             self.bookmark_view_actions = []
             self.quick_links_view_actions = []
@@ -276,8 +277,8 @@ class MainWindow(QMainWindow):
             add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
             add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
             add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Ctrl+Right', triggered=self.expand_all_children_of_selected_rows), list=self.item_view_actions)
-            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Ctrl+Left', triggered=self.collapse_all_children_of_selected_rows), list=self.item_view_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)), list=self.item_view_not_editing_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)), list=self.item_view_not_editing_actions)
             add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
             add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
             add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
@@ -438,7 +439,7 @@ class MainWindow(QMainWindow):
                 palette = self.light_palette if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
 
-            splitter_sizes =  settings.value('splitter_sizes')
+            splitter_sizes = settings.value('splitter_sizes')
             if splitter_sizes is not None:
                 self.mainSplitter.restoreState(splitter_sizes)
 
@@ -690,9 +691,9 @@ class MainWindow(QMainWindow):
 
         # focus is either in a dialog, in item_view or in the search bar
         # item actions should be enabled while editing a row, so:
-        bool_item_view_focused = not self.focused_column().search_bar.hasFocus()
-        for action in self.item_view_actions:
-            action.setEnabled(bool_item_view_focused)
+        toggle_actions(not self.focused_column().search_bar.hasFocus(), self.item_view_actions)
+
+        toggle_actions(self.focused_column().view.state() != QAbstractItemView.EditingState, self.item_view_not_editing_actions)
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
@@ -985,13 +986,12 @@ class MainWindow(QMainWindow):
 
     def toggle_sidebars(self):
         sidebar_shown = self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
-        if sidebar_shown: # hide
+        if sidebar_shown:  # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
         else:
             self.mainSplitter.moveSplitter(200, 1)
             self.mainSplitter.moveSplitter(self.width() - 200, 2)
-
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
@@ -1122,13 +1122,6 @@ class MainWindow(QMainWindow):
         menu.exec_(self.servers_view.viewport().mapToGlobal(point))
 
     # structure menu actions
-
-    def expand_all_children_of_selected_rows(self):
-        self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)
-
-    def collapse_all_children_of_selected_rows(self):
-        self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)
-
     def move_bookmark_up(self):
         self.bookmark_model.move_vertical(self.bookmarks_view.selectedIndexes(), -1)
 
@@ -1233,10 +1226,10 @@ class MainWindow(QMainWindow):
         start_index = self.current_index()
         text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')  # \r ist for windows compatibility. strip is to remove the last linebreak
         # which format style has the text?
-        if re.search(r'(\n|^)(\t*-)', text): # each item starts with a dash
-            text = re.sub(r'\n(\t*-)', r'\r\1', text) # replaces \n which produce a new item with \r
-        else: # each row is an item
-            text = re.sub(r'\n(\t*)', r'\r\1', text) # replaces \n which produce a new item with \r
+        if re.search(r'(\n|^)(\t*-)', text):  # each item starts with a dash
+            text = re.sub(r'\n(\t*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
+        else:  # each row is an item
+            text = re.sub(r'\n(\t*)', r'\r\1', text)  # replaces \n which produce a new item with \r
         lines = re.split(r'\r', text)
         source_index = self.focused_column().filter_proxy.mapToSource(start_index)
         indention_insert_position_dict = {0: source_index.row() + 1}
@@ -1307,7 +1300,6 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
-        print(index)
         if index.model() is None:  # for the case 'root item'
             item_id = model.ROOT_ID
         else:

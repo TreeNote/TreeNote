@@ -983,8 +983,10 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
     def keyPressEvent(self, event):
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
-            if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier:  # new line on ctrl + enter
+            if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or event.modifiers() & Qt.AltModifier:  # new line on alt + enter
                 self.setFixedHeight(self.document().size().height() + 25)
+                if event.modifiers() & Qt.AltModifier: # fix alt + enter in Qt
+                    event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
             else:  # complete edit on enter
                 if not self._completer.popup().isVisible():
                     self.delegate.commitData.emit(self)
