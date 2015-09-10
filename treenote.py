@@ -22,13 +22,16 @@ import logging
 import traceback
 import json
 import textwrap
+from operator import itemgetter
 
-import requests
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import sip  # for pyinstaller
 import couchdb
+import requests
 
+import qrc_resources
 import model
 import server_model
 import tag_model
@@ -299,8 +302,6 @@ class MainWindow(QMainWindow):
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
             add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
             add_action('toggleSidebarsAction', QAction(self.tr('Hide / show the sidebars'), self, triggered=self.toggle_sidebars))
-            self.toggleSidebarsAction.setCheckable(True)
-            self.sidebars_hidden = False
             add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
@@ -438,13 +439,13 @@ class MainWindow(QMainWindow):
                 palette = self.light_palette if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
 
-            self.update_available()
+            self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
             traceback.print_exc()
             logger.exception(e)
 
-    def update_available(self):
+    def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
         skip_this_version = QSettings().value('skip_version') is not None and QSettings().value('skip_version') == self.new_version_data['tag_name']
         is_newer_version = git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
@@ -979,14 +980,14 @@ class MainWindow(QMainWindow):
             self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def toggle_sidebars(self):
-        if self.sidebars_hidden:
-            self.sidebars_hidden = False
-            self.mainSplitter.moveSplitter(200, 1)
-            self.mainSplitter.moveSplitter(self.width() - 200, 2)
-        else:
-            self.sidebars_hidden = True
+        sidebar_shown = self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
+        if sidebar_shown: # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
+        else:
+            self.mainSplitter.moveSplitter(200, 1)
+            self.mainSplitter.moveSplitter(self.width() - 200, 2)
+
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
@@ -1327,7 +1328,6 @@ class MainWindow(QMainWindow):
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        new_column.toggle_sidebars_button.setCheckable(True)
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
         new_column.search_bar = SearchBarQLineEdit(self)
@@ -1407,7 +1407,7 @@ class AboutBox(QDialog):
         super(AboutBox, self).__init__()
         headline = QLabel('TreeNote')
         headline.setFont(QFont(model.FONT, 25))
-        aktuell = ' (Update verfügbar)' if parent.update_available() else ' (TreeNote ist aktuell)'
+        aktuell = ' (Update verfügbar)' if parent.check_for_software_update() else ' (TreeNote ist aktuell)'
         label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + aktuell + '<br><br>\
            TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
             <br>\
