@@ -1232,7 +1232,11 @@ class MainWindow(QMainWindow):
         # we count the row position to know where to insert the next row
         start_index = self.current_index()
         text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')  # \r ist for windows compatibility. strip is to remove the last linebreak
-        text = re.sub(r'\n(\t*-)', r'\r\1', text)
+        # which format style has the text?
+        if re.search(r'(\n|^)(\t*-)', text): # each item starts with a dash
+            text = re.sub(r'\n(\t*-)', r'\r\1', text) # replaces \n which produce a new item with \r
+        else: # each row is an item
+            text = re.sub(r'\n(\t*)', r'\r\1', text) # replaces \n which produce a new item with \r
         lines = re.split(r'\r', text)
         source_index = self.focused_column().filter_proxy.mapToSource(start_index)
         indention_insert_position_dict = {0: source_index.row() + 1}
