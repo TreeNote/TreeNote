@@ -172,6 +172,7 @@ class MainWindow(QMainWindow):
 
             self.first_column_splitter = QSplitter(Qt.Vertical)
             self.first_column_splitter.setHandleWidth(0)
+            self.first_column_splitter.setChildrenCollapsible(False)
             self.first_column_splitter.addWidget(self.servers_view)
             self.first_column_splitter.addWidget(quicklinks_holder)
             self.first_column_splitter.addWidget(bookmarks_holder)
@@ -439,6 +440,10 @@ class MainWindow(QMainWindow):
                 palette = self.light_palette if sys.platform == "win32" else self.dark_palette
             self.set_palette(palette)
 
+            splitter_sizes =  settings.value('splitter_sizes')
+            if splitter_sizes is not None:
+                self.mainSplitter.restoreState(splitter_sizes)
+
             self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
@@ -629,6 +634,7 @@ class MainWindow(QMainWindow):
         settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
         settings.setValue('fontsize', self.fontsize)
         settings.setValue('padding', self.padding)
+        settings.setValue('splitter_sizes', self.mainSplitter.saveState())
 
         # save databases
         server_list = []
