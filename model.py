@@ -845,13 +845,20 @@ class Delegate(QStyledItemDelegate):
             line_edit = QLineEdit(parent)
             line_edit.setValidator(QIntValidator(0, 999, self))
             line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
+            line_edit.setFont(QFont(FONT, self.main_window.fontsize))
             return line_edit
 
     def setEditorData(self, editor, index):
-        editor.setText(index.data())
+        if isinstance(editor, QTextEdit):
+            editor.setText(index.data())
+        else:
+            QStyledItemDelegate.setEditorData(self, editor, index)
 
     def setModelData(self, editor, model, index):
-        model.setData(index, editor.toPlainText())
+        if isinstance(editor, QTextEdit):
+            model.setData(index, editor.toPlainText())
+        else:
+            QStyledItemDelegate.setModelData(self, editor, model, index)
 
     def eventFilter(self, editor, event):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:
@@ -907,7 +914,7 @@ class EscCalendarWidget(QCalendarWidget):
     def eventFilter(self, obj, event):
         open_popup_date_edit = self.parent().parent()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
-            if not self.sent:  # annoying bug that this event get's sent two times. so filter one event out.
+            if not self.sent:  # annoying bug that this event is sent two times. so filter one event out.
                 open_popup_date_edit.delegate.main_window.edit_row_without_check()
                 self.sent = True
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
@@ -921,7 +928,9 @@ class OpenPopupDateEdit(QDateEdit):
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
+        self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
         if sys.platform == "darwin":
+            self.first_tab = True
             self.installEventFilter(self)
 
     def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
@@ -938,7 +947,10 @@ class OpenPopupDateEdit(QDateEdit):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
-            self.delegate.main_window.edit_row()
+            if self.first_tab:
+                self.first_tab = False
+            else:
+                self.delegate.main_window.edit_row()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
             self.setSpecialValueText(' ')
             self.setDate(QDateFromString(EMPTY_DATE))  # workaround to set empty date
@@ -957,6 +969,12 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.activated[str].connect(self._insertCompletion)
         self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
         self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
+            self.delegate.main_window.edit_row()
+        return False  # don't stop the event being handled further
 
     def _insertCompletion(self, completion):
         """
@@ -985,7 +1003,7 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or event.modifiers() & Qt.AltModifier:  # new line on alt + enter
                 self.setFixedHeight(self.document().size().height() + 25)
-                if event.modifiers() & Qt.AltModifier: # fix alt + enter in Qt
+                if event.modifiers() & Qt.AltModifier:  # fix alt + enter in Qt
                     event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
             else:  # complete edit on enter
                 if not self._completer.popup().isVisible():

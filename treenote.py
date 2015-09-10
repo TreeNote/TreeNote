@@ -1257,7 +1257,7 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def edit_row(self):
-        if sys.platform == "darwin" or self.current_index().column() != 1:
+        if sys.platform == "darwin" or self.current_index().column() != 1: # workaround to fix a weird bug, where the second column is skipped
             self.edit_row_without_check()
 
     def edit_row_without_check(self):
@@ -1375,7 +1375,7 @@ class MainWindow(QMainWindow):
         new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
-        new_column.view.setColumnWidth(1, 105)
+        new_column.view.setColumnWidth(1, 130)
         new_column.view.setColumnWidth(2, 85)
         new_column.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
         new_column.view.header().setSectionResizeMode(1, QHeaderView.Fixed)
