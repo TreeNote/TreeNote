@@ -1316,7 +1316,8 @@ class MainWindow(QMainWindow):
                         url = 'http://' + url
                     webbrowser.open(url)
             else:  # no urls found: search the web for the selected entry
-                webbrowser.open('https://www.google.de/search?q=' + row_index.data())
+                text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
+                webbrowser.open('https://www.google.de/search?q=' + text_without_tags)
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
