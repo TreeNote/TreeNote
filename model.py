@@ -892,9 +892,13 @@ class BookmarkDelegate(QStyledItemDelegate):
             color = QApplication.palette().base()
         painter.save()
         painter.fillRect(option.rect, color)
-        painter.translate(option.rect.x() - 2, option.rect.y() - 3)  # -3: put the text in the middle of the line
+        painter.translate(option.rect.x() - 2, option.rect.y() - 3 + SIDEBARS_PADDING)  # -3: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
+
+    def sizeHint(self, option, index):
+        font_height = QFontMetrics(QFont(FONT, self.main_window.fontsize)).height()
+        return QSize(0, font_height + SIDEBARS_PADDING * 2)
 
 
 class EscCalendarWidget(QCalendarWidget):
@@ -1088,3 +1092,4 @@ NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_C
 FOCUS_TEXT = 'Focus on current row'
 GAP_FOR_CHECKBOX = 17
 FONT = 'Source Sans Pro'
+SIDEBARS_PADDING = 2

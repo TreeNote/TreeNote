@@ -49,7 +49,7 @@ CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
-APP_FONT_SIZE = 15
+APP_FONT_SIZE = 17
 
 
 def git_tag_to_versionnr(git_tag):
@@ -135,12 +135,6 @@ class MainWindow(QMainWindow):
 
             # first column
 
-            self.servers_view = QTreeView()
-            self.servers_view.setModel(self.server_model)
-            self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
-            self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
-
             self.quicklinks_view = QTreeView()
             self.quicklinks_view.setModel(self.item_model)
             self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
@@ -151,11 +145,7 @@ class MainWindow(QMainWindow):
             self.quicklinks_view.header().setToolTip('Focus on the clicked row')
             self.quicklinks_view.hideColumn(1)
             self.quicklinks_view.hideColumn(2)
-            quicklinks_holder = QWidget()  # needed to add space
-            layout = QVBoxLayout()
-            layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-            layout.addWidget(self.quicklinks_view)
-            quicklinks_holder.setLayout(layout)
+            self.quicklinks_view.setUniformRowHeights(True)  # improves performance
 
             self.bookmarks_view = QTreeView()
             self.bookmarks_view.setModel(self.bookmark_model)
@@ -165,19 +155,35 @@ class MainWindow(QMainWindow):
             self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
             self.bookmarks_view.hideColumn(1)
             self.bookmarks_view.hideColumn(2)
+            self.bookmarks_view.setUniformRowHeights(True)  # improves performance
             bookmarks_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
             layout.addWidget(self.bookmarks_view)
             bookmarks_holder.setLayout(layout)
 
+            self.servers_view = QTreeView()
+            self.servers_view.setModel(self.server_model)
+            self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
+            self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
+            self.servers_view.setUniformRowHeights(True)  # improves performance
+            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING) + 'px; }')
+            servers_view_holder = QWidget()  # needed to add space
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
+            layout.addWidget(self.servers_view)
+            servers_view_holder.setLayout(layout)
+
             self.first_column_splitter = QSplitter(Qt.Vertical)
             self.first_column_splitter.setHandleWidth(0)
             self.first_column_splitter.setChildrenCollapsible(False)
-            self.first_column_splitter.addWidget(self.servers_view)
-            self.first_column_splitter.addWidget(quicklinks_holder)
+            self.first_column_splitter.addWidget(self.quicklinks_view)
             self.first_column_splitter.addWidget(bookmarks_holder)
+            self.first_column_splitter.addWidget(servers_view_holder)
             self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
+            self.first_column_splitter.moveSplitter(230, 1)
+            self.first_column_splitter.moveSplitter(360, 2)
 
             # second column
 
@@ -229,6 +235,8 @@ class MainWindow(QMainWindow):
             self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
             self.tag_view.setModel(tag_model.TagModel())
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+            self.tag_view.setUniformRowHeights(True)  # improves performance
+            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING) + 'px; }')
 
             third_column = QWidget()
             layout = QVBoxLayout()
