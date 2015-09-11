@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
-EXPANDED_ITEMS_DICT = 'EXPANDED_ITEMS'
+EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
 SELECTED_ID = 'SELECTED_ID'
 CREATE_DB = 'Create bookmark to a database server'
@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
             self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
+            self.expanded_quicklink_ids_list_dict = {}
             self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
             self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
 
@@ -401,6 +402,7 @@ class MainWindow(QMainWindow):
             if first_column_splitter_state is not None:
                 self.first_column_splitter.restoreState(first_column_splitter_state)
 
+            # first
             # restore selected database
             last_db_name = settings.value('database')
             if last_db_name is not None:
@@ -413,18 +415,15 @@ class MainWindow(QMainWindow):
             self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
             self.change_active_database(server_index)
 
+            # second
             # restore expanded item states
-            expanded_ids_list_dict = settings.value(EXPANDED_ITEMS_DICT)
-            if expanded_ids_list_dict is not None:  # and last_db_name in self.expanded_ids_list_dict:
-                self.expanded_ids_list_dict = expanded_ids_list_dict
-                self.expand_saved()
-
+            self.expanded_ids_list_dict = settings.value(EXPANDED_ITEMS, {})
+            self.expand_saved()
             # restore expanded quick link states
-            for item_id in settings.value(EXPANDED_QUICKLINKS, []):
-                if item_id in self.item_model.id_index_dict:
-                    index = self.item_model.id_index_dict[item_id]
-                    self.quicklinks_view.expand(QModelIndex(index))
+            self.expanded_quicklink_ids_list_dict = settings.value(EXPANDED_QUICKLINKS, {})
+            self.expand_saved_quicklinks()
 
+            # third
             # restore selection
             selection_item_id = settings.value(SELECTED_ID, None)
             if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
@@ -482,6 +481,14 @@ class MainWindow(QMainWindow):
                     index = self.item_model.id_index_dict[item_id]
                     proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
                     self.focused_column().view.expand(proxy_index)
+
+    def expand_saved_quicklinks(self):
+        current_server_name = self.get_current_server().bookmark_name
+        if current_server_name in self.expanded_quicklink_ids_list_dict:
+            for item_id in self.expanded_quicklink_ids_list_dict[current_server_name]:
+                if item_id in self.item_model.id_index_dict:
+                    index = self.item_model.id_index_dict[item_id]
+                    self.quicklinks_view.expand(QModelIndex(index))
 
     def set_palette(self, new_palette):
         QApplication.setPalette(new_palette)
@@ -602,6 +609,7 @@ class MainWindow(QMainWindow):
 
     def change_active_database(self, new_index, old_index=None):
         self.save_expanded_state(old_index)
+        self.save_expanded_quicklinks_state(old_index)
         self.item_model = self.server_model.get_server(new_index).model
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
@@ -610,6 +618,7 @@ class MainWindow(QMainWindow):
         self.set_undo_actions()
         self.old_search_text = 'dont save expanded states of next db when switching to next db'
         self.setup_tag_model()
+        self.expand_saved_quicklinks()
         self.reset_view()
 
     def set_undo_actions(self):
@@ -643,14 +652,11 @@ class MainWindow(QMainWindow):
 
         # save expanded items
         self.save_expanded_state()
-        settings.setValue(EXPANDED_ITEMS_DICT, self.expanded_ids_list_dict)
+        settings.setValue(EXPANDED_ITEMS, self.expanded_ids_list_dict)
 
         # save expanded quicklinks
-        expanded_quicklinks_id_list = []
-        for index in self.item_model.persistentIndexList():
-            if self.quicklinks_view.isExpanded(index):
-                expanded_quicklinks_id_list.append(self.item_model.getItem(index).id)
-        settings.setValue(EXPANDED_QUICKLINKS, expanded_quicklinks_id_list)
+        self.save_expanded_quicklinks_state()
+        settings.setValue(EXPANDED_QUICKLINKS, self.expanded_quicklink_ids_list_dict)
 
         # save selection
         current_index = self.current_index()
@@ -1001,6 +1007,14 @@ class MainWindow(QMainWindow):
                 expanded_list_current_view.append(self.focused_column().filter_proxy.getItem(index).id)
         self.expanded_ids_list_dict[current_server_name] = expanded_list_current_view
 
+    def save_expanded_quicklinks_state(self, index=None):
+        expanded_list_current_view = []
+        current_server_name = self.get_current_server(index).bookmark_name
+        for index in self.item_model.persistentIndexList():
+            if self.quicklinks_view.isExpanded(index):
+                expanded_list_current_view.append(self.item_model.getItem(index).id)
+        self.expanded_quicklink_ids_list_dict[current_server_name] = expanded_list_current_view
+
     @pyqtSlot(str)
     def search(self, search_text):
         # before doing the search: save expanded states
@@ -1257,7 +1271,7 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def edit_row(self):
-        if sys.platform == "darwin" or self.current_index().column() != 1: # workaround to fix a weird bug, where the second column is skipped
+        if sys.platform == "darwin" or self.current_index().column() != 1:  # workaround to fix a weird bug, where the second column is skipped
             self.edit_row_without_check()
 
     def edit_row_without_check(self):
