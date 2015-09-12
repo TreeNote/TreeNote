@@ -50,6 +50,7 @@ EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 17
+INITIAL_SIDEBAR_WIDTH = 200
 
 
 def git_tag_to_versionnr(git_tag):
@@ -122,7 +123,7 @@ class MainWindow(QMainWindow):
 
             # set font-size and padding
             app.setFont(QFont(model.FONT, APP_FONT_SIZE))
-            self.fontsize = settings.value('fontsize', 15)  # second value is loaded, if nothing was saved before in the settings
+            self.fontsize = settings.value('fontsize', APP_FONT_SIZE)  # second value is loaded, if nothing was saved before in the settings
             self.padding = settings.value('padding', 2)
 
             self.item_model = self.server_model.servers[0].model
@@ -182,8 +183,10 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.addWidget(bookmarks_holder)
             self.first_column_splitter.addWidget(servers_view_holder)
             self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
-            self.first_column_splitter.moveSplitter(230, 1)
-            self.first_column_splitter.moveSplitter(360, 2)
+            self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
+            self.first_column_splitter.setStretchFactor(1, 0)
+            self.first_column_splitter.setStretchFactor(2, 0)
+            self.first_column_splitter.setSizes([315, 165, 120])
 
             # second column
 
@@ -250,9 +253,10 @@ class MainWindow(QMainWindow):
             self.mainSplitter.addWidget(self.first_column_splitter)
             self.mainSplitter.addWidget(self.item_views_splitter)
             self.mainSplitter.addWidget(third_column)
-            self.mainSplitter.setStretchFactor(0, 2)  # first column has a share of 2
+            self.mainSplitter.setStretchFactor(0, 0)  # first column has a share of 2
             self.mainSplitter.setStretchFactor(1, 6)
-            self.mainSplitter.setStretchFactor(2, 2)
+            self.mainSplitter.setStretchFactor(2, 0)
+            self.mainSplitter.setSizes([INITIAL_SIDEBAR_WIDTH, 500, 1])
             self.setCentralWidget(self.mainSplitter)
 
             # list of actions which depend on a specific view
@@ -399,7 +403,7 @@ class MainWindow(QMainWindow):
             self.update_actions()
 
             # restore previous position etc
-            self.resize(settings.value('size', QSize(800, 600)))  # second value is loaded, if nothing was saved before in the settings
+            self.resize(settings.value('size', QSize(1000, 600)))  # second value is loaded, if nothing was saved before in the settings
             self.move(settings.value('pos', QPoint(200, 200)))
 
             mainSplitter_state = settings.value('mainSplitter')
@@ -443,9 +447,10 @@ class MainWindow(QMainWindow):
             if palette is not None:
                 palette = self.light_palette if palette == 'light' else self.dark_palette
             else:  # set standard theme
-                palette = self.light_palette if sys.platform == "win32" else self.dark_palette
+                palette = self.light_palette
             self.set_palette(palette)
 
+            # restore splitters
             splitter_sizes = settings.value('splitter_sizes')
             if splitter_sizes is not None:
                 self.mainSplitter.restoreState(splitter_sizes)
@@ -1004,8 +1009,8 @@ class MainWindow(QMainWindow):
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
         else:
-            self.mainSplitter.moveSplitter(200, 1)
-            self.mainSplitter.moveSplitter(self.width() - 200, 2)
+            self.mainSplitter.moveSplitter(INITIAL_SIDEBAR_WIDTH, 1)
+            self.mainSplitter.moveSplitter(self.width() - INITIAL_SIDEBAR_WIDTH, 2)
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
