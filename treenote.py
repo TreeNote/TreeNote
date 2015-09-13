@@ -1373,7 +1373,7 @@ class MainWindow(QMainWindow):
             url_list = re.findall(url_regex, row_index.data())
             if url_list != []:
                 for url in url_list:
-                    if not url.startswith('http://'):
+                    if not re.search(r'https?://',url):
                         url = 'http://' + url
                     webbrowser.open(url)
             else:  # no urls found: search the web for the selected entry
