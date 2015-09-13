@@ -530,7 +530,9 @@ class MainWindow(QMainWindow):
         for row in res:
             db_item = self.item_model.db[row.id]
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                         triggered=partial(self.append_replace_to_searchbar, model.FOCUS, row.id)))
+                                                         triggered=partial(self.open_quicklink_shortcut, row.id)))
+    def open_quicklink_shortcut(self, item_id):
+        self.focus_index(QModelIndex(self.item_model.id_index_dict[item_id]))
 
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):

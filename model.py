@@ -887,7 +887,7 @@ class BookmarkDelegate(QStyledItemDelegate):
         first_text_row = re.sub(r'\n(.|\n)*', ' ...', db_item[TEXT])
         document.setPlainText(shortcut + first_text_row)
         if option.state & QStyle.State_Selected:
-            color = self.main_window.palette().highlight().color()
+            color = option.palette.highlight()
         else:
             color = QApplication.palette().base()
         painter.save()
