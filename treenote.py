@@ -320,6 +320,8 @@ class MainWindow(QMainWindow):
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
             add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
+            add_action('expandAction', QAction('Expand selected', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
+            add_action('collapseAction', QAction('Collapse selected', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -1090,11 +1092,35 @@ class MainWindow(QMainWindow):
             self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
-        self.focused_column().view.setExpanded(parent_index, bool_expand)
+        self.focused_column().view.setExpanded(parent_index, bool_expand)  # for recursion
         for row_num in range(self.focused_column().filter_proxy.rowCount(parent_index)):
             child_index = self.focused_column().filter_proxy.index(row_num, 0, parent_index)
             self.focused_column().view.setExpanded(parent_index, bool_expand)
             self.expand_or_collapse_children(child_index, bool_expand)
+
+    def expand(self):
+        for index in self.selected_indexes():
+            if self.focused_column().view.isExpanded(index):  # select all childs
+                for row_num in range(self.focused_column().filter_proxy.rowCount(index)):
+                    child_index = self.focused_column().filter_proxy.index(row_num, 0, index)
+                    child_index_to = child_index.sibling(child_index.row(), self.item_model.columnCount() - 1)
+                    self.focused_column().view.selectionModel().setCurrentIndex(child_index_to, QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().select(QItemSelection(child_index, child_index_to), QItemSelectionModel.Select)
+            else:
+                self.focused_column().view.setExpanded(index, True)
+
+    def collapse(self):
+        for index in self.selected_indexes():
+            if not self.focused_column().view.isExpanded(index):  # jump to parent
+                index_parent_to = index.parent().sibling(index.parent().row(), self.item_model.columnCount() - 1)
+                if index_parent_to != QModelIndex():  # dont select root (because its not visible)
+                    self.focused_column().view.selectionModel().setCurrentIndex(index.parent(), QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().select(QItemSelection(index.parent(), index_parent_to), QItemSelectionModel.Select)
+
+                    index_to = index.sibling(index.row(), self.item_model.columnCount() - 1)
+                    self.focused_column().view.selectionModel().select(QItemSelection(index, index_to), QItemSelectionModel.Deselect)
+            else:
+                self.focused_column().view.setExpanded(index, False)
 
     def rename_tag(self, tag, new_name):
         map = "function(doc) {{ \
