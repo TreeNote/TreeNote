@@ -526,11 +526,14 @@ class MainWindow(QMainWindow):
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
                                                          triggered=partial(self.filter_bookmark, row.id)))
 
-        res = self.item_model.db.query(map)
-        for row in res:
-            db_item = self.item_model.db[row.id]
-            self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                         triggered=partial(self.open_quicklink_shortcut, row.id)))
+        for server in self.server_model.servers:
+            qtmodel = server.model
+            res = qtmodel.db.query(map)
+            for row in res:
+                db_item = qtmodel.db[row.id]
+                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
+                                                             triggered=partial(self.open_quicklink_shortcut, row.id)))
+
     def open_quicklink_shortcut(self, item_id):
         self.focus_index(QModelIndex(self.item_model.id_index_dict[item_id]))
 
