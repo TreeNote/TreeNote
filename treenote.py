@@ -535,7 +535,10 @@ class MainWindow(QMainWindow):
                                                              triggered=partial(self.open_quicklink_shortcut, row.id)))
 
     def open_quicklink_shortcut(self, item_id):
-        self.focus_index(QModelIndex(self.item_model.id_index_dict[item_id]))
+        index = QModelIndex(self.item_model.id_index_dict[item_id])
+        self.focus_index(index)
+        # select row for visual highlight
+        self.quicklinks_view.selectionModel().select(QItemSelection(index, index), QItemSelectionModel.ClearAndSelect)
 
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
