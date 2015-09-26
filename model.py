@@ -88,7 +88,7 @@ class Tree_item(object):
             return self.parentItem.childItems.index(self)
         return 0
 
-    def init_childs(self, parent_index):
+    def init_children(self, parent_index):
         if self.childItems is None:  # deserialise children from the db
             self.childItems = []
             children_id_list = self.children.split()
@@ -207,7 +207,7 @@ class TreeModel(QAbstractItemModel):
 
     def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
-        parentItem.init_childs(parent)
+        parentItem.init_children(parent)
         return len(parentItem.childItems)
 
     def data(self, index, role):
@@ -281,17 +281,17 @@ class TreeModel(QAbstractItemModel):
                 self.model.db[child_db_item.id] = child_db_item
 
                 # set deleted marker for children
-                def delete_childs(db_item):
+                def delete_children(db_item):
                     children_list = db_item['children'].split()
                     for ch_item_id in children_list:
-                        delete_childs(self.model.db[ch_item_id])
+                        delete_children(self.model.db[ch_item_id])
                         ch_db_item = self.model.db.get(ch_item_id)
                         if ch_db_item is not None:
                             ch_db_item[DELETED] = string
                             ch_db_item['change'] = dict(method=DELETED, user=socket.gethostname())
                             self.model.db[ch_db_item.id] = ch_db_item
 
-                delete_childs(child_db_item)
+                delete_children(child_db_item)
 
             @staticmethod  # static because it is called from the outside for moving
             def add_rows(model, position, parent_item_id, id_list, set_edit_focus):
@@ -637,7 +637,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 if FLATTEN not in self.filter:  # ignore
                     continue
                 else:
-                    # focus + flatten: show just childs of flatten
+                    # focus + flatten: show just children of flatten
                     # return if somehow_child_id is a child or grandchild etc of parent_id
                     def is_somehow_child_of_flatten_id(somehow_child_id, parent_id):
                         if somehow_child_id in self.sourceModel().sourceModel().db[parent_id]['children']:

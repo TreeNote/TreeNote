@@ -912,7 +912,7 @@ class MainWindow(QMainWindow):
                             self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
                             save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
 
-                    save_childs(item, position, position + count)
+                    save_children(item, position, position + count)
 
                 source_model.beginRemoveRows(index, position, position + count - 1)
                 item.childItems[position:position + count] = []
@@ -925,7 +925,7 @@ class MainWindow(QMainWindow):
                     if len(item.childItems) > 0:
                         index_next_child = source_model.index(position, 0, index)
                         self.set_selection(index_next_child, index_next_child)
-                    else:  # all childs deleted, select parent
+                    else:  # all children deleted, select parent
                         self.set_selection(index, index)
 
             elif method == 'moved_vertical':
