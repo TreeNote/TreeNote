@@ -1247,7 +1247,9 @@ class MainWindow(QMainWindow):
         print("cut")
 
     def copy(self):
-        if self.flatten:
+        if len(self.selected_indexes()) == 1:
+            rows_string = self.selected_indexes()[0].data()
+        elif self.flatten:
             rows_string = '\r\n'.join(['- ' + index.data().replace('\n', '\r\n\t') for index in self.selected_indexes()])
         else:
             selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index) for index in self.selected_indexes()]
@@ -1276,7 +1278,8 @@ class MainWindow(QMainWindow):
                     rows_string = '\r\n'.join(lines)
                     break
 
-            rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all until equal
+            rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all rows until equal
+            rows_string = rows_string.strip() # strip the line break at the end
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
