@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
             self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
             self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
             self.servers_view.setUniformRowHeights(True)  # improves performance
-            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING) + 'px; }')
+            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING +  3 ) + 'px; }')
             servers_view_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
             self.tag_view.setModel(tag_model.TagModel())
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
             self.tag_view.setUniformRowHeights(True)  # improves performance
-            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING) + 'px; }')
+            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING  + 3) + 'px; }')
 
             third_column = QWidget()
             layout = QVBoxLayout()

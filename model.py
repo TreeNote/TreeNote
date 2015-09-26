@@ -892,7 +892,7 @@ class BookmarkDelegate(QStyledItemDelegate):
             color = QApplication.palette().base()
         painter.save()
         painter.fillRect(option.rect, color)
-        painter.translate(option.rect.x() - 2, option.rect.y() - 3 + SIDEBARS_PADDING)  # -3: put the text in the middle of the line
+        painter.translate(option.rect.x() - 2, option.rect.y() - 2 + SIDEBARS_PADDING)  # -2: put the text in the middle of the line
         document.drawContents(painter)
         painter.restore()
 
@@ -1092,4 +1092,4 @@ NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_C
 FOCUS_TEXT = 'Focus on current row'
 GAP_FOR_CHECKBOX = 17
 FONT = 'Source Sans Pro'
-SIDEBARS_PADDING = 2
+SIDEBARS_PADDING = -1
