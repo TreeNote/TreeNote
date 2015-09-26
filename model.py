@@ -69,7 +69,7 @@ class Updater(QThread):
 
 class Tree_item(object):
     """
-    This item holds all id, parent, childs, text, estimate and date attributes. Other attributes like color are in the db only.
+    This item holds all id, parent, children, text, estimate and date attributes. Other attributes like color are in the db only.
     Attributes saved here are accessed faster than through the db.
 
     To understand Qt's way of building a TreeView, read:

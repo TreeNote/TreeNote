@@ -22,16 +22,13 @@ import logging
 import traceback
 import json
 import textwrap
-from operator import itemgetter
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import sip  # for pyinstaller
 import couchdb
 import requests
 
-import qrc_resources
 import model
 import server_model
 import tag_model
@@ -905,12 +902,12 @@ class MainWindow(QMainWindow):
                 if source_model is self.item_model:  # not for bookmarks
                     self.removed_id_expanded_state_dict = {}
                     # save and restore expanded state
-                    def save_childs(parent, from_child, to_child):
+                    def save_children(parent, from_child, to_child):
                         for child_item in parent.childItems[from_child:to_child]:
                             child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
                             proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
                             self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-                            save_childs(source_model.getItem(child_item_index), None, None)  # save expanded state of all childs
+                            save_children(source_model.getItem(child_item_index), None, None)  # save expanded state of all children
 
                     save_children(item, position, position + count)
 
