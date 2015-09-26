@@ -15,21 +15,23 @@ import webbrowser
 import re
 import subprocess
 import sys
-from functools import partial
 import time
 import os
 import logging
 import traceback
 import json
 import textwrap
+from operator import itemgetter
+from functools import partial
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import sip  # for pyinstaller
 import couchdb
-
 import requests
 
+import qrc_resources
 import model
 import server_model
 import tag_model
@@ -404,9 +406,13 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setFocus()
             self.update_actions()
 
-            # restore previous position etc
-            self.resize(settings.value('size', QSize(1000, 600)))  # second value is loaded, if nothing was saved before in the settings
-            self.move(settings.value('pos', QPoint(200, 200)))
+            # restore previous position
+            size = settings.value('size')
+            if size is not None:
+                self.resize(size)
+                self.move(settings.value('pos'))
+            else:
+                self.showMaximized()
 
             mainSplitter_state = settings.value('mainSplitter')
             if mainSplitter_state is not None:
@@ -416,7 +422,7 @@ class MainWindow(QMainWindow):
             if first_column_splitter_state is not None:
                 self.first_column_splitter.restoreState(first_column_splitter_state)
 
-            # first
+            # first (do this before the labels 'second' and 'third')
             # restore selected database
             last_db_name = settings.value('database')
             if last_db_name is not None:
@@ -439,7 +445,7 @@ class MainWindow(QMainWindow):
 
             # third
             # restore selection
-            selection_item_id = settings.value(SELECTED_ID, None)
+            selection_item_id = settings.value(SELECTED_ID, None)  # second value is loaded, if nothing was saved before in the settings
             if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
                 index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
                 self.set_selection(index, index)
