@@ -49,7 +49,7 @@ CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
-APP_FONT_SIZE = 14 if sys.platform == "win32" else 17
+APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
 
 
@@ -125,8 +125,8 @@ class MainWindow(QMainWindow):
 
             # set font-size and padding
             app.setFont(QFont(model.FONT, APP_FONT_SIZE))
-            self.fontsize = settings.value('fontsize', APP_FONT_SIZE)  # second value is loaded, if nothing was saved before in the settings
-            self.padding = settings.value('padding', 2)
+            self.fontsize = int(settings.value('fontsize', APP_FONT_SIZE))  # second value is loaded, if nothing was saved before in the settings
+            self.padding = int(settings.value('padding', 2))
 
             self.item_model = self.server_model.servers[0].model
 
@@ -281,43 +281,43 @@ class MainWindow(QMainWindow):
             add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-            add_action('aboutAct', QAction(self.tr('&About'), self, triggered=lambda: AboutBox(self).exec()))
-            # add_action('unsplitWindowAct', QAction(self.tr('&Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
-            # add_action('splitWindowAct', QAction(self.tr('&Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
-            add_action('editRowAction', QAction(self.tr('&Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
-            add_action('deleteSelectedRowsAction', QAction(self.tr('&Delete selected rows'), self, shortcut='delete', triggered=self.remove_selection), list=self.item_view_actions)
-            add_action('insertRowAction', QAction(self.tr('&Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
-            add_action('insertChildAction', QAction(self.tr('&Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
-            add_action('moveUpAction', QAction(self.tr('&Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
-            add_action('moveDownAction', QAction(self.tr('&Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
-            add_action('moveLeftAction', QAction(self.tr('&Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
-            add_action('moveRightAction', QAction(self.tr('&Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-            add_action('expandAllChildrenAction', QAction(self.tr('&Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)), list=self.item_view_not_editing_actions)
-            add_action('collapseAllChildrenAction', QAction(self.tr('&Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)), list=self.item_view_not_editing_actions)
-            add_action('focusSearchBarAction', QAction(self.tr('&Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
-            add_action('colorGreenAction', QAction('&Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
-            add_action('colorYellowAction', QAction('&Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
-            add_action('colorBlueAction', QAction('&Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
-            add_action('colorRedAction', QAction('&Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
-            add_action('colorOrangeAction', QAction('&Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
-            add_action('colorNoColorAction', QAction('&No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
-            add_action('toggleTaskAction', QAction(self.tr('&Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
-            add_action('openLinkAction', QAction(self.tr('&Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
-            add_action('renameTagAction', QAction(self.tr('&Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
+            add_action('aboutAct', QAction(self.tr('About'), self, triggered=lambda: AboutBox(self).exec()))
+            # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
+            # add_action('splitWindowAct', QAction(self.tr('Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
+            add_action('editRowAction', QAction(self.tr('Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
+            add_action('deleteSelectedRowsAction', QAction(self.tr('Delete selected rows'), self, shortcut='delete', triggered=self.remove_selection), list=self.item_view_actions)
+            add_action('insertRowAction', QAction(self.tr('Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
+            add_action('insertChildAction', QAction(self.tr('Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
+            add_action('moveUpAction', QAction(self.tr('Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
+            add_action('moveDownAction', QAction(self.tr('Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
+            add_action('moveLeftAction', QAction(self.tr('Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
+            add_action('moveRightAction', QAction(self.tr('Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)), list=self.item_view_not_editing_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)), list=self.item_view_not_editing_actions)
+            add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
+            add_action('colorGreenAction', QAction('Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
+            add_action('colorYellowAction', QAction('Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
+            add_action('colorBlueAction', QAction('Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
+            add_action('colorRedAction', QAction('Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
+            add_action('colorOrangeAction', QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
+            add_action('colorNoColorAction', QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
+            add_action('toggleTaskAction', QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
+            add_action('openLinkAction', QAction(self.tr('Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
+            add_action('renameTagAction', QAction(self.tr('Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
             add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
             add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
             add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
             add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection), list=self.bookmark_view_actions)
             add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
-            add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
-            add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
-            add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
+            add_action('resetViewAction', QAction(self.tr('Reset view'), self, shortcut='esc', triggered=self.reset_view))
+            add_action('toggleProjectAction', QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
+            add_action('appendRepeatAction', QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
             add_action('goDownAction', QAction(self.tr('Focus into selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
             add_action('goUpAction', QAction(self.tr('Focus parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
-            add_action('increaseFontAction', QAction(self.tr('&Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
-            add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
-            add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
-            add_action('decreasePaddingAction', QAction(self.tr('&Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
+            add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
+            add_action('decreaseFontAction', QAction(self.tr('Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
+            add_action('increasePaddingAction', QAction(self.tr('Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
+            add_action('decreasePaddingAction', QAction(self.tr('Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
             add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
             self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.renameTagAction)
 
-            self.structureMenu = self.menuBar().addMenu(self.tr('&Edit structure'))
+            self.structureMenu = self.menuBar().addMenu(self.tr('Edit structure'))
             self.structureMenu.addAction(self.insertRowAction)
             self.structureMenu.addAction(self.insertChildAction)
             self.structureMenu.addAction(self.deleteSelectedRowsAction)
@@ -356,18 +356,18 @@ class MainWindow(QMainWindow):
             self.structureMenu.addAction(self.copyAction)
             self.structureMenu.addAction(self.pasteAction)
 
-            self.moveMenu = self.structureMenu.addMenu(self.tr('&Move selected rows'))
+            self.moveMenu = self.structureMenu.addMenu(self.tr('Move selected rows'))
             self.moveMenu.addAction(self.moveUpAction)
             self.moveMenu.addAction(self.moveDownAction)
             self.moveMenu.addAction(self.moveLeftAction)
             self.moveMenu.addAction(self.moveRightAction)
 
-            self.editRowMenu = self.menuBar().addMenu(self.tr('&Edit row'))
+            self.editRowMenu = self.menuBar().addMenu(self.tr('Edit row'))
             self.editRowMenu.addAction(self.editRowAction)
             self.editRowMenu.addAction(self.toggleTaskAction)
             self.editRowMenu.addAction(self.toggleProjectAction)
             self.editRowMenu.addAction(self.appendRepeatAction)
-            self.colorMenu = self.editRowMenu.addMenu(self.tr('&Color selected rows'))
+            self.colorMenu = self.editRowMenu.addMenu(self.tr('Color selected rows'))
             self.colorMenu.addAction(self.colorGreenAction)
             self.colorMenu.addAction(self.colorYellowAction)
             self.colorMenu.addAction(self.colorBlueAction)
@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
             self.colorMenu.addAction(self.colorOrangeAction)
             self.colorMenu.addAction(self.colorNoColorAction)
 
-            self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
+            self.viewMenu = self.menuBar().addMenu(self.tr('View'))
             self.viewMenu.addAction(self.goDownAction)
             self.viewMenu.addAction(self.goUpAction)
             self.viewMenu.addAction(self.resetViewAction)
@@ -398,7 +398,7 @@ class MainWindow(QMainWindow):
             self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
             self.fill_bookmarkShortcutsMenu()
 
-            self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
+            self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
             self.helpMenu.addAction(self.aboutAct)
 
             self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
