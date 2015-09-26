@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
             self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
             self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
             self.servers_view.setUniformRowHeights(True)  # improves performance
-            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING +  3 ) + 'px; }')
+            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + 3) + 'px; }')
             servers_view_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
             self.tag_view.setModel(tag_model.TagModel())
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
             self.tag_view.setUniformRowHeights(True)  # improves performance
-            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING  + 3) + 'px; }')
+            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + 3) + 'px; }')
 
             third_column = QWidget()
             layout = QVBoxLayout()
@@ -506,13 +506,18 @@ class MainWindow(QMainWindow):
                     self.quicklinks_view.expand(QModelIndex(index))
 
     def set_palette(self, new_palette):
-        QApplication.setPalette(new_palette)
-        self.focused_column().toggle_sidebars_button.setPalette(new_palette)
-        self.focused_column().bookmark_button.setPalette(new_palette)
-        self.focused_column().search_bar.setPalette(new_palette)
-        self.focused_column().view.setPalette(new_palette)
-        self.focused_column().view.verticalScrollBar().setPalette(new_palette)
-        self.focused_column().view.header().setPalette(new_palette)
+        for widget in [QApplication,
+                       self.focused_column().toggle_sidebars_button,
+                       self.focused_column().bookmark_button,
+                       self.focused_column().search_bar,
+                       self.focused_column().view,
+                       self.focused_column().view.verticalScrollBar(),
+                       self.focused_column().view.header(),
+                       self.servers_view,
+                       self.servers_view.header(),
+                       self.tag_view,
+                       self.tag_view.header()]:
+            widget.setPalette(new_palette)
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -1279,7 +1284,7 @@ class MainWindow(QMainWindow):
                     break
 
             rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all rows until equal
-            rows_string = rows_string.strip() # strip the line break at the end
+            rows_string = rows_string.strip()  # strip the line break at the end
         QApplication.clipboard().setText(rows_string)
 
     def paste(self):
@@ -1376,7 +1381,7 @@ class MainWindow(QMainWindow):
             url_list = re.findall(url_regex, row_index.data())
             if url_list != []:
                 for url in url_list:
-                    if not re.search(r'https?://',url):
+                    if not re.search(r'https?://', url):
                         url = 'http://' + url
                     webbrowser.open(url)
             else:  # no urls found: search the web for the selected entry
