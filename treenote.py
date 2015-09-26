@@ -310,8 +310,8 @@ class MainWindow(QMainWindow):
             add_action('resetViewAction', QAction(self.tr('&Reset view'), self, shortcut='esc', triggered=self.reset_view))
             add_action('toggleProjectAction', QAction(self.tr('&Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('&Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('goDownAction', QAction(self.tr('Go into / Open selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
-            add_action('goUpAction', QAction(self.tr('Go up / Open parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
+            add_action('goDownAction', QAction(self.tr('Focus into selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('goUpAction', QAction(self.tr('Focus parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
             add_action('increaseFontAction', QAction(self.tr('&Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
             add_action('decreaseFontAction', QAction(self.tr('&Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('&Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
@@ -320,8 +320,8 @@ class MainWindow(QMainWindow):
             add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
             add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
-            add_action('expandAction', QAction('Expand selected', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
-            add_action('collapseAction', QAction('Collapse selected', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
+            add_action('expandAction', QAction('Expand selected rows / add children to selection', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
+            add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -378,6 +378,8 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.goUpAction)
             self.viewMenu.addAction(self.resetViewAction)
             self.viewMenu.addSeparator()
+            self.viewMenu.addAction(self.expandAction)
+            self.viewMenu.addAction(self.collapseAction)
             self.viewMenu.addAction(self.expandAllChildrenAction)
             self.viewMenu.addAction(self.collapseAllChildrenAction)
             self.viewMenu.addSeparator()
@@ -1113,7 +1115,7 @@ class MainWindow(QMainWindow):
 
     def expand(self):
         for index in self.selected_indexes():
-            if self.focused_column().view.isExpanded(index):  # select all childs
+            if self.focused_column().view.isExpanded(index):  # select all children
                 for row_num in range(self.focused_column().filter_proxy.rowCount(index)):
                     child_index = self.focused_column().filter_proxy.index(row_num, 0, index)
                     child_index_to = child_index.sibling(child_index.row(), self.item_model.columnCount() - 1)
@@ -1124,7 +1126,7 @@ class MainWindow(QMainWindow):
 
     def collapse(self):
         for index in self.selected_indexes():
-            if not self.focused_column().view.isExpanded(index):  # jump to parent
+            if not self.focused_column().view.isExpanded(index) or not self.item_model.hasChildren(self.focused_column().filter_proxy.mapToSource(index)):  # jump to parent
                 index_parent_to = index.parent().sibling(index.parent().row(), self.item_model.columnCount() - 1)
                 if index_parent_to != QModelIndex():  # dont select root (because its not visible)
                     self.focused_column().view.selectionModel().setCurrentIndex(index.parent(), QItemSelectionModel.Select)
