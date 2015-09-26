@@ -27,6 +27,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import couchdb
+
 import requests
 
 import model
@@ -46,7 +47,7 @@ CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
-APP_FONT_SIZE = 17
+APP_FONT_SIZE = 14 if sys.platform == "win32" else 17
 INITIAL_SIDEBAR_WIDTH = 200
 
 
@@ -166,7 +167,7 @@ class MainWindow(QMainWindow):
             self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
             self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
             self.servers_view.setUniformRowHeights(True)  # improves performance
-            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + 3) + 'px; }')
+            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
             servers_view_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
@@ -236,7 +237,7 @@ class MainWindow(QMainWindow):
             self.tag_view.setModel(tag_model.TagModel())
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
             self.tag_view.setUniformRowHeights(True)  # improves performance
-            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + 3) + 'px; }')
+            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
 
             third_column = QWidget()
             layout = QVBoxLayout()
