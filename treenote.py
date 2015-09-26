@@ -1053,6 +1053,9 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def search(self, search_text):
+        if model.FOCUS not in search_text:
+            self.flattenViewCheckBox.setEnabled(True)
+            
         # before doing the search: save expanded states
         focus_pattern = re.compile(' ' + model.FOCUS + '\S* *$')  # '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
         if self.old_search_text == '' or focus_pattern.match(self.old_search_text):
@@ -1382,6 +1385,7 @@ class MainWindow(QMainWindow):
         else:
             item_id = index.model().get_db_item(index)['_id']
         self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
+        self.flattenViewCheckBox.setEnabled(False)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():

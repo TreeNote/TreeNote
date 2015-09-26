@@ -28,13 +28,13 @@ Deploy
 Increase version number in version.py
 
 * Windows
-	* Execute in cmd.exe: ``PyInstaller --windowed --icon=/images/logo.ico treenote.py``
-	* Copy and paste the .txt files into the new treenote folder
+	* Execute in cmd.exe: ``pyinstaller --windowed --icon=images\logo.ico treenote.py``
+	* Copy and paste the .json files into the new treenote folder
 
 * Ubuntu
 	* Execute ``pyinstaller --windowed --icon=/images/logo.png treenote.py``
-	* Copy and paste the .txt files into the new treenote folder
+	* Copy and paste the .json files into the new treenote folder
 
 * OS X
 	* Execute ``pyinstaller --windowed --icon=/images/logo.icns treenote.py``
-	* Right-click on treenote.app and choose "Show Package Contents". Copy and paste the .txt files to treenote.app/Contents/MacOS
+	* Right-click on treenote.app and choose "Show Package Contents". Copy and paste the .json files to treenote.app/Contents/MacOS
