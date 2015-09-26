@@ -65,6 +65,8 @@ class MainWindow(QMainWindow):
 
             app.setStyle("Fusion")
             self.light_palette = app.palette()
+            self.light_palette.setColor(QPalette.Highlight, model.SELECTION_LIGHT_BLUE)
+            self.light_palette.setColor(QPalette.AlternateBase, model.ALTERNATE_BACKGROUND_GRAY_LIGHT)
 
             self.dark_palette = QPalette()
             self.dark_palette.setColor(QPalette.Window, model.FOREGROUND_GRAY)
