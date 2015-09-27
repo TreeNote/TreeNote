@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
             self.first_column_splitter.setStretchFactor(1, 0)
             self.first_column_splitter.setStretchFactor(2, 0)
-            self.first_column_splitter.setSizes([315, 165, 120])
+            self.first_column_splitter.setSizes([315, 200, 140])
 
             # second column
 
@@ -1491,15 +1491,11 @@ class AboutBox(QDialog):
         headline.setFont(QFont(model.FONT, 25))
         aktuell = ' (Update verfügbar)' if parent.check_for_software_update() else ' (TreeNote ist aktuell)'
         label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + aktuell + '<br><br>\
-           TreeNote is a collaboratively usable outliner for personal knowledge and task management.<br>\
+           TreeNote is a collaboratively usable outliner for personal knowledge and task management. More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>\
             <br>\
-            Copyright (C) 2015 Jan Korte<br>\
+            Contact me at jan.korte@uni-oldenburg.de if you haven an idea or issue!<br>\
             <br>\
-            Contact me through <a href="http://www.treenote.de/">www.treenote.de</a> if you have ideas or problems!<br>\
-            <br>\
-            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.<br>\
-            <br>\
-            I hope you enjoy this application. Consider a donation to my freedom-loving hoster <a href="http://www.wissenschaftsladen-dortmund.de/spenden/">Wissenschaftsladen Dortmund</a>.'))
+            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.'))
         label.setOpenExternalLinks(True)
         label.setTextFormat(Qt.RichText)
         label.setWordWrap(True)
