@@ -1352,6 +1352,12 @@ class MainWindow(QMainWindow):
         else:
             self.focused_column().view.setFocus()
 
+    def edit_estimate(self):
+        current_index = self.current_index()
+        sibling_index = current_index.sibling(current_index.row(), 2)
+        self.focused_column().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
+        self.focused_column().view.edit(sibling_index)
+
     def current_index(self):
         return self.focused_column().view.selectionModel().currentIndex()
 

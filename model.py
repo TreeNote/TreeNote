@@ -907,7 +907,7 @@ class EscCalendarWidget(QCalendarWidget):
         super(EscCalendarWidget, self).__init__(parent)
         if sys.platform != "darwin":  # sadly, capture of the tab key is different on Windows and Mac. so we need it here for windows and at OpenPopupDateEdit for Mac
             self.installEventFilter(self)
-            self.sent = False
+            self.first_tab_done = True
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
@@ -919,9 +919,11 @@ class EscCalendarWidget(QCalendarWidget):
     def eventFilter(self, obj, event):
         open_popup_date_edit = self.parent().parent()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
-            if not self.sent:  # annoying bug that this event is sent two times. so filter one event out.
-                open_popup_date_edit.delegate.main_window.edit_row_without_check()
-                self.sent = True
+            # annoying bug that this event is sent two times. so filter the first event out.
+            if self.first_tab_done and sys.platform == 'linux':  # linux behaves different to windows
+                self.first_tab_done = False
+            else:
+                open_popup_date_edit.delegate.main_window.edit_estimate()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
             open_popup_date_edit.setSpecialValueText(' ')
             open_popup_date_edit.setDate(QDateFromString(EMPTY_DATE))  # workaround to set empty date
@@ -935,7 +937,7 @@ class OpenPopupDateEdit(QDateEdit):
         self.delegate = delegate
         self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
         if sys.platform == "darwin":
-            self.first_tab = True
+            self.first_tab_done = True
             self.installEventFilter(self)
 
     def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
@@ -952,8 +954,8 @@ class OpenPopupDateEdit(QDateEdit):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
-            if self.first_tab:
-                self.first_tab = False
+            if self.first_tab_done:
+                self.first_tab_done = False
             else:
                 self.delegate.main_window.edit_row()
         if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
