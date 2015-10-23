@@ -8,6 +8,6 @@ An intuitive outliner for personal knowledge and task management. Supports colla
 
 A showcase of features and cross-platform downloads are available at http://treenote.de/
 
-Documentation: http://treenote.readthedocs.org/
+Developer documentation: www.treenote.de/de/documentation
 
 This program is free software licensed under GPL v3.0
