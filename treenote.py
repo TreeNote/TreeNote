@@ -467,6 +467,8 @@ class MainWindow(QMainWindow):
             splitter_sizes = settings.value('splitter_sizes')
             if splitter_sizes is not None:
                 self.mainSplitter.restoreState(splitter_sizes)
+            else:
+                self.toggle_sidebars()
 
             self.check_for_software_update()
 
