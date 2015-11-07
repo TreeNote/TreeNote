@@ -6,8 +6,8 @@ An intuitive outliner for personal knowledge and task management. Supports colla
 
 ![Screemshot](/images/screenshot.png)
 
-A showcase of features and cross-platform downloads are available at http://treenote.de/
+A showcase of features and cross-platform downloads are available at www.treenote.de
 
-Developer documentation: www.treenote.de/de/documentation
+Developer documentation: www.treenote.de/documentation
 
 This program is free software licensed under GPL v3.0
