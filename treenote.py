@@ -35,7 +35,7 @@ import server_model
 import tag_model
 import version
 
-logging.basicConfig(filename=os.path.dirname(sys.executable) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 EDIT_BOOKMARK = 'Edit bookmark'
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
             if servers is None:
                 def load_db_from_file(bookmark_name, db_name):
                     db = self.get_db('', db_name, create_root=False)
-                    with open(os.path.dirname(sys.executable) + os.sep + db_name + '.json', 'r') as file:
+                    with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + db_name + '.json', 'r') as file:
                         doc_list = json.load(file)
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
@@ -113,7 +113,7 @@ class MainWindow(QMainWindow):
                 load_db_from_file('Local', 'local')
 
                 db = self.get_db('', 'local_bookmarks', create_root=False)
-                with open(os.path.dirname(sys.executable) + os.sep + 'local_bookmarks.json', 'r') as file:
+                with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'local_bookmarks.json', 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
