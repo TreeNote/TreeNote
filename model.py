@@ -815,6 +815,7 @@ class Delegate(QStyledItemDelegate):
         document.setDefaultFont(QFont(FONT, self.main_window.fontsize))
         textOption = QTextOption()
         textOption.setWrapMode(QTextOption.WordWrap)
+        textOption.setTabStop(TAB_WIDTH)
         document.setDefaultTextOption(textOption)
         document.setTextWidth(available_width - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
         document.setHtml(html)
@@ -976,6 +977,7 @@ class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/au
         self._completer.activated[str].connect(self._insertCompletion)
         self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
         self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
+        self.setTabStopWidth(TAB_WIDTH)
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
@@ -1099,3 +1101,4 @@ GAP_FOR_CHECKBOX = 17
 FONT = 'Source Sans Pro'
 SIDEBARS_PADDING = -1 if sys.platform == "darwin" else 2
 SIDEBARS_PADDING_EXTRA_SPACE = 3 if sys.platform == "darwin" else 0
+TAB_WIDTH = 30

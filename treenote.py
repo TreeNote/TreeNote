@@ -23,14 +23,12 @@ import json
 import textwrap
 from operator import itemgetter
 from functools import partial
-
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sip  # for pyinstaller
 import couchdb
 import requests
-
 import qrc_resources
 import model
 import server_model
@@ -149,6 +147,7 @@ class MainWindow(QMainWindow):
             self.quicklinks_view.hideColumn(1)
             self.quicklinks_view.hideColumn(2)
             self.quicklinks_view.setUniformRowHeights(True)  # improves performance
+            self.quicklinks_view.setAnimated(True)
 
             self.bookmarks_view = QTreeView()
             self.bookmarks_view.setModel(self.bookmark_model)
@@ -242,6 +241,7 @@ class MainWindow(QMainWindow):
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
             self.tag_view.setUniformRowHeights(True)  # improves performance
             self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
+            self.tag_view.setAnimated(True)
 
             third_column = QWidget()
             layout = QVBoxLayout()
@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
             add_action('colorOrangeAction', QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
             add_action('colorNoColorAction', QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
             add_action('toggleTaskAction', QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
-            add_action('openLinkAction', QAction(self.tr('Open selected rows with URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
+            add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
             add_action('renameTagAction', QAction(self.tr('Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
             add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
             add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
@@ -395,7 +395,7 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.increasePaddingAction)
             self.viewMenu.addAction(self.decreasePaddingAction)
 
-            self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Bookmark shortcuts'))
+            self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Filter shortcuts'))
             self.fill_bookmarkShortcutsMenu()
 
             self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
@@ -910,6 +910,7 @@ class MainWindow(QMainWindow):
                 # for move horizontally: save expanded states of moved + children of moved
                 if source_model is self.item_model:  # not for bookmarks
                     self.removed_id_expanded_state_dict = {}
+
                     # save and restore expanded state
                     def save_children(parent, from_child, to_child):
                         for child_item in parent.childItems[from_child:to_child]:
@@ -1055,7 +1056,7 @@ class MainWindow(QMainWindow):
     def search(self, search_text):
         if model.FOCUS not in search_text:
             self.flattenViewCheckBox.setEnabled(True)
-            
+
         # before doing the search: save expanded states
         focus_pattern = re.compile(' ' + model.FOCUS + '\S* *$')  # '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
         if self.old_search_text == '' or focus_pattern.match(self.old_search_text):
@@ -1445,9 +1446,9 @@ class MainWindow(QMainWindow):
 
         new_column.view = ResizeTreeView()
         new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }')
-        new_column.view.setAlternatingRowColors(True)
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        new_column.view.setAnimated(True)
 
         new_column.flat_proxy = model.FlatProxyModel()
         new_column.flat_proxy.setSourceModel(self.item_model)
