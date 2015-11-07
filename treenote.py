@@ -109,11 +109,14 @@ class MainWindow(QMainWindow):
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
 
-                load_db_from_file('Manual', 'manual')
-                load_db_from_file('Local', 'local')
+                load_db_from_file('Anleitung', 'anleitung')
+                load_db_from_file('Leere Datenbank', 'leere_datenbank')
+                load_db_from_file('Gefüllte Vorlage', 'gefuellte_vorlage')
+                load_db_from_file('Leere Vorlage', 'leere_vorlage')
 
-                db = self.get_db('', 'local_bookmarks', create_root=False)
-                with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'local_bookmarks.json', 'r') as file:
+
+                db = self.get_db('', 'bookmarks', create_root=False)
+                with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'bookmarks.json', 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
@@ -128,7 +131,7 @@ class MainWindow(QMainWindow):
 
             self.item_model = self.server_model.servers[0].model
 
-            self.bookmark_model = model.TreeModel(self.get_db('', 'local_bookmarks'), header_list=['Bookmarks'])
+            self.bookmark_model = model.TreeModel(self.get_db('', 'bookmarks'), header_list=['Bookmarks'])
             self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
             self.mainSplitter = QSplitter(Qt.Horizontal)
@@ -187,7 +190,7 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
             self.first_column_splitter.setStretchFactor(1, 0)
             self.first_column_splitter.setStretchFactor(2, 0)
-            self.first_column_splitter.setSizes([315, 200, 140])
+            self.first_column_splitter.setSizes([315, 200, 200])
 
             # second column
 
