@@ -1454,6 +1454,7 @@ class MainWindow(QMainWindow):
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         new_column.view.setAnimated(True)
+        new_column.view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
         new_column.flat_proxy = model.FlatProxyModel()
         new_column.flat_proxy.setSourceModel(self.item_model)
