@@ -9,5 +9,6 @@
         <file alias="star">images/dark_skin/star.png</file>
         <file alias="not_available_todo">images/dark_skin/not_available_todo.png</file>
         <file alias="toggle_sidebars">images/dark_skin/toggle_sidebars.png</file>
+        <file alias="logo">images/logo.png</file>
     </qresource>
 </RCC>
