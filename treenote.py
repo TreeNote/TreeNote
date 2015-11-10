@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #################################################################################
 ##  TreeNote
@@ -125,7 +126,9 @@ class MainWindow(QMainWindow):
                     add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
 
             # set font-size and padding
-            app.setFont(QFont(model.FONT, APP_FONT_SIZE))
+            #app.setFont(QFont(model.FONT, APP_FONT_SIZE))
+            self.interface_fontsize = int(settings.value('interface_fontsize', APP_FONT_SIZE))  # second value is loaded, if nothing was saved before in the settings
+            app.setFont(QFont(model.FONT, self.interface_fontsize))
             self.fontsize = int(settings.value('fontsize', APP_FONT_SIZE))  # second value is loaded, if nothing was saved before in the settings
             self.padding = int(settings.value('padding', 2))
 
@@ -317,6 +320,10 @@ class MainWindow(QMainWindow):
             add_action('appendRepeatAction', QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
             add_action('goDownAction', QAction(self.tr('Focus into selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
             add_action('goUpAction', QAction(self.tr('Focus parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
+            #add_action('increaseIFFontAction', QAction(self.tr('Increase interface font-size'), self, shortcut='Alt++', triggered=lambda: self.change_iffont_size(+1)))
+            #add_action('decreaseIFFontAction', QAction(self.tr('Decrease interface font-size'), self, shortcut='Alt+-', triggered=lambda: self.change_iffont_size(-1)))
+            add_action('increaseIFFontAction', QAction(self.tr('Increase interface font-size'), self, shortcut=QKeySequence(Qt.ALT+Qt.Key_Plus), triggered=lambda: self.change_iffont_size(+1)))
+            add_action('decreaseIFFontAction', QAction(self.tr('Decrease interface font-size'), self, shortcut=QKeySequence(Qt.ALT+Qt.Key_Minus), triggered=lambda: self.change_iffont_size(-1)))
             add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
             add_action('decreaseFontAction', QAction(self.tr('Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
             add_action('increasePaddingAction', QAction(self.tr('Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
@@ -327,6 +334,7 @@ class MainWindow(QMainWindow):
             add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
             add_action('expandAction', QAction('Expand selected rows / add children to selection', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
             add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
+            add_action('quitAction', QAction(self.tr('Quit'), self, triggered=lambda: self.close()))
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -339,6 +347,8 @@ class MainWindow(QMainWindow):
             self.databasesMenu.addAction(self.importDatabaseAct)
             self.databasesMenu.addAction(self.settingsAct)
             self.databasesMenu.addSeparator()
+            self.databasesMenu.addSeparator()
+            self.databasesMenu.addAction(self.quitAction)
 
             self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
             self.fileMenu.addAction(self.editShortcutAction)
@@ -392,6 +402,9 @@ class MainWindow(QMainWindow):
             # self.viewMenu.addAction(self.unsplitWindowAct)
             self.viewMenu.addAction(self.focusSearchBarAction)
             self.viewMenu.addAction(self.openLinkAction)
+            self.viewMenu.addSeparator()
+            self.viewMenu.addAction(self.increaseIFFontAction)
+            self.viewMenu.addAction(self.decreaseIFFontAction)
             self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
             self.viewMenu.addAction(self.decreaseFontAction)
@@ -682,6 +695,7 @@ class MainWindow(QMainWindow):
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
         settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
         settings.setValue('fontsize', self.fontsize)
+        settings.setValue('interface_fontsize', self.interface_fontsize)
         settings.setValue('padding', self.padding)
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
 
@@ -1022,6 +1036,26 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
+
+    def change_iffont_size(self, step):
+        self.new_if_size=self.interface_fontsize + step
+        if self.new_if_size<=18 and self.new_if_size>=8:
+            self.interface_fontsize += step
+            #app.setFont(QFont(model.FONT, self.interface_fontsize))
+            for widget in [QApplication,
+                       self.focused_column().toggle_sidebars_button,
+                       self.focused_column().bookmark_button,
+                       self.focused_column().search_bar,
+                       self.focused_column().view,
+                       self.focused_column().view.verticalScrollBar(),
+                       self.focused_column().view.header(),
+                       self.servers_view,
+                       self.servers_view.header(),
+                       self.tag_view,
+                       self.tag_view.header()]:
+                widget.setFont(QFont(model.FONT, self.interface_fontsize))
+
+
 
     def change_font_size(self, step):
         self.fontsize += step
@@ -1868,7 +1902,8 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
-    app.setWindowIcon(QIcon(':/icon'))
+    # app.setWindowIcon(QIcon(':/icon'))
+    app.setWindowIcon(QIcon('images/logo.png'))
     QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
 
     form = MainWindow()
