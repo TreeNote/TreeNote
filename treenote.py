@@ -1102,8 +1102,7 @@ class MainWindow(QMainWindow):
             self.flattenViewCheckBox.setEnabled(True)
 
         # before doing the search: save expanded states
-        focus_pattern = re.compile(' ' + model.FOCUS + '\S* *$')  # '\S*' = any number of not Whitespaces. ' *' = any number of Whitespaces. '$' = end of string
-        if self.old_search_text == '' or focus_pattern.match(self.old_search_text):
+        if self.old_search_text == '' or model.FOCUS in self.old_search_text:
             self.save_expanded_state()
         self.old_search_text = search_text
 
@@ -1151,7 +1150,7 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setRootIndex(proxy_idx)
 
         # expand
-        if search_text == '' or focus_pattern.match(search_text):
+        if search_text == '' or model.FOCUS in search_text:
             self.expand_saved()
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
