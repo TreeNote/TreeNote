@@ -23,7 +23,7 @@ import time
 import traceback
 import webbrowser
 from functools import partial
-
+#
 import couchdb
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
@@ -31,7 +31,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import qrc_resources  # get's removed with 'optimize imports'!
-
+#
 import model
 import server_model
 import tag_model
@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
             # add_action('splitWindowAct', QAction(self.tr('Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
             add_action('editRowAction', QAction(self.tr('Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
             add_action('deleteSelectedRowsAction', QAction(self.tr('Delete selected rows'), self, shortcut='delete', triggered=self.remove_selection), list=self.item_view_actions)
-            add_action('insertRowAction', QAction(self.tr('Insert row'), self, shortcut='Return', triggered=self.insert_row), list=self.item_view_actions)
+            add_action('insertRowAction', QAction(self.tr('Insert row'), self, shortcut='Return', triggered=self.insert_row))
             add_action('insertChildAction', QAction(self.tr('Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
             add_action('moveUpAction', QAction(self.tr('Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
             add_action('moveDownAction', QAction(self.tr('Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
@@ -418,9 +418,6 @@ class MainWindow(QMainWindow):
             self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
 
             self.split_window()
-            self.reset_view()  # inits checkboxes
-            self.focused_column().view.setFocus()
-            self.update_actions()
 
             # restore previous position
             size = settings.value('size')
@@ -458,6 +455,10 @@ class MainWindow(QMainWindow):
             # restore expanded quick link states
             self.expanded_quicklink_ids_list_dict = settings.value(EXPANDED_QUICKLINKS, {})
             self.expand_saved_quicklinks()
+
+            self.reset_view()  # inits checkboxes
+            self.focused_column().view.setFocus()
+            self.update_actions()
 
             # third
             # restore selection
@@ -1132,22 +1133,27 @@ class MainWindow(QMainWindow):
                 self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
                 # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar
 
+        def set_model(new_model):
+            if self.focused_column().filter_proxy.sourceModel() != new_model:
+                self.focused_column().filter_proxy.setSourceModel(new_model)
+
         # flatten + filter
         if model.FLATTEN in search_text:
-            self.focused_column().filter_proxy.setSourceModel(self.focused_column().flat_proxy)
+            set_model(self.focused_column().flat_proxy)
             apply_filter()
         else:
             apply_filter()  # filter must be refreshed before changing the model, otherwise exc because use of wrong model
-            self.focused_column().filter_proxy.setSourceModel(self.item_model)
+            set_model(self.item_model)
 
         # focus
+        new_root_index = QModelIndex()
         if model.FOCUS in search_text and model.FLATTEN not in search_text:
             item_id_with_space_behind = search_text.split(model.FOCUS)[1]  # second item is the one behind FOCUS
             item_id_with_equalsign_before = item_id_with_space_behind.split()
             item_id = item_id_with_equalsign_before[0][1:]
-            idx = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
-            proxy_idx = self.filter_proxy_index_from_model_index(idx)
-            self.focused_column().view.setRootIndex(proxy_idx)
+            index = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
+            new_root_index = self.filter_proxy_index_from_model_index(index)
+        self.focused_column().view.setRootIndex(new_root_index)
 
         # expand
         if search_text == '' or model.FOCUS in search_text:
@@ -1156,7 +1162,11 @@ class MainWindow(QMainWindow):
             self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
-        if not self.focused_column().search_bar.isModified():  # only if text was set programmatically e.g. because the user selected a dropdown
+        # the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row()
+        if not self.focused_column().search_bar.isModified() and \
+                not self.focused_column().view.selectionModel().selectedRows():
+            # only if text was set programmatically e.g. because the user selected a dropdown
+            # and if the previous selected row was filtered out by the search
             self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
@@ -1285,6 +1295,10 @@ class MainWindow(QMainWindow):
             elif self.focused_column().view.state() == QAbstractItemView.EditingState:
                 # commit data by changing the current selection
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
+            else:
+                self.focused_column().view.setFocus()  # focus view after search with enter
+                if not self.selected_indexes():
+                    self.set_top_row_selected()
 
     def remove_selection(self):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
@@ -1431,10 +1445,10 @@ class MainWindow(QMainWindow):
     def focus_index(self, index):
         search_bar_text = self.focused_column().search_bar.text()
         if index.model() is None:  # for the case 'root item'
-            item_id = model.ROOT_ID
+            self.set_searchbar_text_and_search('')
         else:
             item_id = index.model().get_db_item(index)['_id']
-        self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
+            self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
         self.flattenViewCheckBox.setEnabled(False)
 
     def open_links(self):
@@ -1591,11 +1605,12 @@ class SearchBarQLineEdit(QLineEdit):
         height: 24px; }')
 
     def keyPressEvent(self, event):
-        # arror key down: select first child
-        if event.key() == Qt.Key_Down:
-            index = self.main.focused_column().filter_proxy.index(0, 0, QModelIndex())
-            self.main.set_selection(index, index)
-            self.main.focusNextChild()
+        if event.key() == Qt.Key_Down or event.key() == Qt.Key_Up:
+            self.main.focused_column().view.setFocus()
+            if self.main.selected_indexes():  # if the selection remains valid after the search
+                QApplication.sendEvent(self.main.focused_column().view, event)
+            else:
+                self.main.set_top_row_selected()
         else:
             QLineEdit.keyPressEvent(self, event)
 
