@@ -11,34 +11,33 @@
 ##  the Free Software Foundation, version 3 of the License.
 #################################################################################
 
-import socket
-import webbrowser
+import json
+import logging
+import os
 import re
+import socket
 import subprocess
 import sys
-import time
-import os
-import logging
-import traceback
-import json
 import textwrap
-from operator import itemgetter
+import time
+import traceback
+import webbrowser
 from functools import partial
+
+import couchdb
+import requests
+import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import sip  # for pyinstaller
-import couchdb
-import requests
-import qrc_resources
+import qrc_resources  # get's removed with 'optimize imports'!
+
 import model
 import server_model
 import tag_model
 import version
 
-logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
+COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
@@ -50,6 +49,9 @@ DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
+
+logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 def git_tag_to_versionnr(git_tag):
@@ -479,6 +481,11 @@ class MainWindow(QMainWindow):
             else:
                 self.toggle_sidebars()
 
+            # restore columns
+            columns_hidden = settings.value(COLUMNS_HIDDEN)
+            if columns_hidden or columns_hidden is None:
+                self.toggle_columns()
+
             self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
@@ -527,18 +534,22 @@ class MainWindow(QMainWindow):
                     index = self.item_model.id_index_dict[item_id]
                     self.quicklinks_view.expand(QModelIndex(index))
 
+    def get_widgets(self):
+        return [QApplication,
+                self.focused_column().toggle_sidebars_button,
+                self.focused_column().toggle_columns_button,
+                self.focused_column().bookmark_button,
+                self.focused_column().search_bar,
+                self.focused_column().view,
+                self.focused_column().view.verticalScrollBar(),
+                self.focused_column().view.header(),
+                self.servers_view,
+                self.servers_view.header(),
+                self.tag_view,
+                self.tag_view.header()]
+
     def set_palette(self, new_palette):
-        for widget in [QApplication,
-                       self.focused_column().toggle_sidebars_button,
-                       self.focused_column().bookmark_button,
-                       self.focused_column().search_bar,
-                       self.focused_column().view,
-                       self.focused_column().view.verticalScrollBar(),
-                       self.focused_column().view.header(),
-                       self.servers_view,
-                       self.servers_view.header(),
-                       self.tag_view,
-                       self.tag_view.header()]:
+        for widget in self.get_widgets():
             widget.setPalette(new_palette)
 
     def fill_bookmarkShortcutsMenu(self):
@@ -694,6 +705,7 @@ class MainWindow(QMainWindow):
         settings.setValue('interface_fontsize', self.interface_fontsize)
         settings.setValue('padding', self.padding)
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
+        settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save databases
         server_list = []
@@ -1037,17 +1049,7 @@ class MainWindow(QMainWindow):
         self.new_if_size = self.interface_fontsize + step
         if self.new_if_size <= 25 and self.new_if_size >= 8:
             self.interface_fontsize += step
-            for widget in [QApplication,
-                           self.focused_column().toggle_sidebars_button,
-                           self.focused_column().bookmark_button,
-                           self.focused_column().search_bar,
-                           self.focused_column().view,
-                           self.focused_column().view.verticalScrollBar(),
-                           self.focused_column().view.header(),
-                           self.servers_view,
-                           self.servers_view.header(),
-                           self.tag_view,
-                           self.tag_view.header()]:
+            for widget in self.get_widgets():
                 widget.setFont(QFont(model.FONT, self.interface_fontsize))
 
     def change_font_size(self, step):
@@ -1067,6 +1069,16 @@ class MainWindow(QMainWindow):
         else:
             self.mainSplitter.moveSplitter(INITIAL_SIDEBAR_WIDTH, 1)
             self.mainSplitter.moveSplitter(self.width() - INITIAL_SIDEBAR_WIDTH, 2)
+
+    def toggle_columns(self):
+        if self.focused_column().view.isHeaderHidden():
+            self.focused_column().view.showColumn(1)
+            self.focused_column().view.showColumn(2)
+            self.focused_column().view.setHeaderHidden(False)
+        else:
+            self.focused_column().view.hideColumn(1)
+            self.focused_column().view.hideColumn(2)
+            self.focused_column().view.setHeaderHidden(True)
 
     def save_expanded_state(self, index=None):
         expanded_list_current_view = []
@@ -1451,6 +1463,15 @@ class MainWindow(QMainWindow):
             padding: 2px; }')
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
+        new_column.toggle_columns_button = QPushButton()
+        new_column.toggle_columns_button.setToolTip("Hide / show the columns 'Start date' and 'Estimate'")
+        new_column.toggle_columns_button.setIcon(QIcon(':/toggle_columns'))
+        new_column.toggle_columns_button.setStyleSheet('QPushButton {\
+            width: 22px;\
+            height: 22px;\
+            padding: 2px; }')
+        new_column.toggle_columns_button.clicked.connect(self.toggle_columns)
+
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
 
@@ -1471,6 +1492,7 @@ class MainWindow(QMainWindow):
         search_holder = QWidget()
         layout = QHBoxLayout()
         layout.addWidget(new_column.toggle_sidebars_button)
+        layout.addWidget(new_column.toggle_columns_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.setContentsMargins(0, 11, 0, 0)
