@@ -1394,7 +1394,7 @@
         "estimate": "",
         "search_text": "",
         "shortcut": "",
-        "text": "Mit 'strg+F' springst du zum Suchfeld\nNach einer Suche leerst du das Suchfeld mit 'esc'",
+        "text": "Fokussiere das Suchfeld mit 'strg+F'\nTippe einen Suchbegriff ein\nFokussiere wieder den Baum mit 'Pfeiltaste unten'\nLeere das Suchfeld mit 'esc'",
         "type": "note"
     },
     {
