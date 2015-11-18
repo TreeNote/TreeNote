@@ -37,6 +37,9 @@ import server_model
 import tag_model
 import version
 
+if __debug__:
+    from pprint import pprint
+
 COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
@@ -1105,7 +1108,7 @@ class MainWindow(QMainWindow):
         # before doing the search: save expanded states
         if self.old_search_text == '' or model.FOCUS in self.old_search_text:
             self.save_expanded_state()
-        self.old_search_text = search_text
+        self.old_search_text = search_text  # needed by the line above next time this method is called
 
         # sort
         if model.SORT in search_text:
@@ -1157,6 +1160,7 @@ class MainWindow(QMainWindow):
 
         # expand
         if search_text == '' or model.FOCUS in search_text:
+            self.expand_or_collapse_children(QModelIndex(), False)
             self.expand_saved()
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
