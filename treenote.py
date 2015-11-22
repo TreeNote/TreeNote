@@ -1168,12 +1168,25 @@ class MainWindow(QMainWindow):
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
+        def is_selection_visible():
+            if not self.focused_column().view.selectionModel().selectedRows():
+                return False
+
+            def check_parents(index):
+                if index == new_root_index:
+                    return True
+                elif index == QModelIndex():
+                    return False
+                else:
+                    return check_parents(index.parent())
+
+            return check_parents(self.current_index().parent())
+
         # set selection
-        # the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row()
-        if not self.focused_column().search_bar.isModified() and \
-                not self.focused_column().view.selectionModel().selectedRows():
-            # only if text was set programmatically e.g. because the user selected a dropdown
-            # and if the previous selected row was filtered out by the search
+        # ( the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row() )
+        # Set only if text was set programmatically e.g. because the user selected a dropdown,
+        # and if the previous selected row was filtered out by the search.
+        if not self.focused_column().search_bar.isModified() and not is_selection_visible():
             self.set_top_row_selected()
 
     def expand_or_collapse_children(self, parent_index, bool_expand):
@@ -1457,6 +1470,7 @@ class MainWindow(QMainWindow):
             item_id = index.model().get_db_item(index)['_id']
             self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
         self.flattenViewCheckBox.setEnabled(False)
+        self.focused_column().view.setFocus()
 
     def focus_parent_of_focused(self):
         root_index = self.focused_column().view.rootIndex()
