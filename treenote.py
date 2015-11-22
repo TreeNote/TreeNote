@@ -37,6 +37,8 @@ import server_model
 import tag_model
 import version
 
+HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
+
 if __debug__:
     from pprint import pprint
 
@@ -318,11 +320,12 @@ class MainWindow(QMainWindow):
             add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
             add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection), list=self.bookmark_view_actions)
             add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
-            add_action('resetViewAction', QAction(self.tr('Reset view'), self, shortcut='esc', triggered=self.reset_view))
+            add_action('resetViewAction', QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
+            add_action('toggleSideBarsAction', QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Ctrl+S', triggered=self.toggle_sidebars))
             add_action('toggleProjectAction', QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('goDownAction', QAction(self.tr('Focus into selected row'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
-            add_action('goUpAction', QAction(self.tr('Focus parent row'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
+            add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
+            add_action('goUpAction', QAction(self.tr('Set parent row as root'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
             add_action('increaseInterFaceFontAction', QAction(self.tr('Increase interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Plus), triggered=lambda: self.change_interface_font_size(+1)))
             add_action('decreaseInterFaceFontAction', QAction(self.tr('Decrease interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Minus), triggered=lambda: self.change_interface_font_size(-1)))
             add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
@@ -401,8 +404,9 @@ class MainWindow(QMainWindow):
             self.viewMenu.addSeparator()
             # self.viewMenu.addAction(self.splitWindowAct)
             # self.viewMenu.addAction(self.unsplitWindowAct)
-            self.viewMenu.addAction(self.focusSearchBarAction)
             self.viewMenu.addAction(self.openLinkAction)
+            self.viewMenu.addAction(self.focusSearchBarAction)
+            self.viewMenu.addAction(self.toggleSideBarsAction)
             self.viewMenu.addSeparator()
             self.viewMenu.addAction(self.increaseFontAction)
             self.viewMenu.addAction(self.decreaseFontAction)
@@ -1472,7 +1476,7 @@ class MainWindow(QMainWindow):
         new_column = QWidget()
 
         new_column.toggle_sidebars_button = QPushButton()
-        new_column.toggle_sidebars_button.setToolTip('Hide / show the sidebars')
+        new_column.toggle_sidebars_button.setToolTip(HIDE_SHOW_THE_SIDEBARS)
         new_column.toggle_sidebars_button.setIcon(QIcon(':/toggle_sidebars'))
         new_column.toggle_sidebars_button.setStyleSheet('QPushButton {\
             width: 22px;\
