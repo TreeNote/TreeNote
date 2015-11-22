@@ -324,7 +324,7 @@ class MainWindow(QMainWindow):
             add_action('toggleProjectAction', QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
             add_action('appendRepeatAction', QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
             add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
-            add_action('goUpAction', QAction(self.tr('Set parent row as root'), self, shortcut='Ctrl+Up', triggered=lambda: self.focus_index(self.current_index().parent().parent())), list=self.item_view_actions)
+            add_action('goUpAction', QAction(self.tr('Set parent of current root as root'), self, shortcut='Ctrl+Up', triggered=self.focus_parent_of_focused), list=self.item_view_actions)
             add_action('increaseInterFaceFontAction', QAction(self.tr('Increase interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Plus), triggered=lambda: self.change_interface_font_size(+1)))
             add_action('decreaseInterFaceFontAction', QAction(self.tr('Decrease interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Minus), triggered=lambda: self.change_interface_font_size(-1)))
             add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
@@ -1457,6 +1457,10 @@ class MainWindow(QMainWindow):
             item_id = index.model().get_db_item(index)['_id']
             self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
         self.flattenViewCheckBox.setEnabled(False)
+
+    def focus_parent_of_focused(self):
+        root_index = self.focused_column().view.rootIndex()
+        self.focus_index(root_index.parent())
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
