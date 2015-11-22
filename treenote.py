@@ -21,7 +21,6 @@ import sys
 import textwrap
 import time
 import traceback
-import webbrowser
 from functools import partial
 #
 import couchdb
@@ -1467,10 +1466,10 @@ class MainWindow(QMainWindow):
                 for url in url_list:
                     if not re.search(r'https?://', url):
                         url = 'http://' + url
-                    webbrowser.open(url)
+                    QDesktopServices.openUrl(QUrl(url))
             else:  # no urls found: search the web for the selected entry
                 text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
-                webbrowser.open('https://www.google.de/search?q=' + text_without_tags)
+                QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
@@ -1781,7 +1780,7 @@ class UpdateDialog(QDialog):
                 continue
             elif sys.platform == "darwin" and 'mac' not in download['name']:
                 continue
-            webbrowser.open(download['browser_download_url'])
+            QDesktopServices.openUrl(QUrl(download['browser_download_url']))
             break
 
 
