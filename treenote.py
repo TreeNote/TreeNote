@@ -933,12 +933,14 @@ class MainWindow(QMainWindow):
                             self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
 
                     # restore horizontally moved items expanded states + expanded states of their childrens
+                    self.focused_column().view.setAnimated(False)
                     for child_id in self.removed_id_expanded_state_dict:
                         child_index = QModelIndex(source_model.id_index_dict[child_id])
                         proxy_index = self.filter_proxy_index_from_model_index(child_index)
                         expanded_state = self.removed_id_expanded_state_dict[child_id]
                         self.focused_column().view.setExpanded(proxy_index, expanded_state)
                     self.removed_id_expanded_state_dict = {}
+                    self.focused_column().view.setAnimated(True)
 
             elif method == 'removed':
                 # for move horizontally: save expanded states of moved + children of moved
@@ -1293,7 +1295,11 @@ class MainWindow(QMainWindow):
 
     def move_right(self):
         if self.focusWidget() is self.focused_column().view:
-            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), +1)
+            selected_indexes = self.focused_column().view.selectionModel().selectedRows()
+            self.focused_column().view.setAnimated(False)
+            self.focused_column().view.setExpanded(selected_indexes[0].sibling(selected_indexes[0].row() - 1, 0), True)
+            self.focused_column().view.setAnimated(True)
+            self.focused_column().filter_proxy.move_horizontal(selected_indexes, +1)
 
     def insert_child(self):
         index = self.current_index()
