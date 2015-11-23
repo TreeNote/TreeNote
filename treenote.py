@@ -1317,7 +1317,11 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.sourceModel().insert_remove_rows(0, parent_id)
         else:
             if self.focused_column().view.hasFocus():
-                self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
+                # if selection has childs and is expanded: create top child instead of sibling
+                if self.focused_column().view.isExpanded(self.current_index()) and self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
+                    self.insert_child()
+                else:
+                    self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
             elif self.focused_column().view.state() == QAbstractItemView.EditingState:
                 # commit data by changing the current selection
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
