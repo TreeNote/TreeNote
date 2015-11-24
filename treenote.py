@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
             self.flatten = False
 
             # load databases
-            settings = QSettings()
+            settings = self.getQSettings()
             servers = settings.value('databases')
 
             def add_db(bookmark_name, url, db_name, db):
@@ -501,7 +501,7 @@ class MainWindow(QMainWindow):
 
     def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
-        skip_this_version = QSettings().value('skip_version') is not None and QSettings().value('skip_version') == self.new_version_data['tag_name']
+        skip_this_version = self.getQSettings().value('skip_version') is not None and self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
         is_newer_version = git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
         if not skip_this_version and is_newer_version:
             UpdateDialog(self).exec_()
@@ -703,7 +703,7 @@ class MainWindow(QMainWindow):
         self.fileMenu.insertAction(self.editShortcutAction, self.fileMenu.addSeparator())
 
     def closeEvent(self, event):
-        settings = QSettings()
+        settings = self.getQSettings()
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
@@ -744,6 +744,9 @@ class MainWindow(QMainWindow):
         if not __debug__:  # This constant is true if Python was not started with an -O option. -O turns on basic optimizations.
             if sys.platform == "darwin":
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
+
+    def getQSettings(self):
+	    return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini', QSettings.IniFormat)
 
     def get_current_server(self, index=None):
         if index is None:
@@ -1797,7 +1800,7 @@ class UpdateDialog(QDialog):
         self.setWindowTitle(self.tr('Software Update'))
 
     def skip(self):
-        QSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
+        self.get_qSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
         self.reject()
 
     def download(self):
