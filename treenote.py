@@ -1769,8 +1769,6 @@ class RenameTagDialog(QDialog):
 class UpdateDialog(QDialog):
     def __init__(self, parent):
         super(UpdateDialog, self).__init__(parent)
-        updateLabel = QLabel(self.tr('A new version of TreeNote is available!'))
-        updateLabel.setFont(QFont(model.FONT, 18))
         releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
         releaseNotesEdit.setReadOnly(True)
         height = releaseNotesEdit.document().size().height() * QFontMetrics(QFont(model.FONT, APP_FONT_SIZE)).height() + 20
@@ -1783,18 +1781,23 @@ class UpdateDialog(QDialog):
         downloadButton = QPushButton('Download new version')
         downloadButton.clicked.connect(self.download)
 
-        grid = QGridLayout()
-        grid.addWidget(updateLabel, 0, 0, 1, -1)  # fromRow, fromColumn, rowSpan, columnSpan
-        grid.addItem(QSpacerItem(-1, 10), 1, 0, 1, 1)
+        grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan
         grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] + ' is now available - you have ' +
-                                      version.version_nr[1:] + '. Would you like to download it now?')), 2, 0, 1, -1)
-        grid.addItem(QSpacerItem(-1, 10), 3, 0, 1, 1)
-        grid.addWidget(QLabel(self.tr('Release notes:')), 4, 0, 1, -1)
-        grid.addWidget(releaseNotesEdit, 5, 0, 1, -1)
+                                      version.version_nr[1:])), 0, 0, 1, -1)
+        grid.addItem(QSpacerItem(-1, 10), 1, 0, 1, 1)
+        grid.addWidget(QLabel(self.tr('Release notes:')), 2, 0, 1, -1)
+        grid.addWidget(releaseNotesEdit, 3, 0, 1, -1)
+        grid.addItem(QSpacerItem(-1, 10), 4, 0, 1, 1)
+        grid.addWidget(QLabel(self.tr('Just extract the downloaded .zip file into your current treenote folder.\nYour data and settings will be kept.')), 5, 0, 1, -1)
         grid.addItem(QSpacerItem(-1, 10), 6, 0, 1, 1)
-        grid.addWidget(skipButton, 7, 0, 1, 1, Qt.AlignLeft)
-        grid.addWidget(remindButton, 7, 2, 1, 1, Qt.AlignRight)
-        grid.addWidget(downloadButton, 7, 3, 1, 1, Qt.AlignRight)
+
+        row = QWidget()
+        rowLayout = QHBoxLayout()
+        rowLayout.addWidget(downloadButton)
+        rowLayout.addWidget(remindButton)
+        rowLayout.addWidget(skipButton)
+        row.setLayout(rowLayout)
+        grid.addWidget(row, 7, 2, 1, -1, Qt.AlignLeft)
         grid.setContentsMargins(20, 20, 20, 20)
         self.setLayout(grid)
         self.setWindowTitle(self.tr('Software Update'))
