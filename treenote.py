@@ -168,11 +168,11 @@ class MainWindow(QMainWindow):
             self.bookmarks_view.hideColumn(1)
             self.bookmarks_view.hideColumn(2)
             self.bookmarks_view.setUniformRowHeights(True)  # improves performance
-            bookmarks_holder = QWidget()  # needed to add space
+            filtersHolder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
             layout.addWidget(self.bookmarks_view)
-            bookmarks_holder.setLayout(layout)
+            filtersHolder.setLayout(layout)
 
             self.servers_view = QTreeView()
             self.servers_view.setModel(self.server_model)
@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.setHandleWidth(0)
             self.first_column_splitter.setChildrenCollapsible(False)
             self.first_column_splitter.addWidget(self.quicklinks_view)
-            self.first_column_splitter.addWidget(bookmarks_holder)
+            self.first_column_splitter.addWidget(filtersHolder)
             self.first_column_splitter.addWidget(servers_view_holder)
             self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
             self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
@@ -227,7 +227,7 @@ class MainWindow(QMainWindow):
             self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
             self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
-            bookmarks_holder = QWidget()  # needed to add space
+            filtersHolder = QWidget()  # needed to add space
             layout = QGridLayout()
             layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
             layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
@@ -242,7 +242,7 @@ class MainWindow(QMainWindow):
             layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
             layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
             layout.setColumnStretch(1, 10)
-            bookmarks_holder.setLayout(layout)
+            filtersHolder.setLayout(layout)
 
             self.tag_view = QTreeView()
             self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
             third_column = QWidget()
             layout = QVBoxLayout()
             layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
-            layout.addWidget(bookmarks_holder)
+            layout.addWidget(filtersHolder)
             layout.addWidget(self.tag_view)
             third_column.setLayout(layout)
 
@@ -302,8 +302,8 @@ class MainWindow(QMainWindow):
             add_action('moveDownAction', QAction(self.tr('Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
             add_action('moveLeftAction', QAction(self.tr('Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
             add_action('moveRightAction', QAction(self.tr('Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-            add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], True)), list=self.item_view_not_editing_actions)
-            add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children(self.focused_column().view.selectionModel().selectedRows()[0], False)), list=self.item_view_not_editing_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children_selected(True)), list=self.item_view_not_editing_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children_selected(False)), list=self.item_view_not_editing_actions)
             add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
             add_action('colorGreenAction', QAction('Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
             add_action('colorYellowAction', QAction('Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
@@ -746,7 +746,7 @@ class MainWindow(QMainWindow):
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
     def getQSettings(self):
-	    return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini', QSettings.IniFormat)
+        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini', QSettings.IniFormat)
 
     def get_current_server(self, index=None):
         if index is None:
@@ -1194,6 +1194,10 @@ class MainWindow(QMainWindow):
         if not self.focused_column().search_bar.isModified() and not is_selection_visible():
             self.set_top_row_selected()
 
+    def expand_or_collapse_children_selected(self, bool_expand):
+        for index in self.selected_indexes():
+            self.expand_or_collapse_children(index, bool_expand)
+
     def expand_or_collapse_children(self, parent_index, bool_expand):
         self.focused_column().view.setExpanded(parent_index, bool_expand)  # for recursion
         for row_num in range(self.focused_column().filter_proxy.rowCount(parent_index)):
@@ -1577,7 +1581,7 @@ class MainWindow(QMainWindow):
         new_column.view.header().setSectionsClickable(True)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(6, 0, 6, 0)  # left, top, right, bottom
+        layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
         layout.addWidget(search_holder)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
@@ -1970,7 +1974,10 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    app.setApplicationName('TreeNote')
+    if __debug__:  # use fast, small databases
+        app.setApplicationName('TreeNoteTest')
+    else:
+        app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
     QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
