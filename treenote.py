@@ -1490,8 +1490,10 @@ class MainWindow(QMainWindow):
         self.focused_column().view.setFocus()
 
     def focus_parent_of_focused(self):
+        self.focused_column().view.selectionModel().clear()
         root_index = self.focused_column().view.rootIndex()
         self.focus_index(root_index.parent())
+        self.set_selection(root_index, root_index)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
