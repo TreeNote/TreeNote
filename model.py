@@ -966,7 +966,7 @@ class OpenPopupDateEdit(QDateEdit):
         return False  # don't stop the event being handled further
 
 
-class AutoCompleteEdit(QTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
     def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
         self.delegate = delegate
