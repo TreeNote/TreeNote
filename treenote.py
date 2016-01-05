@@ -829,7 +829,7 @@ class MainWindow(QMainWindow):
         current_tag = self.tag_view.model().data(current_index, tag_model.FULL_PATH)
         if current_tag is not None:
             search_bar_text = self.focused_column().search_bar.text()
-            new_text = re.sub(r':(\w|:)* ', current_tag + ' ', search_bar_text)  # matches a tag
+            new_text = re.sub(r':\S* ', current_tag + ' ', search_bar_text)  # matches a tag
             if ':' not in search_bar_text:
                 new_text += ' ' + current_tag + ' '
             self.set_searchbar_text_and_search(new_text)

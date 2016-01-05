@@ -1011,7 +1011,7 @@ class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or event.modifiers() & Qt.AltModifier:  # new line on alt + enter
-                self.setFixedHeight(self.document().size().height() + 25)
+                self.setFixedHeight(self.document().size().height() + 25) # todo 25 depending on font size
                 if event.modifiers() & Qt.AltModifier:  # fix alt + enter in Qt
                     event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
             else:  # complete edit on enter
