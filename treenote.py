@@ -1069,7 +1069,7 @@ class MainWindow(QMainWindow):
         self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def change_padding(self, step):
-        if not (step == -1 and self.padding == 1):
+        if not (step == -1 and self.padding == 2):
             self.padding += step
             self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 

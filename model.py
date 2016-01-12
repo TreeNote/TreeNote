@@ -1011,7 +1011,10 @@ class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or event.modifiers() & Qt.AltModifier:  # new line on alt + enter
-                self.setFixedHeight(self.document().size().height() + 25) # todo 25 depending on font size
+                rows = self.document().size().height()
+                font_height = QFontMetrics(QFont(FONT, self.delegate.main_window.fontsize)).height()
+                row_height = font_height + self.delegate.main_window.padding * 2
+                self.setFixedHeight(rows * row_height + row_height)  # one row_height more, because we just added a line
                 if event.modifiers() & Qt.AltModifier:  # fix alt + enter in Qt
                     event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
             else:  # complete edit on enter
@@ -1041,8 +1044,7 @@ class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/
         with the given prefix.
         """
         self._completer.setCompletionPrefix(completionPrefix)
-        self._completer.popup().setCurrentIndex(
-            self._completer.completionModel().index(0, 0))
+        self._completer.popup().setCurrentIndex(self._completer.completionModel().index(0, 0))
 
 
 ONLY_START_DATE = 'only_date'
