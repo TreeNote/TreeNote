@@ -29,7 +29,7 @@ import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import qrc_resources  # get's removed with 'optimize imports'!
+from resources import qrc_resources  # get's removed with 'optimize imports'!
 #
 import model
 import server_model
@@ -53,6 +53,8 @@ DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
+
+RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -111,7 +113,7 @@ class MainWindow(QMainWindow):
             if servers is None:
                 def load_db_from_file(bookmark_name, db_name):
                     db = self.get_db('', db_name, create_root=False)
-                    with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + db_name + '.json', 'r') as file:
+                    with open(RESOURCE_FOLDER + 'default_databases' + os.sep + db_name + '.json', 'r') as file:
                         doc_list = json.load(file)
                         db.update(doc_list)
                     add_db(bookmark_name, '', db_name, db)
@@ -122,7 +124,7 @@ class MainWindow(QMainWindow):
                 load_db_from_file('Leere Vorlage', 'leere_vorlage')
 
                 db = self.get_db('', 'bookmarks', create_root=False)
-                with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'bookmarks.json', 'r') as file:
+                with open(RESOURCE_FOLDER + 'default_databases' + os.sep + 'bookmarks.json', 'r') as file:
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
@@ -1982,7 +1984,7 @@ if __name__ == '__main__':
         app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
-    QFontDatabase.addApplicationFont('SourceSansPro-Regular.otf')
+    QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
 
     form = MainWindow()
     form.show()
