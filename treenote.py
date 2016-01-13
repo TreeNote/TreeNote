@@ -748,7 +748,10 @@ class MainWindow(QMainWindow):
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
     def getQSettings(self):
-        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini', QSettings.IniFormat)
+        settings_file = 'treenote_settings.ini'
+        if __debug__:
+            settings_file = 'treenote_settings_for_developing.ini'  # use fast, small database
+        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + settings_file, QSettings.IniFormat)
 
     def get_current_server(self, index=None):
         if index is None:
@@ -1978,10 +1981,7 @@ if __name__ == '__main__':
         subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
 
     app = QApplication(sys.argv)
-    if __debug__:  # use fast, small databases
-        app.setApplicationName('TreeNoteTest')
-    else:
-        app.setApplicationName('TreeNote')
+    app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
     QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
