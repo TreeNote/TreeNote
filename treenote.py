@@ -1343,6 +1343,18 @@ class MainWindow(QMainWindow):
                     self.set_top_row_selected()
 
     def remove_selection(self):
+        # workaround against data loss due to crashes: backup db as txt file before delete operations
+        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + proposed_file_name, 'w') as file:
+            def tree_as_string(index=QModelIndex(), rows_string=''):
+                indention_string = (model.indention_level(index) - 1) * '\t'
+                if index.data() is not None:
+                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'  # microsoft word wants \r\n
+                for child_nr in range(self.item_model.rowCount(index)):
+                    rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
+                return rows_string
+
+            file.write(tree_as_string())
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def selected_indexes(self):
