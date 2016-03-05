@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #################################################################################
 ##  TreeNote
 ##  A collaboratively usable outliner for personal knowledge and task management.
@@ -854,12 +856,6 @@ class Delegate(QStyledItemDelegate):
             editor.setText(index.data())
         else:
             QStyledItemDelegate.setEditorData(self, editor, index)
-
-    def setModelData(self, editor, model, index):
-        if isinstance(editor, QTextEdit):
-            model.setData(index, editor.toPlainText())
-        else:
-            QStyledItemDelegate.setModelData(self, editor, model, index)
 
     def eventFilter(self, editor, event):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:

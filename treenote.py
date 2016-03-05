@@ -606,7 +606,7 @@ class MainWindow(QMainWindow):
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
     def export_db(self):
-        with open(self.filename_from_dialog('.json'), 'w') as file:
+        with open(self.filename_from_dialog('.json'), 'w', encoding='utf-8') as file:
             row_list = []
             map = "function(doc) { \
             if (doc." + model.DELETED + " == '') \
@@ -620,11 +620,11 @@ class MainWindow(QMainWindow):
         return file_name[0]
 
     def export_plain_text(self):
-        with open(self.filename_from_dialog('.txt'), 'w') as file:
+        with open(self.filename_from_dialog('.txt'), 'w', encoding='utf-8') as file:
             def tree_as_string(index=QModelIndex(), rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None:
-                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'  # microsoft word wants \r\n
+                    rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
                 for child_nr in range(self.item_model.rowCount(index)):
                     rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
                 return rows_string
@@ -1345,11 +1345,11 @@ class MainWindow(QMainWindow):
     def remove_selection(self):
         # workaround against data loss due to crashes: backup db as txt file before delete operations
         proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + proposed_file_name, 'w') as file:
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + proposed_file_name, 'w', encoding='utf-8') as file:
             def tree_as_string(index=QModelIndex(), rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None:
-                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'  # microsoft word wants \r\n
+                    rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
                 for child_nr in range(self.item_model.rowCount(index)):
                     rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
                 return rows_string
