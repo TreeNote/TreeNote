@@ -292,8 +292,9 @@ class MainWindow(QMainWindow):
             add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
-            add_action('settingsAct', QAction(self.tr('Preferences'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-            add_action('aboutAct', QAction(self.tr('About'), self, triggered=lambda: AboutBox(self).exec()))
+            add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
+            add_action('updateAct', QAction(self.tr('Check for Updates...'), self, triggered=lambda: UpdateDialog(self).exec()))
+            add_action('aboutAct', QAction(self.tr('About...'), self, triggered=lambda: AboutBox(self).exec()))
             # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
             # add_action('splitWindowAct', QAction(self.tr('Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
             add_action('editRowAction', QAction(self.tr('Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
@@ -421,6 +422,7 @@ class MainWindow(QMainWindow):
             self.fill_bookmarkShortcutsMenu()
 
             self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
+            self.helpMenu.addAction(self.updateAct)
             self.helpMenu.addAction(self.aboutAct)
 
             self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
@@ -1646,8 +1648,7 @@ class AboutBox(QDialog):
         super(AboutBox, self).__init__()
         headline = QLabel('TreeNote')
         headline.setFont(QFont(model.FONT, 25))
-        aktuell = ' (Update verfügbar)' if parent.check_for_software_update() else ' (TreeNote ist aktuell)'
-        label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + aktuell + '<br><br>\
+        label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + '<br><br>\
            TreeNote is a collaboratively usable outliner for personal knowledge and task management. More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>\
             <br>\
             Contact me at jan.korte@uni-oldenburg.de if you have an idea or issue!<br>\
