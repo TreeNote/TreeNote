@@ -495,8 +495,7 @@ class MainWindow(QMainWindow):
             if columns_hidden or columns_hidden is None:
                 self.toggle_columns()
 
-            if settings.value('indentation') is not None:
-                self.focused_column().view.setIndentation(int(settings.value('indentation')))
+            self.set_indentation(settings.value('indentation', 40))
             self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
@@ -1576,9 +1575,6 @@ class MainWindow(QMainWindow):
         search_holder.setLayout(layout)
 
         new_column.view = ResizeTreeView()
-        new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }'
-                                        'QTreeView:branch:open:has-children  { image: url(:/open);}'
-                                        'QTreeView:branch:closed:has-children { image: url(:/closed); }')
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         new_column.view.setAnimated(True)
@@ -1614,6 +1610,7 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         self.focused_column().view.setFocus()
+        self.style_tree()
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
@@ -1623,6 +1620,25 @@ class MainWindow(QMainWindow):
         self.item_views_splitter.widget(index_last_widget).setParent(None)
         if self.item_views_splitter.count() == 1:
             self.unsplitWindowAct.setEnabled(False)
+
+    def set_indentation(self, i):
+        self.focused_column().view.setIndentation(int(i))
+        self.style_tree()
+
+    def style_tree(self):
+        padding = str(self.focused_column().view.indentation() - 30)
+        self.focused_column().view.setStyleSheet(
+        'QTreeView:focus { border: 1px solid #006080; }' # blue glow around the view
+        'QTreeView:branch:open:has-children  {'
+            'image: url(:/open);'
+            'padding-top: 10px;'
+            'padding-bottom: 10px;'
+            'padding-left: ' + padding + 'px;}'
+        'QTreeView:branch:closed:has-children {'
+            'image: url(:/closed);'
+            'padding-top: 10px;'
+            'padding-bottom: 10px;'
+            'padding-left: ' + padding + 'px;}')
 
 
 class AboutBox(QDialog):
@@ -1857,8 +1873,8 @@ class SettingsDialog(QDialog):
         theme_dropdown.currentIndexChanged[int].connect(self.change_theme)
         indentation_spinbox = QSpinBox()
         indentation_spinbox.setValue(parent.focused_column().view.indentation())
-        indentation_spinbox.setRange(5, 100)
-        indentation_spinbox.valueChanged[int].connect(lambda: parent.focused_column().view.setIndentation(indentation_spinbox.value()))
+        indentation_spinbox.setRange(30, 100)
+        indentation_spinbox.valueChanged[int].connect(lambda: parent.set_indentation(indentation_spinbox.value()))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
 
