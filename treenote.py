@@ -1349,7 +1349,7 @@ class MainWindow(QMainWindow):
     def remove_selection(self):
         # workaround against data loss due to crashes: backup db as txt file before delete operations
         proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + proposed_file_name, 'w', encoding='utf-8') as file:
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + proposed_file_name, 'wx', encoding='utf-8') as file:
             def tree_as_string(index=QModelIndex(), rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None:

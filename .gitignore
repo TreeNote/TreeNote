@@ -1,5 +1,5 @@
 # TreeNote
-backups/
+backups/*
 nohup.out
 
 # IDEs
