@@ -1576,7 +1576,9 @@ class MainWindow(QMainWindow):
         search_holder.setLayout(layout)
 
         new_column.view = ResizeTreeView()
-        new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }')
+        new_column.view.setStyleSheet('QTreeView:focus { border: 1px solid #006080; }'
+                                        'QTreeView:branch:open:has-children  { image: url(:/open);}'
+                                        'QTreeView:branch:closed:has-children { image: url(:/closed); }')
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         new_column.view.setAnimated(True)
