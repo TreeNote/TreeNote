@@ -339,7 +339,7 @@ class MainWindow(QMainWindow):
             add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
             add_action('expandAction', QAction('Expand selected rows / add children to selection', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
             add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
-            add_action('quitAction', QAction(self.tr('Quit TreeNote'), self, triggered=lambda: self.close()))
+            add_action('quitAction', QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=lambda: self.close()))
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -495,6 +495,8 @@ class MainWindow(QMainWindow):
             if columns_hidden or columns_hidden is None:
                 self.toggle_columns()
 
+            if settings.value('indentation') is not None:
+                self.focused_column().view.setIndentation(int(settings.value('indentation')))
             self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
@@ -714,6 +716,7 @@ class MainWindow(QMainWindow):
         settings.setValue('interface_fontsize', self.interface_fontsize)
         settings.setValue('padding', self.padding)
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
+        settings.setValue('indentation', self.focused_column().view.indentation())
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save databases
@@ -1629,7 +1632,7 @@ class AboutBox(QDialog):
         label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + aktuell + '<br><br>\
            TreeNote is a collaboratively usable outliner for personal knowledge and task management. More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>\
             <br>\
-            Contact me at jan.korte@uni-oldenburg.de if you haven an idea or issue!<br>\
+            Contact me at jan.korte@uni-oldenburg.de if you have an idea or issue!<br>\
             <br>\
             This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.'))
         label.setOpenExternalLinks(True)
@@ -1850,13 +1853,19 @@ class SettingsDialog(QDialog):
         current_palette_index = 0 if QApplication.palette() == self.parent.light_palette else 1
         theme_dropdown.setCurrentIndex(current_palette_index)
         theme_dropdown.currentIndexChanged[int].connect(self.change_theme)
+        indentation_spinbox = QSpinBox()
+        indentation_spinbox.setValue(parent.focused_column().view.indentation())
+        indentation_spinbox.setRange(5, 100)
+        indentation_spinbox.valueChanged[int].connect(lambda: parent.focused_column().view.setIndentation(indentation_spinbox.value()))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
 
         grid = QGridLayout()
         grid.addWidget(QLabel('UI Theme:'), 0, 0)  # row, column
         grid.addWidget(theme_dropdown, 0, 1)
-        grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(QLabel('Indentation:'), 1, 0)
+        grid.addWidget(indentation_spinbox, 1, 1)
+        grid.addWidget(buttonBox, 2, 0, 1, 2, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
         grid.setContentsMargins(20, 20, 20, 20)
         grid.setSpacing(20)
         self.setLayout(grid)
