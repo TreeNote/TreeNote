@@ -1815,15 +1815,13 @@ class UpdateDialog(QDialog):
         super(UpdateDialog, self).__init__(parent)
         releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
         releaseNotesEdit.setReadOnly(True)
-        height = releaseNotesEdit.document().size().height() * QFontMetrics(QFont(model.FONT, APP_FONT_SIZE)).height() + 20
-        releaseNotesEdit.setMinimumHeight(height)
-        releaseNotesEdit.setMaximumHeight(height)
+        releaseNotesEdit.setMinimumHeight(400)
         skipButton = QPushButton('Skip this version')
         skipButton.clicked.connect(self.skip)
-        remindButton = QPushButton('Remind me later')
-        remindButton.clicked.connect(self.close)
-        downloadButton = QPushButton('Download new version')
-        downloadButton.clicked.connect(self.download)
+        ignoreButton = QPushButton('Ignore for now')
+        ignoreButton.clicked.connect(self.close)
+        downloadButton = QPushButton('Download')
+        downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://www.treenote.de/download/')))
 
         grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan
         grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] + ' is now available - you have ' +
@@ -1837,9 +1835,9 @@ class UpdateDialog(QDialog):
 
         row = QWidget()
         rowLayout = QHBoxLayout()
-        rowLayout.addWidget(downloadButton)
-        rowLayout.addWidget(remindButton)
+        rowLayout.addWidget(ignoreButton)
         rowLayout.addWidget(skipButton)
+        rowLayout.addWidget(downloadButton)
         row.setLayout(rowLayout)
         grid.addWidget(row, 7, 2, 1, -1, Qt.AlignLeft)
         grid.setContentsMargins(20, 20, 20, 20)
@@ -1847,20 +1845,8 @@ class UpdateDialog(QDialog):
         self.setWindowTitle(self.tr('Software Update'))
 
     def skip(self):
-        self.get_qSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
+        self.parent().getQSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
         self.reject()
-
-    def download(self):
-        for download in self.parent().new_version_data['assets']:
-            if sys.platform == "win32" and 'win' not in download['name']:
-                continue
-            elif sys.platform == "linux" and 'linux' not in download['name']:
-                continue
-            elif sys.platform == "darwin" and 'mac' not in download['name']:
-                continue
-            QDesktopServices.openUrl(QUrl(download['browser_download_url']))
-            break
-
 
 class SettingsDialog(QDialog):
     def __init__(self, parent):
