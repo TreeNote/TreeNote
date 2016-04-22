@@ -125,6 +125,7 @@ class TreeModel(QAbstractItemModel):
     def __init__(self, db, header_list=None, parent=None):
         super(TreeModel, self).__init__(parent)
         self.db = db
+        self.changed = False
         self.undoStack = QUndoStack(self)
 
         # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:

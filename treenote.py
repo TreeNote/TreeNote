@@ -497,12 +497,28 @@ class MainWindow(QMainWindow):
             if columns_hidden or columns_hidden is None:
                 self.toggle_columns()
 
+            self.backup_timer = QTimer()
+            self.backup_timer.timeout.connect(self.backup_all_db_with_changes)
+            self.start_backup_service(settings.value('backup_interval', 10))
+
             self.set_indentation(settings.value('indentation', 40))
             self.check_for_software_update()
 
         except Exception as e:  # exception handling is in get_db
             traceback.print_exc()
             logger.exception(e)
+
+    def backup_all_db_with_changes(self):
+        for server in self.server_model.servers:
+            if server.model.changed:
+                server.model.changed = False
+                self.backup_db(server)
+
+    def start_backup_service(self, minutes):
+        self.backup_interval = minutes
+        self.backup_timer.stop()
+        if minutes != 0:
+            self.backup_timer.start(int(minutes) * 1000 * 60) # time specified in ms
 
     def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
@@ -624,15 +640,7 @@ class MainWindow(QMainWindow):
 
     def export_plain_text(self):
         with open(self.filename_from_dialog('.txt'), 'w', encoding='utf-8') as file:
-            def tree_as_string(index=QModelIndex(), rows_string=''):
-                indention_string = (model.indention_level(index) - 1) * '\t'
-                if index.data() is not None:
-                    rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
-                for child_nr in range(self.item_model.rowCount(index)):
-                    rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
-                return rows_string
-
-            file.write(tree_as_string())
+            file.write(self.tree_as_string(self.item_model))
 
     def import_db(self):
         self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.json")
@@ -718,6 +726,7 @@ class MainWindow(QMainWindow):
         settings.setValue('padding', self.padding)
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
         settings.setValue('indentation', self.focused_column().view.indentation())
+        settings.setValue('backup_interval', self.backup_interval)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save databases
@@ -900,6 +909,7 @@ class MainWindow(QMainWindow):
                 return
             index = QModelIndex(source_model.id_index_dict[item_id])
 
+            source_model.changed = True
             item = source_model.getItem(index)
 
             if method == 'updated':
@@ -1348,18 +1358,21 @@ class MainWindow(QMainWindow):
 
     def remove_selection(self):
         # workaround against data loss due to crashes: backup db as txt file before delete operations
-        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + proposed_file_name, 'wx', encoding='utf-8') as file:
-            def tree_as_string(index=QModelIndex(), rows_string=''):
-                indention_string = (model.indention_level(index) - 1) * '\t'
-                if index.data() is not None:
-                    rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
-                for child_nr in range(self.item_model.rowCount(index)):
-                    rows_string = tree_as_string(self.item_model.index(child_nr, 0, index), rows_string)
-                return rows_string
-
-            file.write(tree_as_string())
+        self.backup_db(self.get_current_server())
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
+
+    def backup_db(self, server):
+        proposed_file_name = server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + proposed_file_name, 'w', encoding='utf-8') as file:
+            file.write(self.tree_as_string(server.model))
+
+    def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
+        indention_string = (model.indention_level(index) - 1) * '\t'
+        if index.data() is not None:
+            rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
+        for child_nr in range(item_model.rowCount(index)):
+            rows_string = self.tree_as_string(item_model, item_model.index(child_nr, 0, index), rows_string)
+        return rows_string
 
     def selected_indexes(self):
         return self.focusWidget().selectionModel().selectedRows()
@@ -1864,16 +1877,25 @@ class SettingsDialog(QDialog):
         indentation_spinbox.valueChanged[int].connect(lambda: parent.set_indentation(indentation_spinbox.value()))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
+        backup_interval_spinbox = QSpinBox()
+        backup_interval_spinbox.setValue(int(parent.getQSettings().value('backup_interval')))
+        backup_interval_spinbox.setRange(0, 10000)
+        backup_interval_spinbox.valueChanged[int].connect(lambda: parent.start_backup_service(backup_interval_spinbox.value()))
 
-        grid = QGridLayout()
-        grid.addWidget(QLabel('UI Theme:'), 0, 0)  # row, column
-        grid.addWidget(theme_dropdown, 0, 1)
-        grid.addWidget(QLabel('Indentation:'), 1, 0)
-        grid.addWidget(indentation_spinbox, 1, 1)
-        grid.addWidget(buttonBox, 2, 0, 1, 2, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
-        grid.setContentsMargins(20, 20, 20, 20)
-        grid.setSpacing(20)
-        self.setLayout(grid)
+        layout = QFormLayout()
+        layout.addRow('Theme:', theme_dropdown)
+        layout.addRow('Indentation of children in the tree:', indentation_spinbox)
+        backup_label = QLabel("Create a plain text export of all databases which have changes to the folder 'backups' "
+                                "every ... minutes (0 minutes disables this feature):")
+        backup_label.setWordWrap(True)
+        backup_label.setAlignment(Qt.AlignRight)
+        backup_label.setMinimumSize(550, 0)
+        layout.addRow(backup_label, backup_interval_spinbox)
+        layout.addRow(buttonBox)
+        layout.setLabelAlignment(Qt.AlignRight)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setVerticalSpacing(30)
+        self.setLayout(layout)
         self.setWindowTitle(self.tr('Preferences'))
 
     def change_theme(self, current_palette_index):
