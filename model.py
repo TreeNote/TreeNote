@@ -796,21 +796,26 @@ class Delegate(QStyledItemDelegate):
         painter.drawLine(0, y, self.view_header.length(), y)
         painter.restore()
 
+        paint_task_icon = item.type != NOTE and index.column() == 0
+
         painter.save()
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        painter.translate(option.rect.left() + GAP_FOR_CHECKBOX, option.rect.top() + self.main_window.padding)
+        padding_x = GAP_FOR_CHECKBOX if paint_task_icon else 0
+        painter.translate(option.rect.left() - 5 + padding_x, option.rect.top() + self.main_window.padding)
         document.drawContents(painter)
         painter.restore()
 
-        if item.type != NOTE and index.column() == 0:  # set icon of task or project
+        if paint_task_icon:
             painter.save()
             iconsize = option.decorationSize
             type = NOT_AVAILABLE_TASK if is_not_available else item.type
             icon = QImage(':/' + type)
             qImage = icon.scaledToHeight(iconsize.height())
-            painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)  # place in the middle of the row
+            # place in the middle of the row
+            painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)
             painter.restore()
+
 
     def create_document(self, html, available_width):
         document = QTextDocument()
@@ -1095,7 +1100,7 @@ TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'children', 'type', 'date', 'color', DELETED,
 NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_COLOR, DELETED: '', 'estimate': '',
                SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
-GAP_FOR_CHECKBOX = 17
+GAP_FOR_CHECKBOX = 22
 FONT = 'Source Sans Pro'
 SIDEBARS_PADDING = -1 if sys.platform == "darwin" else 2
 SIDEBARS_PADDING_EXTRA_SPACE = 3 if sys.platform == "darwin" else 0
