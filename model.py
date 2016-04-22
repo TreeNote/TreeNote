@@ -802,7 +802,7 @@ class Delegate(QStyledItemDelegate):
         painter.save()
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        padding_x = GAP_FOR_CHECKBOX if paint_task_icon else 0
+        padding_x = GAP_FOR_CHECKBOX if paint_task_icon else 1
         painter.translate(option.rect.left() - 5 + padding_x, option.rect.top() + self.main_window.padding)
         document.drawContents(painter)
         painter.restore()
@@ -840,7 +840,10 @@ class Delegate(QStyledItemDelegate):
         if index.column() == 0:
             suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False)
             edit = AutoCompleteEdit(parent, list(suggestions_model), self)
-            edit.setStyleSheet('AutoCompleteEdit {padding-left: 16px; padding-top: ' + str(self.main_window.padding - 1) + 'px;}')
+            padding_left = -5
+            if self.model.getItem(index).type != NOTE:
+                padding_left += GAP_FOR_CHECKBOX - 1
+            edit.setStyleSheet('AutoCompleteEdit {padding-left: ' + str(padding_left) + 'px; padding-top: ' + str(self.main_window.padding - 1) + 'px;}')
             return edit
         if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
