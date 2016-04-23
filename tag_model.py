@@ -6,6 +6,7 @@ FULL_PATH = 'FULL_PATH'
 
 
 class TagTreeItem(object):
+
     def __init__(self, text, parent=None):
         self.parentItem = parent
         self.text = text
@@ -36,6 +37,7 @@ class TagTreeItem(object):
 
 
 class TagModel(QAbstractItemModel):
+
     def __init__(self):
         super(TagModel, self).__init__()
         self.rootItem = TagTreeItem(None)
@@ -137,6 +139,3 @@ class TagModel(QAbstractItemModel):
 
             add_below(self.rootItem, splitted_tag)
         self.endResetModel()
-
-
-

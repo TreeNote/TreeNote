@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #################################################################################
-##  TreeNote
-##  A collaboratively usable outliner for personal knowledge and task management.
+# TreeNote
+# A collaboratively usable outliner for personal knowledge and task management.
 ##
-##  Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
+# Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
 ##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU General Public License as published by
-##  the Free Software Foundation, version 3 of the License.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
 #################################################################################
 
 import sys
@@ -34,7 +34,9 @@ def indention_level(index, level=1):
 
 
 class QUndoCommandStructure(QUndoCommand):
-    # this class is just for making the initialization of QUndoCommand easier. Source: http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
+    # this class is just for making the initialization of QUndoCommand easier.
+    # Source:
+    # http://chimera.labs.oreilly.com/books/1230000000393/ch08.html#_solution_129
     _fields = []  # Class variable that specifies expected fields
 
     def __init__(self, *args):
@@ -60,7 +62,9 @@ class Updater(QThread):
     def run(self):  # this updates the view
         all_changes = self.model.db.changes(descending=True)
         last_seq = all_changes['results'][0]['seq']
-        changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize, include_docs=True, since=last_seq)  # no need for heartbeet, because the db is local
+        # no need for heartbeet, because the db is local
+        changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize,
+                                             include_docs=True, since=last_seq)
         for line in changes_list:
             if 'doc' in line:
                 # pprint(line)
@@ -71,7 +75,8 @@ class Updater(QThread):
 
 class Tree_item(object):
     """
-    This item holds all id, parent, children, text, estimate and date attributes. Other attributes like color are in the db only.
+    This item holds all id, parent, children, text, estimate and date attributes.
+    Other attributes like color are in the db only.
     Attributes saved here are accessed faster than through the db.
 
     To understand Qt's way of building a TreeView, read:
@@ -128,8 +133,11 @@ class TreeModel(QAbstractItemModel):
         self.changed = False
         self.undoStack = QUndoStack(self)
 
-        # If a database change is arriving, we just have the id. To get the corresponding Tree_item, we store it's QModelIndex in this dict:
-        self.id_index_dict = dict()  # New indexes are created by TreeModel.index(). That function stores the index in this dict. This dict may grow huge during runtime.
+        # If a database change is arriving, we just have the id. To get the
+        # corresponding Tree_item, we store it's QModelIndex in this dict:
+        # New indexes are created by TreeModel.index(). That function stores the
+        # index in this dict. This dict may grow huge during runtime.
+        self.id_index_dict = dict()
         self.pointer_set = set()
 
         # delete items with deleted flag permanently
@@ -241,7 +249,8 @@ class TreeModel(QAbstractItemModel):
                     db_item[self.field] = value
                 elif self.column == 1:
                     self.old_value = db_item['date']
-                    if type(value) == QDate and value == QDate.currentDate():  # user has not selected a date other than 'today'
+                    # user has not selected a date other than 'today'
+                    if type(value) == QDate and value == QDate.currentDate():
                         value = EMPTY_DATE
                     value = value.toString('dd.MM.yy') if type(value) == QDate else value
                     if value == EMPTY_DATE:  # user pressed del
@@ -270,10 +279,13 @@ class TreeModel(QAbstractItemModel):
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None, set_edit_focus=None):
 
-        # Delete design decision: We could delete items permanently. But if then the user renames, deletes and then undoes both actions, the undo of 'delete' would create an item with a new id. Therefore rename won't work.
+        # Delete design decision: We could delete items permanently.
+        # But if then the user renames, deletes and then undoes both actions,
+        # the undo of 'delete' would create an item with a new id. Therefore rename won't work.
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
-            _fields = ['model', 'position', 'parent_item_id', 'id_list', 'set_edit_focus', 'delete_child_from_parent_id_list']
+            _fields = ['model', 'position', 'parent_item_id', 'id_list',
+                       'set_edit_focus', 'delete_child_from_parent_id_list']
             title = 'Add or remove row'
 
             # set delete = false for redoing (re-adding) if it was deleted
@@ -302,7 +314,8 @@ class TreeModel(QAbstractItemModel):
                 children_list = db_item['children'].split()
                 children_list_new = children_list[:position] + id_list + children_list[position:]
                 db_item['children'] = ' '.join(children_list_new)
-                db_item['change'] = dict(method='added', id_list=id_list, position=position, set_edit_focus=set_edit_focus, user=socket.gethostname())
+                db_item['change'] = dict(method='added', id_list=id_list, position=position,
+                                         set_edit_focus=set_edit_focus, user=socket.gethostname())
                 model.db[parent_item_id] = db_item
 
             # uses delete markers, because without them undoing would be more difficult
@@ -312,7 +325,9 @@ class TreeModel(QAbstractItemModel):
                     # remove from parent and inform the updater thread
                     parent_db_item = self.model.db[parent_item_id]
                     children_list = parent_db_item['children'].split()
-                    parent_db_item['change'] = dict(method='removed', position=children_list.index(child_item_id), count=1, user=socket.gethostname())
+                    parent_db_item['change'] = dict(
+                        method='removed', position=children_list.index(child_item_id),
+                        count=1, user=socket.gethostname())
                     children_list.remove(child_item_id)
                     parent_db_item['children'] = ' '.join(children_list)
                     self.model.db[parent_item_id] = parent_db_item
@@ -328,10 +343,13 @@ class TreeModel(QAbstractItemModel):
                         child_type = NOTE if parent_type == NOTE else TASK
                         self.model.set_db_item_field(child_id, 'type', child_type)
 
-                    self.set_deleted_marker('', self.id_list[0])  # remove delete marker. just one item is inserted / re-inserted
+                    # remove delete marker. just one item is inserted / re-inserted
+                    self.set_deleted_marker('', self.id_list[0])
                     self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
-                    self.set_edit_focus = False  # when redo is called the second time (when the user is redoing), he doesn't want edit focus
-                    self.delete_child_from_parent_id_list = [(self.id_list[0], parent_item_id, None)]  # info for undoing
+                    # when redo is called the second time (when the user is redoing), he doesn't want edit focus
+                    self.set_edit_focus = False
+                    self.delete_child_from_parent_id_list = [
+                        (self.id_list[0], parent_item_id, None)]  # info for undoing
                 else:
                     self.remove_rows()
 
@@ -349,15 +367,20 @@ class TreeModel(QAbstractItemModel):
             elif id_list is None:  # used from view, create a single new row / self.db item
                 set_edit_focus = True
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
-            else:  # used from move methods, add existing db items to the parent. Don't add to stack, because already part of an UndoCommand
+            # used from move methods, add existing db items to the parent.
+            # Don't add to stack, because already part of an UndoCommand
+            else:
                 set_edit_focus = False
                 InsertRemoveRowCommand.add_rows(self, position, parent_item_id, id_list, set_edit_focus)
         else:  # remove command
             delete_child_from_parent_id_list = list()
             for index in indexes:
                 child_item = self.getItem(index)
-                delete_child_from_parent_id_list.append((child_item.id, child_item.parentItem.id, child_item.child_number()))  # save the position information for adding (undo)
-            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, id_list, False, delete_child_from_parent_id_list))
+                # save the position information for adding (undo)
+                delete_child_from_parent_id_list.append(
+                    (child_item.id, child_item.parentItem.id, child_item.child_number()))
+            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id,
+                                                       id_list, False, delete_child_from_parent_id_list))
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
@@ -370,10 +393,12 @@ class TreeModel(QAbstractItemModel):
                 db_item = self.model.db[self.parent_item_id]
                 children_list = db_item['children'].split()
                 old_position = children_list.index(self.item_id)
-                if up_or_down == -1 and old_position == 0 or up_or_down == +1 and old_position + self.count - 1 == len(children_list) - 1:  # don't move if already at top or bottom
+                if up_or_down == -1 and old_position == 0 or up_or_down == +1 and old_position + self.count - 1 == len(
+                        children_list) - 1:  # don't move if already at top or bottom
                     return
                 self.model.layoutAboutToBeChanged.emit()
-                if up_or_down == -1:  # if we want to move several items up, we can move the item-above below the selection instead
+                # if we want to move several items up, we can move the item-above below the selection instead
+                if up_or_down == -1:
                     swapped_item = children_list.pop(old_position - 1)
                     swapped_item_new_position = old_position + self.count - 1
                 elif up_or_down == +1:
@@ -381,7 +406,8 @@ class TreeModel(QAbstractItemModel):
                     swapped_item_new_position = old_position
                 children_list.insert(swapped_item_new_position, swapped_item)
                 db_item['children'] = ' '.join(children_list)
-                db_item['change'] = dict(method='moved_vertical', position=old_position, count=self.count, up_or_down=up_or_down, user=socket.gethostname())
+                db_item['change'] = dict(method='moved_vertical', position=old_position,
+                                         count=self.count, up_or_down=up_or_down, user=socket.gethostname())
                 self.model.db[self.parent_item_id] = db_item
 
             def redo(self):
@@ -415,8 +441,8 @@ class TreeModel(QAbstractItemModel):
         last_childnr_of_sibling = len(item.parentItem.childItems[original_position - 1].childItems)
 
         class MoveHorizontalCommand(QUndoCommandStructure):
-            _fields = ['model', 'direction', 'parent_parent_item_id', 'parent_item_id',
-                       'child_item_id', 'id_list', 'position', 'original_position', 'sibling_id', 'last_childnr_of_sibling']
+            _fields = ['model', 'direction', 'parent_parent_item_id', 'parent_item_id', 'child_item_id',
+                       'id_list', 'position', 'original_position', 'sibling_id', 'last_childnr_of_sibling']
             title = 'move horizontal'
 
             def move(self, from_parent, insert_in, position):
@@ -425,9 +451,11 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):
                 if self.direction == -1:  # left
-                    self.move(self.parent_item_id, self.parent_parent_item_id, self.position)  # insert as a child of the parent's parent
+                    self.move(self.parent_item_id, self.parent_parent_item_id,
+                              self.position)  # insert as a child of the parent's parent
                 else:  # right
-                    self.move(self.parent_item_id, self.sibling_id, self.last_childnr_of_sibling)  # insert as a child of the sibling above
+                    # insert as a child of the sibling above
+                    self.move(self.parent_item_id, self.sibling_id, self.last_childnr_of_sibling)
 
             def undo(self):
                 if self.direction == 1:  # undo moving right
@@ -436,8 +464,10 @@ class TreeModel(QAbstractItemModel):
                     self.move(self.parent_parent_item_id, self.parent_item_id, self.original_position)
 
         position = item.parentItem.child_number() + 1
-        self.undoStack.push(MoveHorizontalCommand(self, direction, parent_parent_item_id, item.parentItem.id,
-                                                  item.id, id_list, position, original_position, sibling_id, last_childnr_of_sibling))
+        self.undoStack.push(
+            MoveHorizontalCommand(
+                self, direction, parent_parent_item_id, item.parentItem.id, item.id, id_list, position,
+                original_position, sibling_id, last_childnr_of_sibling))
 
     def remove_consecutive_rows_from_parent(self, parent_item_id, child_item_id, count):  # just for moving
         parent_db_item = self.db[parent_item_id]
@@ -503,7 +533,8 @@ class TreeModel(QAbstractItemModel):
         if type != TASK and type != DONE_TASK:  # type is NOTE or a project
             self.set_data(TASK, index=index, field='type')
         elif type == TASK:
-            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])  # get what is behin the equal sign
+            # get what is behin the equal sign
+            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])
             if len(repeat_in_list) == 1:
                 repeat_in = repeat_in_list[0]
                 old_qdate = QDateFromString(db_item['date'])
@@ -548,6 +579,7 @@ class TreeModel(QAbstractItemModel):
 class ProxyTools():
     # when the editor commits it's data, it calls this method
     # it is overwritten from QAbstractProxyModel
+
     def setData(self, index, value, role=None):
         return self.sourceModel().setData(self.mapToSource(index), value, role=role)
 
@@ -588,9 +620,15 @@ class ProxyTools():
 
 
 class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
-    # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the equivalent functions in the relevant source model.
-    # This simple proxying mechanism may need to be overridden for source models with more complex behavior; for example, if the source model provides a custom hasChildren() implementation, you should also provide one in the proxy model.
-    # The QSortFilterProxyModel acts as a wrapper for the original model. If you need to convert source QModelIndexes to sorted/filtered model indexes or vice versa, use mapToSource(), mapFromSource(), mapSelectionToSource(), and mapSelectionFromSource().
+    # many of the default implementations of functions in QSortFilterProxyModel are written so that they call the
+    # equivalent functions in the relevant source model.
+    # This simple proxying mechanism may need to be overridden for source models with more complex behavior;
+    # for example, if the source model provides a custom hasChildren() implementation,
+    # you should also provide one in the proxy model.
+    # The QSortFilterProxyModel acts as a wrapper for the original model. If
+    # you need to convert source QModelIndexes to sorted/filtered model
+    # indexes or vice versa, use mapToSource(), mapFromSource(),
+    # mapSelectionToSource(), and mapSelectionFromSource().
 
     def filterAcceptsRow(self, row, parent):
         index = self.sourceModel().index(row, 0, parent)
@@ -685,6 +723,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):
+
     def __init__(self, parent=None):
         super(FlatProxyModel, self).__init__(parent)
 
@@ -703,7 +742,8 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
         # self.columns_list[1].insert(start, self.sourceModel().index(start, 1, parent))
         # self.columns_list[2].insert(start, self.sourceModel().index(start, 2, parent))
 
-    # source: http://stackoverflow.com/questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
+    # source: http://stackoverflow.com/
+    # questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
     # but we have more than one column and therefore need to build a matrix instead of a list
     # and we need to listen to changes of the source model and edit our matrixes accordingly
     def buildMap(self, model, parent=QModelIndex(), row=0):
@@ -738,14 +778,16 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
     def mapFromSource(self, index):
         column = index.column()
-        if index not in self.columns_list[column]: return QModelIndex()
+        if index not in self.columns_list[column]:
+            return QModelIndex()
         row = self.columns_list[column].index(index)
         return self.createIndex(row, column)
 
     def mapToSource(self, index):
         column = index.column()
         row = index.row()
-        if not index.isValid() or row == -1 or row >= len(self.columns_list[column]): return QModelIndex()
+        if not index.isValid() or row == -1 or row >= len(self.columns_list[column]):
+            return QModelIndex()
         return self.columns_list[column][row]
 
     def columnCount(self, parent):
@@ -755,7 +797,8 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
         return len(self.columns_list[0]) if not parent.isValid() else 0
 
     def index(self, row, column, parent):
-        if parent.isValid(): return QModelIndex()
+        if parent.isValid():
+            return QModelIndex()
         return self.createIndex(row, column)
 
     def parent(self, index):
@@ -763,6 +806,7 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
+
     def __init__(self, parent, model, view_header):
         super(Delegate, self).__init__(parent)
         self.model = model
@@ -774,7 +818,8 @@ class Delegate(QStyledItemDelegate):
 
         html = escape(index.data())
         # color tags by surrounding them with coloring html brackets
-        html = re.sub(r'((\n|^| )(' + DELIMITER + r'\w+)+($| |\n))', r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
+        html = re.sub(r'((\n|^| )(' + DELIMITER + r'\w+)+($| |\n))',
+                      r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
@@ -782,7 +827,10 @@ class Delegate(QStyledItemDelegate):
         if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
 
-        text_color = QApplication.palette().text().color().name() if item.color == NO_COLOR else QColor(item.color).name()
+        if item.color == NO_COLOR:
+            text_color = QApplication.palette().text().color().name()
+        else:
+            text_color = QColor(item.color).name()
         html = "<font color={}>{}</font>".format(text_color, html)
         html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
@@ -817,7 +865,6 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)
             painter.restore()
 
-
     def create_document(self, html, available_width):
         document = QTextDocument()
         document.setDefaultFont(QFont(FONT, self.main_window.fontsize))
@@ -825,7 +872,9 @@ class Delegate(QStyledItemDelegate):
         textOption.setWrapMode(QTextOption.WordWrap)
         textOption.setTabStop(TAB_WIDTH)
         document.setDefaultTextOption(textOption)
-        document.setTextWidth(available_width - GAP_FOR_CHECKBOX - 2)  # -2 because the editor is two pixels smaller, and if we don't subtract here, there may happen line wrap when the user starts editing
+        # -2 because the editor is two pixels smaller, and if we don't subtract here,
+        # there may happen line wrap when the user starts editing
+        document.setTextWidth(available_width - GAP_FOR_CHECKBOX - 2)
         document.setHtml(html)
         return document
 
@@ -833,7 +882,9 @@ class Delegate(QStyledItemDelegate):
         html = escape(index.data())
         column_width = self.view_header.sectionSize(0)
         indention = 1 if self.main_window.flatten else indention_level(index)
-        document = self.create_document(html.replace('\n', '<br>'), column_width - indention * 20)  # 20 = space left of all rows
+        document = self.create_document(
+            html.replace('\n', '<br>'),
+            column_width - indention * 20)  # 20 = space left of all rows
         return QSize(0, document.size().height() + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):
@@ -843,7 +894,9 @@ class Delegate(QStyledItemDelegate):
             padding_left = -5
             if self.model.getItem(index).type != NOTE:
                 padding_left += GAP_FOR_CHECKBOX - 1
-            edit.setStyleSheet('AutoCompleteEdit {padding-left: ' + str(padding_left) + 'px; padding-top: ' + str(self.main_window.padding - 1) + 'px;}')
+            edit.setStyleSheet(
+                'AutoCompleteEdit {padding-left: ' + str(padding_left) + 'px; padding-top: ' +
+                str(self.main_window.padding - 1) + 'px;}')
             return edit
         if index.column() == 1:
             date_edit = OpenPopupDateEdit(parent, self)
@@ -872,10 +925,11 @@ class Delegate(QStyledItemDelegate):
             self.closeEditor.emit(editor, QAbstractItemDelegate.NoHint)
             self.main_window.set_selection(current_index, current_index)
             return False
-        return QStyledItemDelegate.eventFilter(self, editor, event);
+        return QStyledItemDelegate.eventFilter(self, editor, event)
 
 
 class BookmarkDelegate(QStyledItemDelegate):
+
     def __init__(self, parent, model):
         super(BookmarkDelegate, self).__init__(parent)
         self.model = model
@@ -909,9 +963,12 @@ class BookmarkDelegate(QStyledItemDelegate):
 
 
 class EscCalendarWidget(QCalendarWidget):
+
     def __init__(self, parent):
         super(EscCalendarWidget, self).__init__(parent)
-        if sys.platform != "darwin":  # sadly, capture of the tab key is different on Windows and Mac. so we need it here for windows and at OpenPopupDateEdit for Mac
+        # sadly, capture of the tab key is different on Windows and Mac.
+        # so we need it here for windows and at OpenPopupDateEdit for Mac
+        if sys.platform != "darwin":
             self.installEventFilter(self)
             self.first_tab_done = True
 
@@ -938,6 +995,7 @@ class EscCalendarWidget(QCalendarWidget):
 
 
 class OpenPopupDateEdit(QDateEdit):
+
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
@@ -946,8 +1004,10 @@ class OpenPopupDateEdit(QDateEdit):
             self.first_tab_done = True
             self.installEventFilter(self)
 
-    def focusInEvent(self, event):  # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
-        self.calendarWidget().activated.connect(self.commit)  # commit edit as soon as the user goes back from the calendar popup to the dateEdit
+    # open popup on focus. source: http://forum.qt.io/topic/26821/solved-activating-calender-popup-on-focus-in-event
+    def focusInEvent(self, event):
+        # commit edit as soon as the user goes back from the calendar popup to the dateEdit
+        self.calendarWidget().activated.connect(self.commit)
         opt = QStyleOptionSpinBox()
         self.initStyleOption(opt)
         rect = self.style().subControlRect(QStyle.CC_SpinBox, opt, QStyle.SC_SpinBoxDown)
@@ -972,6 +1032,7 @@ class OpenPopupDateEdit(QDateEdit):
 
 
 class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+
     def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
         self.delegate = delegate
@@ -1015,7 +1076,9 @@ class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/
     def keyPressEvent(self, event):
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
-            if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or event.modifiers() & Qt.AltModifier:  # new line on alt + enter
+            # new line on alt + enter
+            if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or \
+                    event.modifiers() & Qt.AltModifier:
                 rows = self.document().size().height()
                 font_height = QFontMetrics(QFont(FONT, self.delegate.main_window.fontsize)).height()
                 row_height = font_height + self.delegate.main_window.padding * 2

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #################################################################################
-##  TreeNote
-##  A collaboratively usable outliner for personal knowledge and task management.
-##
-##  Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
-##
-##  This program is free software: you can redistribute it and/or modify
-##  it under the terms of the GNU General Public License as published by
-##  the Free Software Foundation, version 3 of the License.
+# TreeNote
+# A collaboratively usable outliner for personal knowledge and task management.
+#
+# Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
 #################################################################################
 
 import json
@@ -34,6 +34,7 @@ from resources import qrc_resources  # get's removed with 'optimize imports'!
 import model
 import server_model
 import tag_model
+import util
 import version
 
 HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
@@ -56,7 +57,8 @@ INITIAL_SIDEBAR_WIDTH = 200
 
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
-logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log', format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
+                    format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -65,6 +67,7 @@ def git_tag_to_versionnr(git_tag):
 
 
 class MainWindow(QMainWindow):
+
     def __init__(self):
         super(MainWindow, self).__init__()
         try:  # catch db connect errors
@@ -94,8 +97,10 @@ class MainWindow(QMainWindow):
 
             self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
             self.expanded_quicklink_ids_list_dict = {}
-            self.removed_id_expanded_state_dict = {}  # remember expanded state when moving horizontally (removing then adding at other place)
-            self.old_search_text = ''  # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
+            # remember expanded state when moving horizontally (removing then adding at other place)
+            self.removed_id_expanded_state_dict = {}
+            # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
+            self.old_search_text = ''
 
             self.server_model = server_model.ServerModel()
 
@@ -133,9 +138,11 @@ class MainWindow(QMainWindow):
                     add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
 
             # set font-size and padding
-            self.interface_fontsize = int(settings.value('interface_fontsize', APP_FONT_SIZE))  # second value is loaded, if nothing was saved before in the settings
+            # second value is loaded, if nothing was saved before in the settings
+            self.interface_fontsize = int(settings.value('interface_fontsize', APP_FONT_SIZE))
             app.setFont(QFont(model.FONT, self.interface_fontsize))
-            self.fontsize = int(settings.value('fontsize', APP_FONT_SIZE))  # second value is loaded, if nothing was saved before in the settings
+            # second value is loaded, if nothing was saved before in the settings
+            self.fontsize = int(settings.value('fontsize', APP_FONT_SIZE))
             self.padding = int(settings.value('padding', 2))
 
             self.item_model = self.server_model.servers[0].model
@@ -182,7 +189,8 @@ class MainWindow(QMainWindow):
             self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
             self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
             self.servers_view.setUniformRowHeights(True)  # improves performance
-            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
+            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(
+                model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
             servers_view_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
@@ -218,7 +226,8 @@ class MainWindow(QMainWindow):
 
             self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
             self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-            self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+            self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'),
+                                                self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
             self.flattenViewCheckBox = QCheckBox('Flatten view')
             self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
@@ -252,7 +261,8 @@ class MainWindow(QMainWindow):
             self.tag_view.setModel(tag_model.TagModel())
             self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
             self.tag_view.setUniformRowHeights(True)  # improves performance
-            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
+            self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
+                model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
             self.tag_view.setAnimated(True)
 
             third_column = QWidget()
@@ -287,60 +297,131 @@ class MainWindow(QMainWindow):
                 if list is not None:
                     list.append(qaction)
 
-            add_action('addDatabaseAct', QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
+            add_action('addDatabaseAct',
+                       QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
             add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=self.delete_database))
-            add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
+            add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(
+                self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
-            add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,', triggered=lambda: SettingsDialog(self).exec_()))
-            add_action('updateAct', QAction(self.tr('Check for Updates...'), self, triggered=lambda: UpdateDialog(self).exec()))
+            add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,',
+                                              triggered=lambda: SettingsDialog(self).exec_()))
+            add_action('updateAct',
+                       QAction(self.tr('Check for Updates...'), self, triggered=lambda: UpdateDialog(self).exec()))
             add_action('aboutAct', QAction(self.tr('About...'), self, triggered=lambda: AboutBox(self).exec()))
-            # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'), self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
-            # add_action('splitWindowAct', QAction(self.tr('Split window'), self, shortcut='Ctrl+S', triggered=self.split_window))
-            add_action('editRowAction', QAction(self.tr('Edit row'), self, shortcut='Tab', triggered=self.edit_row), list=self.item_view_actions)
-            add_action('deleteSelectedRowsAction', QAction(self.tr('Delete selected rows'), self, shortcut='delete', triggered=self.remove_selection), list=self.item_view_actions)
-            add_action('insertRowAction', QAction(self.tr('Insert row'), self, shortcut='Return', triggered=self.insert_row))
-            add_action('insertChildAction', QAction(self.tr('Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child), list=self.item_view_actions)
-            add_action('moveUpAction', QAction(self.tr('Up'), self, shortcut='W', triggered=self.move_up), list=self.item_view_actions)
-            add_action('moveDownAction', QAction(self.tr('Down'), self, shortcut='S', triggered=self.move_down), list=self.item_view_actions)
-            add_action('moveLeftAction', QAction(self.tr('Left'), self, shortcut='A', triggered=self.move_left), list=self.item_view_actions)
-            add_action('moveRightAction', QAction(self.tr('Right'), self, shortcut='D', triggered=self.move_right), list=self.item_view_actions)
-            add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right', triggered=lambda: self.expand_or_collapse_children_selected(True)), list=self.item_view_not_editing_actions)
-            add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left', triggered=lambda: self.expand_or_collapse_children_selected(False)), list=self.item_view_not_editing_actions)
-            add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F', triggered=lambda: self.focused_column().search_bar.setFocus()))
-            add_action('colorGreenAction', QAction('Green', self, shortcut='G', triggered=lambda: self.color_row('g')), list=self.item_view_actions)
-            add_action('colorYellowAction', QAction('Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')), list=self.item_view_actions)
-            add_action('colorBlueAction', QAction('Blue', self, shortcut='B', triggered=lambda: self.color_row('b')), list=self.item_view_actions)
-            add_action('colorRedAction', QAction('Red', self, shortcut='R', triggered=lambda: self.color_row('r')), list=self.item_view_actions)
-            add_action('colorOrangeAction', QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')), list=self.item_view_actions)
-            add_action('colorNoColorAction', QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')), list=self.item_view_actions)
-            add_action('toggleTaskAction', QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task), list=self.item_view_actions)
-            add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L', triggered=self.open_links), list=self.item_view_actions)
-            add_action('renameTagAction', QAction(self.tr('Rename tag'), self, triggered=lambda: RenameTagDialog(self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
-            add_action('editBookmarkAction', QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()), list=self.bookmark_view_actions)
-            add_action('moveBookmarkUpAction', QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up), list=self.bookmark_view_actions)
-            add_action('moveBookmarkDownAction', QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down), list=self.bookmark_view_actions)
-            add_action('deleteBookmarkAction', QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection), list=self.bookmark_view_actions)
-            add_action('editShortcutAction', QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(self, self.quicklinks_view.selectionModel().currentIndex()).exec_()), list=self.quick_links_view_actions)
-            add_action('resetViewAction', QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
-            add_action('toggleSideBarsAction', QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Ctrl+S', triggered=self.toggle_sidebars))
-            add_action('toggleProjectAction', QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self, shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
-            add_action('appendRepeatAction', QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat), list=self.item_view_actions)
-            add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down', triggered=lambda: self.focus_index(self.current_index())), list=self.item_view_actions)
-            add_action('goUpAction', QAction(self.tr('Set parent of current root as root'), self, shortcut='Ctrl+Up', triggered=self.focus_parent_of_focused), list=self.item_view_actions)
-            add_action('increaseInterFaceFontAction', QAction(self.tr('Increase interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Plus), triggered=lambda: self.change_interface_font_size(+1)))
-            add_action('decreaseInterFaceFontAction', QAction(self.tr('Decrease interface font-size'), self, shortcut=QKeySequence(Qt.ALT + Qt.Key_Minus), triggered=lambda: self.change_interface_font_size(-1)))
-            add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++', triggered=lambda: self.change_font_size(+1)))
-            add_action('decreaseFontAction', QAction(self.tr('Decrease font-size'), self, shortcut='Ctrl+-', triggered=lambda: self.change_font_size(-1)))
-            add_action('increasePaddingAction', QAction(self.tr('Increase padding'), self, shortcut='Ctrl+Shift++', triggered=lambda: self.change_padding(+1)))
-            add_action('decreasePaddingAction', QAction(self.tr('Decrease padding'), self, shortcut='Ctrl+Shift+-', triggered=lambda: self.change_padding(-1)))
-            add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut), list=self.item_view_actions)
-            add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy), list=self.item_view_actions)
-            add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste), list=self.item_view_actions)
-            add_action('exportPlainTextAction', QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
-            add_action('expandAction', QAction('Expand selected rows / add children to selection', self, shortcut='Right', triggered=self.expand), list=self.item_view_not_editing_actions)
-            add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left', triggered=self.collapse), list=self.item_view_not_editing_actions)
-            add_action('quitAction', QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=lambda: self.close()))
+            # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'),
+            #            self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
+            # add_action('splitWindowAct', QAction(self.tr('Split window'),
+            #            self, shortcut='Ctrl+S', triggered=self.split_window))
+            add_action('editRowAction', QAction(self.tr('Edit row'), self, shortcut='Tab', triggered=self.edit_row),
+                       list=self.item_view_actions)
+            add_action('deleteSelectedRowsAction', QAction(self.tr('Delete selected rows'), self, shortcut='delete',
+                                                           triggered=self.remove_selection),
+                       list=self.item_view_actions)
+            add_action('insertRowAction',
+                       QAction(self.tr('Insert row'), self, shortcut='Return', triggered=self.insert_row))
+            add_action('insertChildAction',
+                       QAction(self.tr('Insert child'), self, shortcut='Shift+Return', triggered=self.insert_child),
+                       list=self.item_view_actions)
+            add_action('moveUpAction', QAction(self.tr('Up'), self, shortcut='W', triggered=self.move_up),
+                       list=self.item_view_actions)
+            add_action('moveDownAction', QAction(self.tr('Down'), self, shortcut='S', triggered=self.move_down),
+                       list=self.item_view_actions)
+            add_action('moveLeftAction', QAction(self.tr('Left'), self, shortcut='A', triggered=self.move_left),
+                       list=self.item_view_actions)
+            add_action('moveRightAction', QAction(self.tr('Right'), self, shortcut='D', triggered=self.move_right),
+                       list=self.item_view_actions)
+            add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right',
+                                                          triggered=lambda: self.expand_or_collapse_children_selected(
+                                                              True)), list=self.item_view_not_editing_actions)
+            add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left',
+                                                            triggered=lambda: self.expand_or_collapse_children_selected(
+                                                                False)), list=self.item_view_not_editing_actions)
+            add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F',
+                                                       triggered=lambda: self.focused_column().search_bar.setFocus()))
+            add_action('colorGreenAction', QAction('Green', self, shortcut='G', triggered=lambda: self.color_row('g')),
+                       list=self.item_view_actions)
+            add_action('colorYellowAction',
+                       QAction('Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')),
+                       list=self.item_view_actions)
+            add_action('colorBlueAction', QAction('Blue', self, shortcut='B', triggered=lambda: self.color_row('b')),
+                       list=self.item_view_actions)
+            add_action('colorRedAction', QAction('Red', self, shortcut='R', triggered=lambda: self.color_row('r')),
+                       list=self.item_view_actions)
+            add_action('colorOrangeAction',
+                       QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
+                       list=self.item_view_actions)
+            add_action('colorNoColorAction',
+                       QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')),
+                       list=self.item_view_actions)
+            add_action('toggleTaskAction',
+                       QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
+                       list=self.item_view_actions)
+            add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L',
+                                                 triggered=self.open_links), list=self.item_view_actions)
+            add_action('renameTagAction', QAction(self.tr('Rename tag'), self, triggered=lambda: RenameTagDialog(
+                self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
+            add_action('editBookmarkAction',
+                       QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(
+                               self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()),
+                       list=self.bookmark_view_actions)
+            add_action('moveBookmarkUpAction',
+                       QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up),
+                       list=self.bookmark_view_actions)
+            add_action('moveBookmarkDownAction',
+                       QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down),
+                       list=self.bookmark_view_actions)
+            add_action('deleteBookmarkAction',
+                       QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection),
+                       list=self.bookmark_view_actions)
+            add_action('editShortcutAction',
+                       QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(
+                               self, self.quicklinks_view.selectionModel().currentIndex()).exec_()),
+                       list=self.quick_links_view_actions)
+            add_action('resetViewAction',
+                       QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
+            add_action('toggleSideBarsAction',
+                       QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Ctrl+S', triggered=self.toggle_sidebars))
+            add_action('toggleProjectAction',
+                       QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
+                               shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
+            add_action('appendRepeatAction',
+                       QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat),
+                       list=self.item_view_actions)
+            add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down',
+                                               triggered=lambda: self.focus_index(self.current_index())),
+                       list=self.item_view_actions)
+            add_action('goUpAction', QAction(self.tr('Set parent of current root as root'), self, shortcut='Ctrl+Up',
+                                             triggered=self.focus_parent_of_focused), list=self.item_view_actions)
+            add_action('increaseInterFaceFontAction', QAction(self.tr('Increase interface font-size'), self,
+                                                              shortcut=QKeySequence(Qt.ALT + Qt.Key_Plus),
+                                                              triggered=lambda: self.change_interface_font_size(+1)))
+            add_action('decreaseInterFaceFontAction', QAction(self.tr('Decrease interface font-size'), self,
+                                                              shortcut=QKeySequence(Qt.ALT + Qt.Key_Minus),
+                                                              triggered=lambda: self.change_interface_font_size(-1)))
+            add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++',
+                                                     triggered=lambda: self.change_font_size(+1)))
+            add_action('decreaseFontAction', QAction(self.tr('Decrease font-size'), self, shortcut='Ctrl+-',
+                                                     triggered=lambda: self.change_font_size(-1)))
+            add_action('increasePaddingAction', QAction(self.tr('Increase padding'), self, shortcut='Ctrl+Shift++',
+                                                        triggered=lambda: self.change_padding(+1)))
+            add_action('decreasePaddingAction', QAction(self.tr('Decrease padding'), self, shortcut='Ctrl+Shift+-',
+                                                        triggered=lambda: self.change_padding(-1)))
+            add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut),
+                       list=self.item_view_actions)
+            add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy),
+                       list=self.item_view_actions)
+            add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste),
+                       list=self.item_view_actions)
+            add_action('exportPlainTextAction',
+                       QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
+            add_action('expandAction',
+                       QAction('Expand selected rows / add children to selection', self, shortcut='Right',
+                               triggered=self.expand), list=self.item_view_not_editing_actions)
+            add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left',
+                                                 triggered=self.collapse), list=self.item_view_not_editing_actions)
+            add_action('quitAction',
+                       QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=lambda: self.close()))
 
             self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
             self.databasesMenu.addAction(self.addDatabaseAct)
@@ -472,7 +553,8 @@ class MainWindow(QMainWindow):
 
             # third
             # restore selection
-            selection_item_id = settings.value(SELECTED_ID, None)  # second value is loaded, if nothing was saved before in the settings
+            # second value is loaded, if nothing was saved before in the settings
+            selection_item_id = settings.value(SELECTED_ID, None)
             if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
                 index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
                 self.set_selection(index, index)
@@ -518,12 +600,14 @@ class MainWindow(QMainWindow):
         self.backup_interval = int(minutes)
         self.backup_timer.stop()
         if minutes != 0:
-            self.backup_timer.start(self.backup_interval * 1000 * 60) # time specified in ms
+            self.backup_timer.start(self.backup_interval * 1000 * 60)  # time specified in ms
 
     def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
-        skip_this_version = self.getQSettings().value('skip_version') is not None and self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
-        is_newer_version = git_tag_to_versionnr(version.version_nr) < git_tag_to_versionnr(self.new_version_data['tag_name'])
+        skip_this_version = self.getQSettings().value('skip_version') is not None and \
+            self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
+        is_newer_version = git_tag_to_versionnr(version.version_nr) < \
+            git_tag_to_versionnr(self.new_version_data['tag_name'])
         if not skip_this_version and is_newer_version:
             UpdateDialog(self).exec_()
         return is_newer_version
@@ -531,12 +615,14 @@ class MainWindow(QMainWindow):
     def make_single_key_menu_shortcuts_work_on_mac(self, actions):
         # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
         if sys.platform == "darwin":
-            self.signalMapper = QSignalMapper(self)  # This class collects a set of parameterless signals, and re-emits them with a string corresponding to the object that sent the signal.
+            # This class collects a set of parameterless signals, and re-emits
+            # them with a string corresponding to the object that sent the signal.
+            self.signalMapper = QSignalMapper(self)
             self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
             for action in actions:
                 if action is self.moveBookmarkUpAction or \
-                                action is self.moveBookmarkDownAction or \
-                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
+                        action is self.moveBookmarkDownAction or \
+                        action is self.deleteBookmarkAction:  # the shortcuts of these are already used
                     continue
                 keySequence = action.shortcut()
                 if keySequence.count() == 1:
@@ -597,7 +683,8 @@ class MainWindow(QMainWindow):
             res = qtmodel.db.query(map)
             for row in res:
                 db_item = qtmodel.db[row.id]
-                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
+                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self,
+                                                             shortcut=db_item[model.SHORTCUT],
                                                              triggered=partial(self.open_quicklink_shortcut, row.id)))
 
     def open_quicklink_shortcut(self, item_id):
@@ -674,7 +761,8 @@ class MainWindow(QMainWindow):
                 else:
                     QMessageBox.warning(self, '', 'Could not connect to the server. Is the url correct?')
             except OSError:
-                QMessageBox.warning(self, '', 'Could not connect to the server. Synchronisation is disabled. Local changes will be merged when you go online again.')
+                QMessageBox.warning(self, '', 'Could not connect to the server. Synchronisation is disabled.'
+                                              'Local changes will be merged when you go online again.')
             except Exception as err:
                 QMessageBox.warning(self, '', 'Unknown Error: Contact the developer.')
 
@@ -756,7 +844,8 @@ class MainWindow(QMainWindow):
 
         self.item_model.updater.terminate()
 
-        if not __debug__:  # This constant is true if Python was not started with an -O option. -O turns on basic optimizations.
+        # __debug__ is true if Python was not started with an -O option. -O turns on basic optimizations.
+        if not __debug__:
             if sys.platform == "darwin":
                 subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
@@ -790,7 +879,8 @@ class MainWindow(QMainWindow):
         # item actions should be enabled while editing a row, so:
         toggle_actions(not self.focused_column().search_bar.hasFocus(), self.item_view_actions)
 
-        toggle_actions(self.focused_column().view.state() != QAbstractItemView.EditingState, self.item_view_not_editing_actions)
+        toggle_actions(self.focused_column().view.state() != QAbstractItemView.EditingState,
+                       self.item_view_not_editing_actions)
 
     def toggle_sorting(self, column):
         if column == 0:  # order manually
@@ -936,7 +1026,9 @@ class MainWindow(QMainWindow):
             elif method == 'added':
                 id_list = change_dict['id_list']
                 if id_list[0] in [child.id for child in item.childItems]:
-                    return  # when pasting parent and children, the children gets automatically loaded, so don't load it manually additionally
+                    # when pasting parent and children, the children gets automatically loaded,
+                    # so don't load it manually additionally
+                    return
                 source_model.beginInsertRows(index, position, position + len(id_list) - 1)
                 for i, added_item_id in enumerate(id_list):
                     item.add_child(position + i, added_item_id, index)
@@ -949,10 +1041,12 @@ class MainWindow(QMainWindow):
                     else:  # update selection_and_edit
                         if index_first_added.model() is self.item_model:
                             index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
-                            self.focusWidget().selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
+                            self.focusWidget().selectionModel().setCurrentIndex(index_first_added,
+                                                                                QItemSelectionModel.ClearAndSelect)
                             self.focusWidget().edit(index_first_added)
                         else:  # bookmark
-                            self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added, QItemSelectionModel.ClearAndSelect)
+                            self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added,
+                                                                                 QItemSelectionModel.ClearAndSelect)
 
                     # restore horizontally moved items expanded states + expanded states of their childrens
                     self.focused_column().view.setAnimated(False)
@@ -974,8 +1068,10 @@ class MainWindow(QMainWindow):
                         for child_item in parent.childItems[from_child:to_child]:
                             child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
                             proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                            self.removed_id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
-                            save_children(source_model.getItem(child_item_index), None, None)  # save expanded state of all children
+                            self.removed_id_expanded_state_dict[child_item.id] = \
+                                self.focused_column().view.isExpanded(proxy_index)
+                            # save expanded state of all children
+                            save_children(source_model.getItem(child_item_index), None, None)
 
                     save_children(item, position, position + count)
 
@@ -1161,7 +1257,8 @@ class MainWindow(QMainWindow):
             selected_tags = self.tag_view.selectionModel().selectedRows()
             if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
                 self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
-                # changing dropdown index accordingly is not that easy, because changing it fires "color_clicked" which edits search bar
+                # changing dropdown index accordingly is not that easy,
+                # because changing it fires "color_clicked" which edits search bar
 
         def set_model(new_model):
             if self.focused_column().filter_proxy.sourceModel() != new_model:
@@ -1172,7 +1269,9 @@ class MainWindow(QMainWindow):
             set_model(self.focused_column().flat_proxy)
             apply_filter()
         else:
-            apply_filter()  # filter must be refreshed before changing the model, otherwise exc because use of wrong model
+            # filter must be refreshed before changing the model,
+            # otherwise exc because use of wrong model
+            apply_filter()
             set_model(self.item_model)
 
         # focus
@@ -1230,21 +1329,28 @@ class MainWindow(QMainWindow):
                 for row_num in range(self.focused_column().filter_proxy.rowCount(index)):
                     child_index = self.focused_column().filter_proxy.index(row_num, 0, index)
                     child_index_to = child_index.sibling(child_index.row(), self.item_model.columnCount() - 1)
-                    self.focused_column().view.selectionModel().setCurrentIndex(child_index_to, QItemSelectionModel.Select)
-                    self.focused_column().view.selectionModel().select(QItemSelection(child_index, child_index_to), QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().setCurrentIndex(child_index_to,
+                                                                                QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().select(QItemSelection(child_index, child_index_to),
+                                                                       QItemSelectionModel.Select)
             else:
                 self.focused_column().view.setExpanded(index, True)
 
     def collapse(self):
         for index in self.selected_indexes():
-            if not self.focused_column().view.isExpanded(index) or not self.item_model.hasChildren(self.focused_column().filter_proxy.mapToSource(index)):  # jump to parent
+            # jump to parent
+            if not self.focused_column().view.isExpanded(index) or \
+                    not self.item_model.hasChildren(self.focused_column().filter_proxy.mapToSource(index)):
                 index_parent_to = index.parent().sibling(index.parent().row(), self.item_model.columnCount() - 1)
                 if index_parent_to != QModelIndex():  # dont select root (because its not visible)
-                    self.focused_column().view.selectionModel().setCurrentIndex(index.parent(), QItemSelectionModel.Select)
-                    self.focused_column().view.selectionModel().select(QItemSelection(index.parent(), index_parent_to), QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().setCurrentIndex(index.parent(),
+                                                                                QItemSelectionModel.Select)
+                    self.focused_column().view.selectionModel().select(QItemSelection(index.parent(), index_parent_to),
+                                                                       QItemSelectionModel.Select)
 
                     index_to = index.sibling(index.row(), self.item_model.columnCount() - 1)
-                    self.focused_column().view.selectionModel().select(QItemSelection(index, index_to), QItemSelectionModel.Deselect)
+                    self.focused_column().view.selectionModel().select(QItemSelection(index, index_to),
+                                                                       QItemSelectionModel.Deselect)
             else:
                 self.focused_column().view.setExpanded(index, False)
 
@@ -1264,7 +1370,8 @@ class MainWindow(QMainWindow):
     def open_rename_tag_contextmenu(self, point):
         index = self.tag_view.indexAt(point)
         # show context menu only when clicked on an item, not when clicked on empty space
-        if not index.isValid(): return
+        if not index.isValid():
+            return
         menu = QMenu()
         menu.addAction(self.renameTagAction)
         menu.exec_(self.tag_view.viewport().mapToGlobal(point))
@@ -1272,7 +1379,8 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QPoint)
     def open_edit_bookmark_contextmenu(self, point):
         index = self.bookmarks_view.indexAt(point)
-        if not index.isValid(): return
+        if not index.isValid():
+            return
         menu = QMenu()
         menu.addAction(self.editBookmarkAction)
         menu.addAction(self.deleteBookmarkAction)
@@ -1283,7 +1391,8 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QPoint)
     def open_edit_shortcut_contextmenu(self, point):
         index = self.quicklinks_view.indexAt(point)
-        if not index.isValid(): return
+        if not index.isValid():
+            return
         menu = QMenu()
         menu.addAction(self.editShortcutAction)
         menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
@@ -1317,7 +1426,8 @@ class MainWindow(QMainWindow):
 
     def move_left(self):
         if self.focusWidget() is self.focused_column().view:
-            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.selectionModel().selectedRows(), -1)
+            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.
+                                                               selectionModel().selectedRows(), -1)
 
     def move_right(self):
         if self.focusWidget() is self.focused_column().view:
@@ -1344,7 +1454,8 @@ class MainWindow(QMainWindow):
         else:
             if self.focused_column().view.hasFocus():
                 # if selection has childs and is expanded: create top child instead of sibling
-                if self.focused_column().view.isExpanded(self.current_index()) and self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
+                if self.focused_column().view.isExpanded(self.current_index()) and \
+                        self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
                     self.insert_child()
                 else:
                     self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
@@ -1362,8 +1473,10 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def backup_db(self, server):
-        proposed_file_name = server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + proposed_file_name, 'w', encoding='utf-8') as file:
+        proposed_file_name = server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' \
+            + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep +
+                  proposed_file_name, 'w', encoding='utf-8') as file:
             file.write(self.tree_as_string(server.model))
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
@@ -1395,14 +1508,17 @@ class MainWindow(QMainWindow):
         if len(self.selected_indexes()) == 1:
             rows_string = self.selected_indexes()[0].data()
         elif self.flatten:
-            rows_string = '\r\n'.join(['- ' + index.data().replace('\n', '\r\n\t') for index in self.selected_indexes()])
+            rows_string = '\r\n'.join(['- ' + index.data().replace('\n', '\r\n\t')
+                                       for index in self.selected_indexes()])
         else:
-            selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index) for index in self.selected_indexes()]
+            selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index)
+                                       for index in self.selected_indexes()]
 
             def tree_as_string(index, rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None and index in selected_source_indexes:
-                    rows_string += indention_string + '- ' + index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
+                    rows_string += indention_string + '- ' + \
+                        index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
                 for child_nr in range(self.item_model.rowCount(index)):
                     child_index = self.item_model.index(child_nr, 0, index)
                     rows_string = tree_as_string(child_index, rows_string)
@@ -1411,7 +1527,8 @@ class MainWindow(QMainWindow):
             rows_string = tree_as_string(QModelIndex())
 
             # if a child is in the selection but not the parent: flatten
-            indention_level, left_most_index = min((model.indention_level(index), index) for index in selected_source_indexes)
+            indention_level, left_most_index = min((model.indention_level(index), index)
+                                                   for index in selected_source_indexes)
             for index in selected_source_indexes:
                 if index.parent() not in selected_source_indexes + [left_most_index.parent()]:
                     lines = []
@@ -1433,7 +1550,8 @@ class MainWindow(QMainWindow):
         # depending on the indention, the parent will be the last inserted row with one lower indention
         # we count the row position to know where to insert the next row
         start_index = self.current_index()
-        text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')  # \r ist for windows compatibility. strip is to remove the last linebreak
+        # \r ist for windows compatibility. strip is to remove the last linebreak
+        text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
         # which format style has the text?
         if re.search(r'(\n|^)(\t*-)', text):  # each item starts with a dash
             text = re.sub(r'\n(\t*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
@@ -1446,10 +1564,12 @@ class MainWindow(QMainWindow):
         for line in lines:
             stripped_line = line.lstrip('\t')
             indention = len(line) - len(stripped_line)
-            cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)  # remove -, *, spaces and tabs from the beginning of the line
+            # remove -, *, spaces and tabs from the beginning of the line
+            cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)
             if indention not in indention_insert_position_dict:
                 indention_insert_position_dict[indention] = 0
-            child_id = self.paste_row_with_id(indention_insert_position_dict[indention], indention_parent_id_dict[indention - 1], cleaned_line)
+            child_id = self.paste_row_with_id(indention_insert_position_dict[indention],
+                                              indention_parent_id_dict[indention - 1], cleaned_line)
             indention_insert_position_dict[indention] += 1
             for key in indention_insert_position_dict.keys():
                 if key > indention:
@@ -1466,7 +1586,8 @@ class MainWindow(QMainWindow):
     # task menu actions
 
     def edit_row(self):
-        if sys.platform == "darwin" or self.current_index().column() != 1:  # workaround to fix a weird bug, where the second column is skipped
+        # workaround to fix a weird bug, where the second column is skipped
+        if sys.platform == "darwin" or self.current_index().column() != 1:
             self.edit_row_without_check()
 
     def edit_row_without_check(self):
@@ -1474,7 +1595,8 @@ class MainWindow(QMainWindow):
         if self.focused_column().view.state() == QAbstractItemView.EditingState:  # change column with tab key
             next_column_number = (current_index.column() + 1) % 3
             sibling_index = current_index.sibling(current_index.row(), next_column_number)
-            self.focused_column().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
+            self.focused_column().view.selectionModel().setCurrentIndex(sibling_index,
+                                                                        QItemSelectionModel.ClearAndSelect)
             self.focused_column().view.edit(sibling_index)
         elif self.focused_column().view.hasFocus():
             self.focused_column().view.edit(current_index)
@@ -1508,7 +1630,8 @@ class MainWindow(QMainWindow):
     @pyqtSlot(str)
     def color_row(self, color_character):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], index=row_index, field='color')
+            self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character],
+                                                        index=row_index, field='color')
 
     # view menu actions
 
@@ -1531,13 +1654,11 @@ class MainWindow(QMainWindow):
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
-            url_regex = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""  # source: http://daringfireball.net/2010/07/improved_regex_for_matching_urls
-            url_list = re.findall(url_regex, row_index.data())
-            if url_list != []:
-                for url in url_list:
-                    if not re.search(r'https?://', url):
-                        url = 'http://' + url
-                    QDesktopServices.openUrl(QUrl(url))
+            url_list = re.findall(util.url_regex, row_index.data())
+            for url in url_list:
+                if not re.search(r'https?://', url):
+                    url = 'http://' + url
+                QDesktopServices.openUrl(QUrl(url))
             else:  # no urls found: search the web for the selected entry
                 text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                 QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
@@ -1567,9 +1688,10 @@ class MainWindow(QMainWindow):
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
 
         # search shall start not before the user completed typing
-        filterDelay = DelayedExecutionTimer(self)
-        new_column.search_bar.textEdited[str].connect(filterDelay.trigger)  # just triggered by user editing, not triggered by programmatically setting the search bar text
-        filterDelay.triggered[str].connect(self.search)
+        filter_delay = DelayedExecutionTimer(self)
+        # just triggered by user editing, not triggered by programmatically setting the search bar text
+        new_column.search_bar.textEdited[str].connect(filter_delay.trigger)
+        filter_delay.triggered[str].connect(self.search)
 
         new_column.bookmark_button = QPushButton()
         new_column.bookmark_button.setToolTip('Bookmark current filters')
@@ -1578,7 +1700,8 @@ class MainWindow(QMainWindow):
             width: 22px;\
             height: 22px;\
             padding: 2px; }')
-        new_column.bookmark_button.clicked.connect(lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
+        new_column.bookmark_button.clicked.connect(
+            lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
         search_holder = QWidget()
         layout = QHBoxLayout()
@@ -1600,7 +1723,8 @@ class MainWindow(QMainWindow):
 
         new_column.filter_proxy = model.FilterProxyModel()
         new_column.filter_proxy.setSourceModel(self.item_model)
-        new_column.filter_proxy.setDynamicSortFilter(True)  # re-sort and re-filter data whenever the original model changes
+        # re-sort and re-filter data whenever the original model changes
+        new_column.filter_proxy.setDynamicSortFilter(True)
         new_column.filter_proxy.filter = ''
 
         new_column.view.setModel(new_column.filter_proxy)
@@ -1643,45 +1767,52 @@ class MainWindow(QMainWindow):
     def style_tree(self):
         padding = str(self.focused_column().view.indentation() - 30)
         self.focused_column().view.setStyleSheet(
-        'QTreeView:focus { border: 1px solid #006080; }' # blue glow around the view
-        'QTreeView:branch:open:has-children  {'
+            'QTreeView:focus { border: 1px solid #006080; }'  # blue glow around the view
+            'QTreeView:branch:open:has-children  {'
             'image: url(:/open);'
             'padding-top: 10px;'
             'padding-bottom: 10px;'
             'padding-left: ' + padding + 'px;}'
-        'QTreeView:branch:closed:has-children {'
-            'image: url(:/closed);'
-            'padding-top: 10px;'
-            'padding-bottom: 10px;'
-            'padding-left: ' + padding + 'px;}')
+                                         'QTreeView:branch:closed:has-children {'
+                                         'image: url(:/closed);'
+                                         'padding-top: 10px;'
+                                         'padding-bottom: 10px;'
+                                         'padding-left: ' + padding + 'px;}')
 
 
 class AboutBox(QDialog):
+
     def __init__(self, parent):
         super(AboutBox, self).__init__()
         headline = QLabel('TreeNote')
         headline.setFont(QFont(model.FONT, 25))
-        label = QLabel(self.tr('Version ' + version.version_nr.replace('v', '') + '<br><br>\
-           TreeNote is a collaboratively usable outliner for personal knowledge and task management. More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>\
-            <br>\
-            Contact me at jan.korte@uni-oldenburg.de if you have an idea or issue!<br>\
-            <br>\
-            This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.'))
+        label = QLabel(
+            self.tr(
+                'Version ' + version.version_nr.replace('v', '') +
+                '<br><br>'
+                'TreeNote is a collaboratively usable outliner for personal knowledge and task management.'
+                'More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>'
+                '<br>'
+                'Contact me at jan.korte@uni-oldenburg.de if you have an idea or issue!<br>'
+                '<br>'
+                'This program is free software: you can redistribute it and/or modify it under the terms of the'
+                'GNU General Public License as published by the Free Software Foundation, version 3 of the License.'))
         label.setOpenExternalLinks(True)
         label.setTextFormat(Qt.RichText)
         label.setWordWrap(True)
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok)
-        buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self.reject)
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+        button_box.button(QDialogButtonBox.Ok).clicked.connect(self.reject)
         grid = QGridLayout()
         grid.setContentsMargins(20, 20, 20, 20)
         grid.setSpacing(20)
         grid.addWidget(headline, 0, 0)  # row, column
         grid.addWidget(label, 1, 0)  # row, column
-        grid.addWidget(buttonBox, 2, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(button_box, 2, 0, 1, 1, Qt.AlignCenter)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
 
 
 class SearchBarQLineEdit(QLineEdit):
+
     def __init__(self, main):
         super(QLineEdit, self).__init__()
         self.main = main
@@ -1715,6 +1846,7 @@ class BookmarkDialog(QDialog):
     # init it with either search_bar_text or index set
     # search_bar_text is set: create new bookmark
     # index is set: edit existing bookmark
+
     def __init__(self, parent, search_bar_text=None, index=None):
         super(BookmarkDialog, self).__init__(parent)
         self.setMinimumWidth(600)
@@ -1767,13 +1899,16 @@ class BookmarkDialog(QDialog):
         else:
             item_id = self.parent.bookmark_model.get_db_item(self.index)['_id']
         self.parent.bookmark_model.set_data_with_id(self.name_edit.text(), item_id=item_id, column=0, field='text')
-        self.parent.bookmark_model.set_data_with_id(self.search_bar_text_edit.text(), item_id=item_id, column=0, field=model.SEARCH_TEXT)
-        self.parent.bookmark_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=item_id, column=0, field=model.SHORTCUT)
+        self.parent.bookmark_model.set_data_with_id(self.search_bar_text_edit.text(), item_id=item_id, column=0,
+                                                    field=model.SEARCH_TEXT)
+        self.parent.bookmark_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=item_id,
+                                                    column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
 
 class ShortcutDialog(QDialog):
+
     def __init__(self, parent, index):
         super(QDialog, self).__init__(parent)
         self.setMinimumWidth(340)
@@ -1797,12 +1932,14 @@ class ShortcutDialog(QDialog):
         self.setWindowTitle(EDIT_QUICKLINK)
 
     def apply(self):
-        self.parent.item_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=self.item.id, column=0, field=model.SHORTCUT)
+        self.parent.item_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=self.item.id,
+                                                column=0, field=model.SHORTCUT)
         self.parent.fill_bookmarkShortcutsMenu()
         super(ShortcutDialog, self).accept()
 
 
 class RenameTagDialog(QDialog):
+
     def __init__(self, parent, tag):
         super(RenameTagDialog, self).__init__(parent)
         self.parent = parent
@@ -1825,6 +1962,7 @@ class RenameTagDialog(QDialog):
 
 
 class UpdateDialog(QDialog):
+
     def __init__(self, parent):
         super(UpdateDialog, self).__init__(parent)
         releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
@@ -1838,13 +1976,14 @@ class UpdateDialog(QDialog):
         downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://www.treenote.de/download/')))
 
         grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan
-        grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] + ' is now available - you have ' +
-                                      version.version_nr[1:])), 0, 0, 1, -1)
+        grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] +
+                                      ' is now available - you have ' + version.version_nr[1:])), 0, 0, 1, -1)
         grid.addItem(QSpacerItem(-1, 10), 1, 0, 1, 1)
         grid.addWidget(QLabel(self.tr('Release notes:')), 2, 0, 1, -1)
         grid.addWidget(releaseNotesEdit, 3, 0, 1, -1)
         grid.addItem(QSpacerItem(-1, 10), 4, 0, 1, 1)
-        grid.addWidget(QLabel(self.tr('Just extract the downloaded .zip file into your current treenote folder.\nYour data and settings will be kept.')), 5, 0, 1, -1)
+        grid.addWidget(QLabel(self.tr('Just extract the downloaded .zip file into your current treenote folder.\n'
+                                      'Your data and settings will be kept.')), 5, 0, 1, -1)
         grid.addItem(QSpacerItem(-1, 10), 6, 0, 1, 1)
 
         row = QWidget()
@@ -1862,7 +2001,9 @@ class UpdateDialog(QDialog):
         self.parent().getQSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
         self.reject()
 
+
 class SettingsDialog(QDialog):
+
     def __init__(self, parent):
         super(SettingsDialog, self).__init__(parent)
         self.parent = parent
@@ -1880,13 +2021,14 @@ class SettingsDialog(QDialog):
         backup_interval_spinbox = QSpinBox()
         backup_interval_spinbox.setValue(parent.backup_interval)
         backup_interval_spinbox.setRange(0, 10000)
-        backup_interval_spinbox.valueChanged[int].connect(lambda: parent.start_backup_service(backup_interval_spinbox.value()))
+        backup_interval_spinbox.valueChanged[int].connect(
+            lambda: parent.start_backup_service(backup_interval_spinbox.value()))
 
         layout = QFormLayout()
         layout.addRow('Theme:', theme_dropdown)
         layout.addRow('Indentation of children in the tree:', indentation_spinbox)
         backup_label = QLabel("Create a plain text export of all databases which have changes to the folder 'backups' "
-                                "every ... minutes (0 minutes disables this feature):")
+                              "every ... minutes (0 minutes disables this feature):")
         backup_label.setWordWrap(True)
         backup_label.setAlignment(Qt.AlignRight)
         backup_label.setMinimumSize(550, 0)
@@ -1908,6 +2050,7 @@ class SettingsDialog(QDialog):
 
 class DatabaseDialog(QDialog):
     # if index is set: edit existing database. else: create new database
+
     def __init__(self, parent, index=None, import_file_name=None):
         super(DatabaseDialog, self).__init__(parent)
         self.setMinimumWidth(910)
@@ -1926,7 +2069,8 @@ class DatabaseDialog(QDialog):
         self.url_edit = QLineEdit(url)
         self.url_edit.setPlaceholderText('Leave empty for a local database.')
         self.database_name_edit = QLineEdit(database_name)
-        self.database_name_edit.setPlaceholderText('Different to existing database names. Only lowercase characters (a-z), digits (0-9) or _ allowed.')
+        self.database_name_edit.setPlaceholderText(
+            'Different to existing database names. Only lowercase characters (a-z), digits (0-9) or _ allowed.')
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
@@ -1960,7 +2104,9 @@ class DatabaseDialog(QDialog):
         if self.index is None:
             url = self.url_edit.text()
             db_name = self.database_name_edit.text()
-            if not re.search('^[a-z0-9_]+$', db_name):  # ^ is start of string, [] is a character class, + is preceding expression  one or more times, $ is end of string
+            # ^ is start of string, [] is a character class,
+            # + is preceding expression one or more times, $ is end of string
+            if not re.search('^[a-z0-9_]+$', db_name):
                 QMessageBox.warning(self, '', 'Only lowercase characters (a-z), digits (0-9) or _ allowed.')
                 return
             if self.import_file_name:
@@ -1977,7 +2123,8 @@ class DatabaseDialog(QDialog):
             new_index = self.parent.server_model.index(len(self.parent.server_model.servers) - 1, 0, QModelIndex())
             self.parent.servers_view.selectionModel().setCurrentIndex(new_index, QItemSelectionModel.ClearAndSelect)
         else:
-            self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(), self.database_name_edit.text())
+            self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(),
+                                              self.database_name_edit.text())
         super(DatabaseDialog, self).accept()
 
 
@@ -1986,8 +2133,11 @@ class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action
 
     def __init__(self, parent):
         super(DelayedExecutionTimer, self).__init__(parent)
-        self.minimumDelay = 200  # The minimum delay is the time the class will wait after being triggered before emitting the triggered() signal
-        self.maximumDelay = 500  # The maximum delay is the maximum time that will pass before a call to the trigger() slot leads to a triggered() signal.
+        # The minimum delay is the time the class will wait after being triggered before emitting the triggered() signal
+        self.minimumDelay = 200
+        # The maximum delay is the maximum time that will pass before a call to
+        # the trigger() slot leads to a triggered() signal.
+        self.maximumDelay = 500
         self.minimumTimer = QTimer(self)
         self.maximumTimer = QTimer(self)
         self.minimumTimer.timeout.connect(self.timeout)
@@ -2008,12 +2158,13 @@ class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action
 
 # changes the header text
 class CustomHeaderView(QHeaderView):
+
     def __init__(self, text):
         super(CustomHeaderView, self).__init__(Qt.Horizontal)
         self.setSectionResizeMode(QHeaderView.Stretch)
         self.text = text
 
-    def paintSection(self, painter, rect, logicalIndex):
+    def paintSection(self, painter, rect, logical_index):
         opt = QStyleOptionHeader()
         opt.rect = rect
         opt.text = self.text
@@ -2021,6 +2172,7 @@ class CustomHeaderView(QHeaderView):
 
 
 class ResizeTreeView(QTreeView):
+
     def resizeEvent(self, event):
         self.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
@@ -2033,7 +2185,7 @@ if __name__ == '__main__':
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
-    # QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
+    QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
 
     form = MainWindow()
     form.show()

@@ -4,6 +4,7 @@ import model
 
 
 class Server():
+
     def __init__(self, bookmark_name, url, database_name, db):
         self.bookmark_name = bookmark_name
         self.url = url
@@ -12,6 +13,7 @@ class Server():
 
 
 class ServerModel(QAbstractListModel):
+
     def __init__(self):
         super(ServerModel, self).__init__()
         self.servers = []
@@ -34,7 +36,8 @@ class ServerModel(QAbstractListModel):
         return self.servers[index.row()]
 
     def data(self, index, role):
-        if role != Qt.DisplayRole: return None
+        if role != Qt.DisplayRole:
+            return None
         return self.get_server(index).bookmark_name
 
     def set_data(self, index, bookmark_name, url, db_name):
