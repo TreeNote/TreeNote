@@ -1089,45 +1089,7 @@ class MainWindow(QMainWindow):
                     else:  # all children deleted, select parent
                         self.set_selection(index, index)
 
-            elif method == 'moved_vertical':
-                if my_edit:  # save expanded states
-                    bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
-                    id_expanded_state_dict = {}
-                    if not bool_moved_bookmark:
-                        for child_position, child_item in enumerate(item.childItems):
-                            child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                            proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                            id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
 
-                source_model.layoutAboutToBeChanged.emit([QPersistentModelIndex(index)])
-                up_or_down = change_dict['up_or_down']
-                if up_or_down == -1:
-                    # if we want to move several items up, we can move the item-above below the selection instead:
-                    item.childItems.insert(position + count - 1, item.childItems.pop(position - 1))
-                elif up_or_down == +1:
-                    item.childItems.insert(position, item.childItems.pop(position + count))
-                index_first_moved_item = source_model.index(position + up_or_down, 0, index)
-                index_last_moved_item = source_model.index(position + up_or_down + count - 1, 0, index)
-                source_model.layoutChanged.emit([QPersistentModelIndex(index)])
-
-                # update id_index_dict
-                child_index_list = []
-                for child_position, child_item in enumerate(item.childItems):
-                    child_index = source_model.index(child_position, 0, index)
-                    source_model.id_index_dict[child_item.id] = QPersistentModelIndex(child_index)
-                    source_model.pointer_set.add(child_index.internalId())
-                    child_index_list.append((child_index, child_item.id))
-
-                if my_edit:
-                    # select first moved item
-                    self.set_selection(index_first_moved_item, index_last_moved_item)
-
-                    # restore expanded states
-                    if not bool_moved_bookmark:
-                        for child_index, child_item_id in child_index_list:
-                            proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                            expanded_state = id_expanded_state_dict[child_item_id]
-                            self.focused_column().view.setExpanded(proxy_index, expanded_state)
 
             elif method == model.DELETED:
                 if source_model.db[item_id][model.DELETED] == '':

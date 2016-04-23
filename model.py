@@ -386,29 +386,43 @@ class TreeModel(QAbstractItemModel):
         # up_or_down is -1 for up and +1 for down
 
         class MoveVerticalCommand(QUndoCommandStructure):
-            _fields = ['model', 'item_id', 'parent_item_id', 'count', 'up_or_down']
+            _fields = ['model', 'indexes', 'up_or_down']
             title = 'Move vertically'
 
             def move(self, up_or_down):
-                db_item = self.model.db[self.parent_item_id]
-                children_list = db_item['children'].split()
-                old_position = children_list.index(self.item_id)
-                if up_or_down == -1 and old_position == 0 or up_or_down == +1 and old_position + self.count - 1 == len(
-                        children_list) - 1:  # don't move if already at top or bottom
-                    return
-                self.model.layoutAboutToBeChanged.emit()
-                # if we want to move several items up, we can move the item-above below the selection instead
+                item = self.model.getItem(self.indexes[0])
+                position = item.child_number()
+                parent_index = self.model.parent(self.indexes[0])
+                parent_item = self.model.getItem(parent_index)
+                count = len(indexes)
+
+                # bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
+                id_expanded_state_dict = {}
+                # if not bool_moved_bookmark:
+                #     for child_item.child_number(), child_item in enumerate(item.childItems):
+                #         child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                #         proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                #         id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+
+                self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
                 if up_or_down == -1:
-                    swapped_item = children_list.pop(old_position - 1)
-                    swapped_item_new_position = old_position + self.count - 1
+                    # if we want to move several items up, we can move the item-above below the selection instead:
+                    parent_item.childItems.insert(item.child_number() + count - 1, parent_item.childItems.pop(item.child_number() - 1))
                 elif up_or_down == +1:
-                    swapped_item = children_list.pop(old_position + self.count)
-                    swapped_item_new_position = old_position
-                children_list.insert(swapped_item_new_position, swapped_item)
-                db_item['children'] = ' '.join(children_list)
-                db_item['change'] = dict(method='moved_vertical', position=old_position,
-                                         count=self.count, up_or_down=up_or_down, user=socket.gethostname())
-                self.model.db[self.parent_item_id] = db_item
+                    parent_item.childItems.insert(item.child_number(), parent_item.childItems.pop(item.child_number() + count))
+                index_first_moved_item = self.model.index(item.child_number() + up_or_down, 0, parent_index)
+                index_last_moved_item = self.model.index(item.child_number() + up_or_down + count - 1, 0, parent_index)
+                self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
+
+                # select first moved item
+                # self.set_selection(index_first_moved_item, index_last_moved_item)
+
+                # restore expanded states
+                # if not bool_moved_bookmark:
+                #     for child_index, child_item_id in child_index_list:
+                #         proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                #         expanded_state = id_expanded_state_dict[child_item_id]
+                #         self.focused_column().view.setExpanded(proxy_index, expanded_state)
 
             def redo(self):
                 self.move(self.up_or_down)
@@ -416,8 +430,7 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.move(self.up_or_down * -1)
 
-        item = self.getItem(indexes[0])
-        self.undoStack.push(MoveVerticalCommand(self, item.id, item.parentItem.id, len(indexes), up_or_down))
+        self.undoStack.push(MoveVerticalCommand(self, indexes, up_or_down))
 
     def move_horizontal(self, indexes, direction):
         item = self.getItem(indexes[0])
