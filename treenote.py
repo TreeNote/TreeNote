@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
             if palette is not None:
                 palette = self.light_palette if palette == 'light' else self.dark_palette
             else:  # set standard theme
-                palette = self.light_palette
+                palette = self.dark_palette
             self.set_palette(palette)
 
             # restore splitters
@@ -515,10 +515,10 @@ class MainWindow(QMainWindow):
                 self.backup_db(server)
 
     def start_backup_service(self, minutes):
-        self.backup_interval = minutes
+        self.backup_interval = int(minutes)
         self.backup_timer.stop()
         if minutes != 0:
-            self.backup_timer.start(int(minutes) * 1000 * 60) # time specified in ms
+            self.backup_timer.start(self.backup_interval * 1000 * 60) # time specified in ms
 
     def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
@@ -1878,7 +1878,7 @@ class SettingsDialog(QDialog):
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         backup_interval_spinbox = QSpinBox()
-        backup_interval_spinbox.setValue(int(parent.getQSettings().value('backup_interval')))
+        backup_interval_spinbox.setValue(parent.backup_interval)
         backup_interval_spinbox.setRange(0, 10000)
         backup_interval_spinbox.valueChanged[int].connect(lambda: parent.start_backup_service(backup_interval_spinbox.value()))
 
@@ -1966,6 +1966,7 @@ class DatabaseDialog(QDialog):
             if self.import_file_name:
                 db = self.parent.get_db(url, db_name, create_root=False)
                 with open(self.import_file_name, 'r') as file:
+                    # todo parse json to tree object
                     doc_list = json.load(file)
                     db.update(doc_list)
             else:
@@ -2032,7 +2033,7 @@ if __name__ == '__main__':
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
-    QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
+    # QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
 
     form = MainWindow()
     form.show()
