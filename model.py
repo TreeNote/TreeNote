@@ -84,82 +84,39 @@ class Tree_item(object):
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
-    def __init__(self, text, model, parent=None, id=None):
-        self.model = model
+    def __init__(self, parent=None):
         self.parentItem = parent
-        self.id = id
-        self.childItems = None
+        self.childItems = []
+        self.text = ''
+        self.type = NOTE
+        self.date = ''
+        self.color = NO_COLOR
+        self.estimate = ''
+
+        # just for bookmarks
+        self.search_text = ''
+        self.shortcut = ''
 
     def child_number(self):
         if self.parentItem is not None:
             return self.parentItem.childItems.index(self)
         return 0
 
-    def init_children(self, parent_index):
-        if self.childItems is None:  # deserialise children from the db
-            self.childItems = []
-            children_id_list = self.children.split()
-            for position in range(len(children_id_list)):
-                id = children_id_list[position]
-                self.add_child(position, id, parent_index)
-
-    def add_child(self, position, id, parent_index):
-        item = Tree_item('', self.model, self, id)
-        db_item = self.model.db[id]
-        # Tree_item has the same attributes like a DB_ITEM except 'children'
-        # it's saved here, because access to here ist faster than to the db
-        for key in TREE_ITEM_ATTRIBUTES_LIST:
-            item.__setattr__(key, db_item[key])
+    def add_child(self, position):
+        item = Tree_item(self)
         self.childItems.insert(position, item)
-
-        new_index = self.model.index(position, 0, parent_index)
-        self.model.id_index_dict[id] = QPersistentModelIndex(new_index)
-        self.model.pointer_set.add(new_index.internalId())
-
-    def update_attributes(self, db_item):
-        for key in TREE_ITEM_ATTRIBUTES_LIST:
-            self.__setattr__(key, db_item[key])
 
 
 class TreeModel(QAbstractItemModel):
-    """
-    The methods of this model changes the database only. The view gets updated by the Updater-Thread.
-    """
-    db_change_signal = pyqtSignal(dict, QAbstractItemModel)
 
-    def __init__(self, db, header_list=None, parent=None):
-        super(TreeModel, self).__init__(parent)
-        self.db = db
+    def __init__(self, header_list):
+        super(TreeModel, self).__init__()
         self.changed = False
         self.undoStack = QUndoStack(self)
 
-        # If a database change is arriving, we just have the id. To get the
-        # corresponding Tree_item, we store it's QModelIndex in this dict:
-        # New indexes are created by TreeModel.index(). That function stores the
-        # index in this dict. This dict may grow huge during runtime.
-        self.id_index_dict = dict()
-        self.pointer_set = set()
-
-        # delete items with deleted flag permanently
-        map = "function(doc) { \
-                    if (doc." + DELETED + " != '') \
-                        emit(doc, null); \
-                }"
-        res = self.db.query(map)
-        for row in res:
-            self.db.delete(self.db[row.id])
-
-        self.rootItem = Tree_item('root item', self)
+        self.rootItem = Tree_item(self)
         self.rootItem.header_list = header_list
-        self.rootItem.id = ROOT_ID
-        self.rootItem.children = db[ROOT_ID]['children']
         self.rootItem.type = NOTE
-        index = QModelIndex()
-        self.id_index_dict[ROOT_ID] = index
-        self.pointer_set.add(QModelIndex().internalId())
-
-        self.updater = Updater(self)
-        self.updater.start()
 
     def headerData(self, column, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -192,9 +149,6 @@ class TreeModel(QAbstractItemModel):
         if parent.isValid() and parent.column() != 0:
             return QModelIndex()
 
-        if parent.internalId() not in self.pointer_set:
-            return QModelIndex()
-
         parentItem = self.getItem(parent)
         if row >= len(parentItem.childItems):  # bugfix
             return QModelIndex()
@@ -206,9 +160,6 @@ class TreeModel(QAbstractItemModel):
         if not index.isValid():
             return QModelIndex()
 
-        if index.internalId() not in self.pointer_set:
-            return QModelIndex()
-
         childItem = self.getItem(index)
         parentItem = childItem.parentItem
 
@@ -218,7 +169,6 @@ class TreeModel(QAbstractItemModel):
 
     def rowCount(self, parent=QModelIndex()):
         parentItem = self.getItem(parent)
-        parentItem.init_children(parent)
         return len(parentItem.childItems)
 
     def data(self, index, role):
@@ -277,14 +227,14 @@ class TreeModel(QAbstractItemModel):
         return self.set_data_with_id(value, item_id, column, field)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
-    def insert_remove_rows(self, position=None, parent_item_id=None, id_list=None, indexes=None, set_edit_focus=None):
+    def insert_remove_rows(self, position=None, parent_index=None, id_list=None, indexes=None, set_edit_focus=None):
 
         # Delete design decision: We could delete items permanently.
         # But if then the user renames, deletes and then undoes both actions,
         # the undo of 'delete' would create an item with a new id. Therefore rename won't work.
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
-            _fields = ['model', 'position', 'parent_item_id', 'id_list',
+            _fields = ['model', 'position', 'parent_index', 'id_list',
                        'set_edit_focus', 'delete_child_from_parent_id_list']
             title = 'Add or remove row'
 
@@ -334,22 +284,59 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
-                    if self.id_list is None:  # for newly created items. else: add existing item (for move)
-                        child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
-                        self.id_list = [child_id]
+                    # if self.id_list is None:  # for newly created items. else: add existing item (for move)
+                    #     child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
+                    #     self.id_list = [child_id]
+                    #
+                    #     # type of new items depends on their parent: note -> note, projekt -> task
+                    #     parent_type = self.model.db[parent_index]['type']
+                    #     child_type = NOTE if parent_type == NOTE else TASK
+                    #     self.model.set_db_item_field(child_id, 'type', child_type)
+                    #
+                    # # remove delete marker. just one item is inserted / re-inserted
+                    # self.set_deleted_marker('', self.id_list[0])
+                    # self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
+                    # # when redo is called the second time (when the user is redoing), he doesn't want edit focus
+                    # self.set_edit_focus = False
+                    # self.delete_child_from_parent_id_list = [
+                    #     (self.id_list[0], parent_index, None)]  # info for undoing
 
-                        # type of new items depends on their parent: note -> note, projekt -> task
-                        parent_type = self.model.db[parent_item_id]['type']
-                        child_type = NOTE if parent_type == NOTE else TASK
-                        self.model.set_db_item_field(child_id, 'type', child_type)
+                    # id_list = change_dict['id_list']
+                    # if id_list[0] in [child.id for child in item.childItems]:
+                    #     # when pasting parent and children, the children gets automatically loaded,
+                    #     # so don't load it manually additionally
+                    #     return
+                    self.indexes = [0]  # todo übergeben
+                    parent_item = self.model.getItem(self.parent_index)
+                    self.model.beginInsertRows(self.parent_index, position, position + len(self.indexes) - 1)
+                    for i in range(len(self.indexes)):
+                        parent_item.add_child(position + i)
+                    self.model.endInsertRows()
 
-                    # remove delete marker. just one item is inserted / re-inserted
-                    self.set_deleted_marker('', self.id_list[0])
-                    self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
-                    # when redo is called the second time (when the user is redoing), he doesn't want edit focus
-                    self.set_edit_focus = False
-                    self.delete_child_from_parent_id_list = [
-                        (self.id_list[0], parent_item_id, None)]  # info for undoing
+                    # index_first_added = source_model.index(position, 0, index)
+                    # index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
+                    # if not change_dict['set_edit_focus']:
+                    #     self.set_selection(index_first_added, index_last_added)
+                    # else:  # update selection_and_edit
+                    #     if index_first_added.model() is self.item_model:
+                    #         index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
+                    #         self.focusWidget().selectionModel().setCurrentIndex(index_first_added,
+                    #                                                             QItemSelectionModel.ClearAndSelect)
+                    #         self.focusWidget().edit(index_first_added)
+                    #     else:  # bookmark
+                    #         self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added,
+                    #                                                              QItemSelectionModel.ClearAndSelect)
+                    #
+                    # # restore horizontally moved items expanded states + expanded states of their childrens
+                    # self.focused_column().view.setAnimated(False)
+                    # for child_id in self.removed_id_expanded_state_dict:
+                    #     child_index = QModelIndex(source_model.id_index_dict[child_id])
+                    #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                    #     expanded_state = self.removed_id_expanded_state_dict[child_id]
+                    #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                    # self.removed_id_expanded_state_dict = {}
+                    # self.focused_column().view.setAnimated(True)
+
                 else:
                     self.remove_rows()
 
@@ -363,23 +350,23 @@ class TreeModel(QAbstractItemModel):
 
         if position is not None:  # insert command
             if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
-                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
+                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
             elif id_list is None:  # used from view, create a single new row / self.db item
                 set_edit_focus = True
-                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id, None, set_edit_focus, None))
+                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
             # used from move methods, add existing db items to the parent.
             # Don't add to stack, because already part of an UndoCommand
             else:
                 set_edit_focus = False
-                InsertRemoveRowCommand.add_rows(self, position, parent_item_id, id_list, set_edit_focus)
+                InsertRemoveRowCommand.add_rows(self, position, parent_index, id_list, set_edit_focus)
         else:  # remove command
             delete_child_from_parent_id_list = list()
-            for index in indexes:
-                child_item = self.getItem(index)
+            for parent_index in indexes:
+                child_item = self.getItem(parent_index)
                 # save the position information for adding (undo)
                 delete_child_from_parent_id_list.append(
                     (child_item.id, child_item.parentItem.id, child_item.child_number()))
-            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_item_id,
+            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index,
                                                        id_list, False, delete_child_from_parent_id_list))
 
     def move_vertical(self, indexes, up_or_down):
@@ -407,9 +394,12 @@ class TreeModel(QAbstractItemModel):
                 self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
                 if up_or_down == -1:
                     # if we want to move several items up, we can move the item-above below the selection instead:
-                    parent_item.childItems.insert(item.child_number() + count - 1, parent_item.childItems.pop(item.child_number() - 1))
+                    parent_item.childItems.insert(item.child_number() + count - 1,
+                                                  parent_item.childItems.pop(item.child_number() - 1))
                 elif up_or_down == +1:
-                    parent_item.childItems.insert(item.child_number(), parent_item.childItems.pop(item.child_number() + count))
+                    parent_item.childItems.insert(
+                        item.child_number(),
+                        parent_item.childItems.pop(item.child_number() + count))
                 index_first_moved_item = self.model.index(item.child_number() + up_or_down, 0, parent_index)
                 index_last_moved_item = self.model.index(item.child_number() + up_or_down + count - 1, 0, parent_index)
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
@@ -492,7 +482,9 @@ class TreeModel(QAbstractItemModel):
         self.db[parent_item_id] = parent_db_item
 
     def get_tags_set(self, cut_delimiter=True):
+        # todo
         tags_set = set()
+        return tags_set
         map = "function(doc) { \
                     if (doc.text && doc.text.indexOf('" + DELIMITER + "') != -1 && doc." + DELETED + " == '') \
                         emit(doc, null); \
@@ -617,8 +609,8 @@ class ProxyTools():
     def is_task_available(self, index):
         return self.sourceModel().is_task_available(self.mapToSource(index))
 
-    def insert_row(self, position, parent):
-        self.sourceModel().insert_remove_rows(position, self.getItem(parent).id)
+    def insert_row(self, position, parent_index):
+        self.sourceModel().insert_remove_rows(position, parent_index)
 
     def move_horizontal(self, indexes, direction):
         if len(indexes) > 0:
@@ -950,15 +942,13 @@ class BookmarkDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
-        db_item = self.model.db[item.id]
         document = QTextDocument()
-        shortcut = db_item[SHORTCUT]
-        if shortcut.startswith('Ctrl+'):
-            shortcut = shortcut.replace('Ctrl+', '')
-        if shortcut != '':
-            shortcut += ' '
-        first_text_row = re.sub(r'\n(.|\n)*', ' ...', db_item[TEXT])
-        document.setPlainText(shortcut + first_text_row)
+        if item.shortcut.startswith('Ctrl+'):
+            item.shortcut = item.shortcut.replace('Ctrl+', '')
+        if item.shortcut != '':
+            item.shortcut += ' '
+        first_text_row = re.sub(r'\n(.|\n)*', ' ...', item.text)
+        document.setPlainText(item.shortcut + first_text_row)
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
         else:
@@ -1176,9 +1166,6 @@ DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'  # for bookmarks
 SHORTCUT = 'shortcut'
 TEXT = 'text'
-TREE_ITEM_ATTRIBUTES_LIST = [TEXT, 'children', 'type', 'date', 'color', DELETED, 'estimate']
-NEW_DB_ITEM = {TEXT: '', 'children': '', 'type': NOTE, 'date': '', 'color': NO_COLOR, DELETED: '', 'estimate': '',
-               SEARCH_TEXT: '', SHORTCUT: ''}  # just for bookmarks
 FOCUS_TEXT = 'Focus on current row'
 GAP_FOR_CHECKBOX = 22
 FONT = 'Source Sans Pro'

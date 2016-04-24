@@ -23,7 +23,7 @@ import time
 import traceback
 from functools import partial
 #
-import couchdb
+import pickle
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
@@ -32,7 +32,6 @@ from PyQt5.QtWidgets import *
 from resources import qrc_resources  # get's removed with 'optimize imports'!
 #
 import model
-import server_model
 import tag_model
 import util
 import version
@@ -95,47 +94,29 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-            self.expanded_ids_list_dict = {}  # for restoring the expanded state after a search
-            self.expanded_quicklink_ids_list_dict = {}
+            self.expanded_ids_list = {}  # for restoring the expanded state after a search
+            self.expanded_quicklink_ids_list = {}
             # remember expanded state when moving horizontally (removing then adding at other place)
             self.removed_id_expanded_state_dict = {}
             # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
             self.old_search_text = ''
 
-            self.server_model = server_model.ServerModel()
-
             self.flatten = False
 
             # load databases
             settings = self.getQSettings()
-            servers = settings.value('databases')
 
-            def add_db(bookmark_name, url, db_name, db):
-                new_server = server_model.Server(bookmark_name, url, db_name, db)
-                new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
-                self.server_model.add_server(new_server)
-
-            if servers is None:
-                def load_db_from_file(bookmark_name, db_name):
-                    db = self.get_db('', db_name, create_root=False)
-                    with open(RESOURCE_FOLDER + 'default_databases' + os.sep + db_name + '.json', 'r') as file:
-                        doc_list = json.load(file)
-                        db.update(doc_list)
-                    add_db(bookmark_name, '', db_name, db)
-
-                load_db_from_file('Anleitung', 'anleitung')
-                load_db_from_file('Leere Datenbank', 'leere_datenbank')
-                load_db_from_file('Gefüllte Vorlage', 'gefuellte_vorlage')
-                load_db_from_file('Leere Vorlage', 'leere_vorlage')
-
-                db = self.get_db('', 'bookmarks', create_root=False)
-                with open(RESOURCE_FOLDER + 'default_databases' + os.sep + 'bookmarks.json', 'r') as file:
-                    doc_list = json.load(file)
-                    db.update(doc_list)
-            else:
-                servers = json.loads(servers)
-                for bookmark_name, url, db_name in servers:
-                    add_db(bookmark_name, url, db_name, self.get_db(url, db_name, db_name))
+            def load_tree_from_file(file_name):
+                file = open(os.path.dirname(os.path.realpath(__file__)) + os.sep + file_name, 'rb')
+                return pickle.load(file)
+            try:
+                self.item_model = load_tree_from_file('tree.pickle')
+                self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'bookmarks.pickle')
+            except FileNotFoundError:
+                # self.item_model = load_tree_from_file(RESOURCE_FOLDER + 'default_tree_de.txt') # todo
+                # self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'default_bookmarks_de.txt')
+                self.item_model = model.TreeModel(header_list=['Text', 'Start date', 'Estimate'])
+                self.bookmark_model = model.TreeModel(header_list=['Bookmarks'])
 
             # set font-size and padding
             # second value is loaded, if nothing was saved before in the settings
@@ -144,11 +125,6 @@ class MainWindow(QMainWindow):
             # second value is loaded, if nothing was saved before in the settings
             self.fontsize = int(settings.value('fontsize', APP_FONT_SIZE))
             self.padding = int(settings.value('padding', 2))
-
-            self.item_model = self.server_model.servers[0].model
-
-            self.bookmark_model = model.TreeModel(self.get_db('', 'bookmarks'), header_list=['Bookmarks'])
-            self.bookmark_model.db_change_signal[dict, QAbstractItemModel].connect(self.db_change_signal)
 
             self.mainSplitter = QSplitter(Qt.Horizontal)
             self.mainSplitter.setHandleWidth(0)  # thing to grab the splitter
@@ -177,37 +153,21 @@ class MainWindow(QMainWindow):
             self.bookmarks_view.hideColumn(1)
             self.bookmarks_view.hideColumn(2)
             self.bookmarks_view.setUniformRowHeights(True)  # improves performance
-            filtersHolder = QWidget()  # needed to add space
+            filters_holder = QWidget()  # needed to add space
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
             layout.addWidget(self.bookmarks_view)
-            filtersHolder.setLayout(layout)
-
-            self.servers_view = QTreeView()
-            self.servers_view.setModel(self.server_model)
-            self.servers_view.selectionModel().currentChanged.connect(self.change_active_database)
-            self.servers_view.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.servers_view.customContextMenuRequested.connect(self.open_edit_server_contextmenu)
-            self.servers_view.setUniformRowHeights(True)  # improves performance
-            self.servers_view.setStyleSheet('QTreeView:item { padding: ' + str(
-                model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
-            servers_view_holder = QWidget()  # needed to add space
-            layout = QVBoxLayout()
-            layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-            layout.addWidget(self.servers_view)
-            servers_view_holder.setLayout(layout)
+            filters_holder.setLayout(layout)
 
             self.first_column_splitter = QSplitter(Qt.Vertical)
             self.first_column_splitter.setHandleWidth(0)
             self.first_column_splitter.setChildrenCollapsible(False)
             self.first_column_splitter.addWidget(self.quicklinks_view)
-            self.first_column_splitter.addWidget(filtersHolder)
-            self.first_column_splitter.addWidget(servers_view_holder)
+            self.first_column_splitter.addWidget(filters_holder)
             self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
             self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
             self.first_column_splitter.setStretchFactor(1, 0)
-            self.first_column_splitter.setStretchFactor(2, 0)
-            self.first_column_splitter.setSizes([315, 200, 200])
+            self.first_column_splitter.setSizes([100, 200])
 
             # second column
 
@@ -238,7 +198,7 @@ class MainWindow(QMainWindow):
             self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
             self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
-            filtersHolder = QWidget()  # needed to add space
+            filters_holder = QWidget()  # needed to add space
             layout = QGridLayout()
             layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
             layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
@@ -253,7 +213,7 @@ class MainWindow(QMainWindow):
             layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
             layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
             layout.setColumnStretch(1, 10)
-            filtersHolder.setLayout(layout)
+            filters_holder.setLayout(layout)
 
             self.tag_view = QTreeView()
             self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -268,7 +228,7 @@ class MainWindow(QMainWindow):
             third_column = QWidget()
             layout = QVBoxLayout()
             layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
-            layout.addWidget(filtersHolder)
+            layout.addWidget(filters_holder)
             layout.addWidget(self.tag_view)
             third_column.setLayout(layout)
 
@@ -500,7 +460,7 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
             self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Filter shortcuts'))
-            self.fill_bookmarkShortcutsMenu()
+            # self.fill_bookmarkShortcutsMenu() # todo
 
             self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
             self.helpMenu.addAction(self.updateAct)
@@ -526,32 +486,19 @@ class MainWindow(QMainWindow):
             if first_column_splitter_state is not None:
                 self.first_column_splitter.restoreState(first_column_splitter_state)
 
-            # first (do this before the labels 'second' and 'third')
-            # restore selected database
-            last_db_name = settings.value('database')
-            if last_db_name is not None:
-                for idx, server in enumerate(self.server_model.servers):
-                    if server.bookmark_name == last_db_name:
-                        server_index = self.server_model.index(idx, 0, QModelIndex())
-                        break
-            else:
-                server_index = self.server_model.index(0, 0, QModelIndex())  # top_most_index
-            self.servers_view.selectionModel().setCurrentIndex(server_index, QItemSelectionModel.ClearAndSelect)
-            self.change_active_database(server_index)
-
-            # second
+            # first (do this before the label 'second')
             # restore expanded item states
-            self.expanded_ids_list_dict = settings.value(EXPANDED_ITEMS, {})
+            self.expanded_ids_list = settings.value(EXPANDED_ITEMS, [])
             self.expand_saved()
             # restore expanded quick link states
-            self.expanded_quicklink_ids_list_dict = settings.value(EXPANDED_QUICKLINKS, {})
+            self.expanded_quicklink_ids_list = settings.value(EXPANDED_QUICKLINKS, [])
             self.expand_saved_quicklinks()
 
             self.reset_view()  # inits checkboxes
             self.focused_column().view.setFocus()
             self.update_actions()
 
-            # third
+            # second
             # restore selection
             # second value is loaded, if nothing was saved before in the settings
             selection_item_id = settings.value(SELECTED_ID, None)
@@ -632,21 +579,17 @@ class MainWindow(QMainWindow):
                     action.shortcut = QKeySequence()  # disable the old shortcut
 
     def expand_saved(self):
-        current_server_name = self.get_current_server().bookmark_name
-        if current_server_name in self.expanded_ids_list_dict:
-            for item_id in self.expanded_ids_list_dict[current_server_name]:
-                if item_id in self.item_model.id_index_dict:
-                    index = self.item_model.id_index_dict[item_id]
-                    proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-                    self.focused_column().view.expand(proxy_index)
+        for item_id in self.expanded_ids_list:
+            if item_id in self.item_model.id_index_dict:
+                index = self.item_model.id_index_dict[item_id]
+                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+                self.focused_column().view.expand(proxy_index)
 
     def expand_saved_quicklinks(self):
-        current_server_name = self.get_current_server().bookmark_name
-        if current_server_name in self.expanded_quicklink_ids_list_dict:
-            for item_id in self.expanded_quicklink_ids_list_dict[current_server_name]:
-                if item_id in self.item_model.id_index_dict:
-                    index = self.item_model.id_index_dict[item_id]
-                    self.quicklinks_view.expand(QModelIndex(index))
+        for item_id in self.expanded_quicklink_ids_list:
+            if item_id in self.item_model.id_index_dict:
+                index = self.item_model.id_index_dict[item_id]
+                self.quicklinks_view.expand(QModelIndex(index))
 
     def get_widgets(self):
         return [QApplication,
@@ -657,8 +600,6 @@ class MainWindow(QMainWindow):
                 self.focused_column().view,
                 self.focused_column().view.verticalScrollBar(),
                 self.focused_column().view.header(),
-                self.servers_view,
-                self.servers_view.header(),
                 self.tag_view,
                 self.tag_view.header()]
 
@@ -734,48 +675,6 @@ class MainWindow(QMainWindow):
         if self.file_name[0] != '':
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
-    def get_db(self, url, database_name, create_root=True):
-        def get_create_db(self, url, new_db_name, connection_attempts=0):
-            if url != '':
-                server = couchdb.Server(url)
-            else:  # local db
-                server = couchdb.Server()
-            try:
-                return server, server[new_db_name]
-            except couchdb.http.ResourceNotFound:
-                new_db = server.create(new_db_name)
-                if create_root:
-                    new_db[model.ROOT_ID] = (model.NEW_DB_ITEM.copy())
-                print("Database does not exist. Created the database.")
-                return server, new_db
-            except couchdb.http.Unauthorized as err:
-                QMessageBox.warning(self, 'Unauthorized', '')
-            except couchdb.http.ServerError as err:
-                QMessageBox.warning(self, 'ServerError', '')
-            except ConnectionRefusedError:
-                print('couchdb ist not started yet, so wait and try to connect again')
-                connection_attempts += 1
-                if connection_attempts < 9:
-                    time.sleep(0.3)
-                    return get_create_db(self, url, new_db_name, connection_attempts=connection_attempts)
-                else:
-                    QMessageBox.warning(self, '', 'Could not connect to the server. Is the url correct?')
-            except OSError:
-                QMessageBox.warning(self, '', 'Could not connect to the server. Synchronisation is disabled.'
-                                              'Local changes will be merged when you go online again.')
-            except Exception as err:
-                QMessageBox.warning(self, '', 'Unknown Error: Contact the developer.')
-
-        local_server, local_db = get_create_db(self, '', database_name)
-
-        # if new db is also on a server: enable replication
-        if url != '':
-            success = get_create_db(self, url, database_name)
-            if success:
-                local_server.replicate(database_name, url + database_name, continuous=True)
-                local_server.replicate(url + database_name, database_name, continuous=True)
-        return local_db
-
     def change_active_database(self, new_index, old_index=None):
         self.save_expanded_state(old_index)
         self.save_expanded_quicklinks_state(old_index)
@@ -817,19 +716,13 @@ class MainWindow(QMainWindow):
         settings.setValue('backup_interval', self.backup_interval)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
-        # save databases
-        server_list = []
-        for server in self.server_model.servers:
-            server_list.append((server.bookmark_name, server.url, server.database_name))
-        settings.setValue('databases', json.dumps(server_list))
-
         # save expanded items
         self.save_expanded_state()
-        settings.setValue(EXPANDED_ITEMS, self.expanded_ids_list_dict)
+        settings.setValue(EXPANDED_ITEMS, self.expanded_ids_list)
 
         # save expanded quicklinks
         self.save_expanded_quicklinks_state()
-        settings.setValue(EXPANDED_QUICKLINKS, self.expanded_quicklink_ids_list_dict)
+        settings.setValue(EXPANDED_QUICKLINKS, self.expanded_quicklink_ids_list)
 
         # save selection
         current_index = self.current_index()
@@ -838,9 +731,6 @@ class MainWindow(QMainWindow):
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
-
-        # save selected database
-        settings.setValue('database', self.get_current_server().bookmark_name)
 
         self.item_model.updater.terminate()
 
@@ -851,14 +741,7 @@ class MainWindow(QMainWindow):
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
-        if __debug__:
-            settings_file = 'treenote_settings_for_developing.ini'  # use fast, small database
         return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + settings_file, QSettings.IniFormat)
-
-    def get_current_server(self, index=None):
-        if index is None:
-            index = self.servers_view.selectionModel().currentIndex()
-        return self.server_model.get_server(index)
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.all_actions:
@@ -1023,41 +906,6 @@ class MainWindow(QMainWindow):
                     self.focused_column().view.sortByColumn(sorted_column, 1 - order)
                     self.focused_column().view.sortByColumn(sorted_column, order)
 
-            elif method == 'added':
-                id_list = change_dict['id_list']
-                if id_list[0] in [child.id for child in item.childItems]:
-                    # when pasting parent and children, the children gets automatically loaded,
-                    # so don't load it manually additionally
-                    return
-                source_model.beginInsertRows(index, position, position + len(id_list) - 1)
-                for i, added_item_id in enumerate(id_list):
-                    item.add_child(position + i, added_item_id, index)
-                source_model.endInsertRows()
-                if my_edit:
-                    index_first_added = source_model.index(position, 0, index)
-                    index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
-                    if not change_dict['set_edit_focus']:
-                        self.set_selection(index_first_added, index_last_added)
-                    else:  # update selection_and_edit
-                        if index_first_added.model() is self.item_model:
-                            index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
-                            self.focusWidget().selectionModel().setCurrentIndex(index_first_added,
-                                                                                QItemSelectionModel.ClearAndSelect)
-                            self.focusWidget().edit(index_first_added)
-                        else:  # bookmark
-                            self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added,
-                                                                                 QItemSelectionModel.ClearAndSelect)
-
-                    # restore horizontally moved items expanded states + expanded states of their childrens
-                    self.focused_column().view.setAnimated(False)
-                    for child_id in self.removed_id_expanded_state_dict:
-                        child_index = QModelIndex(source_model.id_index_dict[child_id])
-                        proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                        expanded_state = self.removed_id_expanded_state_dict[child_id]
-                        self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                    self.removed_id_expanded_state_dict = {}
-                    self.focused_column().view.setAnimated(True)
-
             elif method == 'removed':
                 # for move horizontally: save expanded states of moved + children of moved
                 if source_model is self.item_model:  # not for bookmarks
@@ -1088,8 +936,6 @@ class MainWindow(QMainWindow):
                         self.set_selection(index_next_child, index_next_child)
                     else:  # all children deleted, select parent
                         self.set_selection(index, index)
-
-
 
             elif method == model.DELETED:
                 if source_model.db[item_id][model.DELETED] == '':
@@ -1170,20 +1016,17 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setHeaderHidden(True)
 
     def save_expanded_state(self, index=None):
-        expanded_list_current_view = []
-        current_server_name = self.get_current_server(index).bookmark_name
+        # todo save indexs, not id's
+        self.expanded_ids_list = []
         for index in self.focused_column().filter_proxy.persistentIndexList():
             if self.focused_column().view.isExpanded(index):
-                expanded_list_current_view.append(self.focused_column().filter_proxy.getItem(index).id)
-        self.expanded_ids_list_dict[current_server_name] = expanded_list_current_view
+                self.expanded_ids_list.append(self.focused_column().filter_proxy.getItem(index).id)
 
     def save_expanded_quicklinks_state(self, index=None):
-        expanded_list_current_view = []
-        current_server_name = self.get_current_server(index).bookmark_name
+        self.expanded_quicklink_ids_list = []
         for index in self.item_model.persistentIndexList():
             if self.quicklinks_view.isExpanded(index):
-                expanded_list_current_view.append(self.item_model.getItem(index).id)
-        self.expanded_quicklink_ids_list_dict[current_server_name] = expanded_list_current_view
+                self.expanded_quicklink_ids_list.append(self.item_model.getItem(index).id)
 
     @pyqtSlot(str)
     def search(self, search_text):
@@ -2008,86 +1851,6 @@ class SettingsDialog(QDialog):
         else:
             new_palette = self.parent.dark_palette
         self.parent.set_palette(new_palette)
-
-
-class DatabaseDialog(QDialog):
-    # if index is set: edit existing database. else: create new database
-
-    def __init__(self, parent, index=None, import_file_name=None):
-        super(DatabaseDialog, self).__init__(parent)
-        self.setMinimumWidth(910)
-        self.parent = parent
-        self.index = index
-        self.import_file_name = import_file_name
-        name = ''
-        url = ''
-        database_name = ''
-        if index is not None:
-            server = parent.server_model.get_server(index)
-            name = server.bookmark_name
-            url = server.url
-            database_name = server.database_name
-        self.bookmark_name_edit = QLineEdit(name)
-        self.url_edit = QLineEdit(url)
-        self.url_edit.setPlaceholderText('Leave empty for a local database.')
-        self.database_name_edit = QLineEdit(database_name)
-        self.database_name_edit.setPlaceholderText(
-            'Different to existing database names. Only lowercase characters (a-z), digits (0-9) or _ allowed.')
-
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
-
-        grid = QGridLayout()
-        grid.addWidget(QLabel('Database bookmark name:'), 0, 0)  # row, column
-        grid.addWidget(QLabel('URL:'), 1, 0)
-        grid.addWidget(QLabel('Database name:'), 2, 0)
-        grid.addWidget(self.bookmark_name_edit, 0, 1)
-        if index is None:
-            grid.addWidget(self.url_edit, 1, 1)
-            grid.addWidget(self.database_name_edit, 2, 1)
-        else:  # don't allow edit of existing databases
-            url_label = QLabel(url)
-            url_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            grid.addWidget(url_label, 1, 1)
-            database_label = QLabel(database_name)
-            database_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            grid.addWidget(database_label, 2, 1)
-        grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
-        self.setLayout(grid)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
-        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
-        if import_file_name:
-            self.setWindowTitle(IMPORT_DB)
-        elif self.index is None:
-            self.setWindowTitle(CREATE_DB)
-        else:
-            self.setWindowTitle(EDIT_DB)
-
-    def apply(self):
-        if self.index is None:
-            url = self.url_edit.text()
-            db_name = self.database_name_edit.text()
-            # ^ is start of string, [] is a character class,
-            # + is preceding expression one or more times, $ is end of string
-            if not re.search('^[a-z0-9_]+$', db_name):
-                QMessageBox.warning(self, '', 'Only lowercase characters (a-z), digits (0-9) or _ allowed.')
-                return
-            if self.import_file_name:
-                db = self.parent.get_db(url, db_name, create_root=False)
-                with open(self.import_file_name, 'r') as file:
-                    # todo parse json to tree object
-                    doc_list = json.load(file)
-                    db.update(doc_list)
-            else:
-                db = self.parent.get_db(url, db_name)
-            new_server = server_model.Server(self.bookmark_name_edit.text(), url, db_name, db)
-            new_server.model.db_change_signal[dict, QAbstractItemModel].connect(self.parent.db_change_signal)
-            self.parent.server_model.add_server(new_server)
-            new_index = self.parent.server_model.index(len(self.parent.server_model.servers) - 1, 0, QModelIndex())
-            self.parent.servers_view.selectionModel().setCurrentIndex(new_index, QItemSelectionModel.ClearAndSelect)
-        else:
-            self.parent.server_model.set_data(self.index, self.bookmark_name_edit.text(), self.url_edit.text(),
-                                              self.database_name_edit.text())
-        super(DatabaseDialog, self).accept()
 
 
 class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
