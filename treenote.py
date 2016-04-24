@@ -115,8 +115,8 @@ class MainWindow(QMainWindow):
             except FileNotFoundError:
                 # self.item_model = load_tree_from_file(RESOURCE_FOLDER + 'default_tree_de.txt') # todo
                 # self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'default_bookmarks_de.txt')
-                self.item_model = model.TreeModel(header_list=['Text', 'Start date', 'Estimate'])
-                self.bookmark_model = model.TreeModel(header_list=['Bookmarks'])
+                self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
+                self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
 
             # set font-size and padding
             # second value is loaded, if nothing was saved before in the settings
@@ -488,11 +488,12 @@ class MainWindow(QMainWindow):
 
             # first (do this before the label 'second')
             # restore expanded item states
-            self.expanded_ids_list = settings.value(EXPANDED_ITEMS, [])
-            self.expand_saved()
-            # restore expanded quick link states
-            self.expanded_quicklink_ids_list = settings.value(EXPANDED_QUICKLINKS, [])
-            self.expand_saved_quicklinks()
+            # todo
+            # self.expanded_ids_list = settings.value(EXPANDED_ITEMS, [])
+            # self.expand_saved()
+            # # restore expanded quick link states
+            # self.expanded_quicklink_ids_list = settings.value(EXPANDED_QUICKLINKS, [])
+            # self.expand_saved_quicklinks()
 
             self.reset_view()  # inits checkboxes
             self.focused_column().view.setFocus()
@@ -885,28 +886,7 @@ class MainWindow(QMainWindow):
             source_model.changed = True
             item = source_model.getItem(index)
 
-            if method == 'updated':
-                item.update_attributes(db_item)
-                if my_edit:
-                    self.set_selection(index, index)
-                self.setup_tag_model()
-                source_model.dataChanged.emit(index, index)
-
-                # update next available task in a sequential project
-                project_index = source_model.parent(index)
-                project_parent_index = source_model.parent(project_index)
-                available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
-                if isinstance(available_index, QModelIndex):
-                    source_model.dataChanged.emit(available_index, available_index)
-
-                # update the sort by changing the ordering
-                sorted_column = self.focused_column().view.header().sortIndicatorSection()
-                if sorted_column == 1 or sorted_column == 2:
-                    order = self.focused_column().view.header().sortIndicatorOrder()
-                    self.focused_column().view.sortByColumn(sorted_column, 1 - order)
-                    self.focused_column().view.sortByColumn(sorted_column, order)
-
-            elif method == 'removed':
+            if method == 'removed':
                 # for move horizontally: save expanded states of moved + children of moved
                 if source_model is self.item_model:  # not for bookmarks
                     self.removed_id_expanded_state_dict = {}

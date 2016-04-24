@@ -109,8 +109,9 @@ class Tree_item(object):
 
 class TreeModel(QAbstractItemModel):
 
-    def __init__(self, header_list):
+    def __init__(self, main_window, header_list):
         super(TreeModel, self).__init__()
+        self.main_window = main_window
         self.changed = False
         self.undoStack = QUndoStack(self)
 
@@ -187,30 +188,48 @@ class TreeModel(QAbstractItemModel):
             return item.estimate
 
     # directly used by bookmark dialog, because it has no index of the new created item
-    def set_data_with_id(self, value, item_id, column, field='text'):
+    def set_data_with_id(self, value, index, column, field='text'):
         class SetDataCommand(QUndoCommandStructure):
-            _fields = ['model', 'item_id', 'value', 'column', 'field']
+            _fields = ['model', 'index', 'value', 'column', 'field']
             title = 'Edit row'
 
             def set_data(self, value):
-                db_item = self.model.db[self.item_id]
+                item = self.model.getItem(self.index)
                 if self.column == 0:  # used for setting color etc, too
-                    self.old_value = db_item[self.field]
-                    db_item[self.field] = value
+                    self.old_value = getattr(item, self.field)
+                    setattr(item, self.field, value)
                 elif self.column == 1:
-                    self.old_value = db_item['date']
+                    self.old_value = item.date
                     # user has not selected a date other than 'today'
                     if type(value) == QDate and value == QDate.currentDate():
                         value = EMPTY_DATE
                     value = value.toString('dd.MM.yy') if type(value) == QDate else value
                     if value == EMPTY_DATE:  # user pressed del
                         value = ''
-                    db_item['date'] = value
+                    item.date = value
                 elif self.column == 2:
-                    self.old_value = db_item['estimate']
-                    db_item['estimate'] = value
-                db_item['change'] = dict(method='updated', user=socket.gethostname())
-                self.model.db[self.item_id] = db_item
+                    self.old_value = item.estimate
+                    item.estimate = value
+
+                self.model.main_window.set_selection(self.index, self.index)
+                self.model.main_window.setup_tag_model()
+                self.model.dataChanged.emit(self.index, self.index)
+
+                # todo
+                # # update next available task in a sequential project
+                # project_index = source_model.parent(index)
+                # project_parent_index = source_model.parent(project_index)
+                # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
+                # if isinstance(available_index, QModelIndex):
+                #     source_model.dataChanged.emit(available_index, available_index)
+                #
+                # # update the sort by changing the ordering
+                # sorted_column = self.focused_column().view.header().sortIndicatorSection()
+                # if sorted_column == 1 or sorted_column == 2:
+                #     order = self.focused_column().view.header().sortIndicatorOrder()
+                #     self.focused_column().view.sortByColumn(sorted_column, 1 - order)
+                #     self.focused_column().view.sortByColumn(sorted_column, order)
+
 
             def redo(self):
                 self.set_data(self.value)
@@ -218,13 +237,11 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.set_data(self.old_value)
 
-        self.undoStack.push(SetDataCommand(self, item_id, value, column, field))
+        self.undoStack.push(SetDataCommand(self, index, value, column, field))
         return True
 
     def set_data(self, value, index, field='text'):
-        item_id = self.getItem(index).id
-        column = index.column()
-        return self.set_data_with_id(value, item_id, column, field)
+        return self.set_data_with_id(value, index, index.column(), field)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_index=None, id_list=None, indexes=None, set_edit_focus=None):
@@ -284,6 +301,7 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
+                    # todo remove this commented code
                     # if self.id_list is None:  # for newly created items. else: add existing item (for move)
                     #     child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
                     #     self.id_list = [child_id]
@@ -313,21 +331,23 @@ class TreeModel(QAbstractItemModel):
                         parent_item.add_child(position + i)
                     self.model.endInsertRows()
 
-                    # index_first_added = source_model.index(position, 0, index)
-                    # index_last_added = source_model.index(position + len(id_list) - 1, 0, index)
-                    # if not change_dict['set_edit_focus']:
-                    #     self.set_selection(index_first_added, index_last_added)
-                    # else:  # update selection_and_edit
-                    #     if index_first_added.model() is self.item_model:
-                    #         index_first_added = self.filter_proxy_index_from_model_index(index_first_added)
-                    #         self.focusWidget().selectionModel().setCurrentIndex(index_first_added,
-                    #                                                             QItemSelectionModel.ClearAndSelect)
-                    #         self.focusWidget().edit(index_first_added)
-                    #     else:  # bookmark
-                    #         self.bookmarks_view.selectionModel().setCurrentIndex(index_first_added,
-                    #                                                              QItemSelectionModel.ClearAndSelect)
-                    #
-                    # # restore horizontally moved items expanded states + expanded states of their childrens
+                    index_first_added = self.model.index(position, 0, self.parent_index)
+                    index_last_added = self.model.index(position + len(self.indexes) - 1, 0, self.parent_index)
+                    if not self.set_edit_focus:
+                        self.model.main_window.set_selection(index_first_added, index_last_added)
+                    else:  # update selection_and_edit
+                        if index_first_added.model() is self.model.main_window.item_model:
+                            index_first_added = self.model.main_window.filter_proxy_index_from_model_index(
+                                index_first_added)
+                            self.model.main_window.focusWidget().selectionModel().setCurrentIndex(
+                                index_first_added, QItemSelectionModel.ClearAndSelect)
+                            self.model.main_window.focusWidget().edit(index_first_added)
+                        else:  # bookmark
+                            self.model.main_window.bookmarks_view.selectionModel().setCurrentIndex(
+                                index_first_added, QItemSelectionModel.ClearAndSelect)
+
+                    # todo
+                    # restore horizontally moved items expanded states + expanded states of their childrens
                     # self.focused_column().view.setAnimated(False)
                     # for child_id in self.removed_id_expanded_state_dict:
                     #     child_index = QModelIndex(source_model.id_index_dict[child_id])
