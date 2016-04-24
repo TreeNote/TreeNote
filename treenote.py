@@ -45,8 +45,8 @@ COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit bookmark'
 EDIT_QUICKLINK = 'Edit quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
-EXPANDED_QUICKLINKS = 'EXPANDED_QUICKLINKS'
-SELECTED_ID = 'SELECTED_ID'
+EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
+SELECTED_INDEX = 'SELECTED_ID'
 CREATE_DB = 'Create bookmark to a database server'
 EDIT_DB = 'Edit selected database bookmark'
 DEL_DB = 'Delete selected database bookmark'
@@ -94,8 +94,8 @@ class MainWindow(QMainWindow):
             self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
             self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-            self.expanded_ids_list = {}  # for restoring the expanded state after a search
-            self.expanded_quicklink_ids_list = {}
+            self.expanded_indexes = []  # for restoring the expanded state after a search
+            self.expanded_quicklink_indexes = []
             # remember expanded state when moving horizontally (removing then adding at other place)
             self.removed_id_expanded_state_dict = {}
             # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
@@ -460,7 +460,7 @@ class MainWindow(QMainWindow):
             self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
             self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Filter shortcuts'))
-            # self.fill_bookmarkShortcutsMenu() # todo
+            self.fill_bookmarkShortcutsMenu()
 
             self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
             self.helpMenu.addAction(self.updateAct)
@@ -487,13 +487,13 @@ class MainWindow(QMainWindow):
                 self.first_column_splitter.restoreState(first_column_splitter_state)
 
             # first (do this before the label 'second')
+            self.change_active_database()
             # restore expanded item states
-            # todo
-            # self.expanded_ids_list = settings.value(EXPANDED_ITEMS, [])
-            # self.expand_saved()
-            # # restore expanded quick link states
-            # self.expanded_quicklink_ids_list = settings.value(EXPANDED_QUICKLINKS, [])
-            # self.expand_saved_quicklinks()
+            self.expanded_indexes = settings.value(EXPANDED_ITEMS, [])
+            self.expand_saved()
+            # restore expanded quick link states
+            self.expanded_quicklink_indexes = settings.value(EXPANDED_QUICKLINKS, [])
+            self.expand_saved_quicklinks()
 
             self.reset_view()  # inits checkboxes
             self.focused_column().view.setFocus()
@@ -502,10 +502,9 @@ class MainWindow(QMainWindow):
             # second
             # restore selection
             # second value is loaded, if nothing was saved before in the settings
-            selection_item_id = settings.value(SELECTED_ID, None)
-            if selection_item_id is not None and selection_item_id in self.item_model.id_index_dict:
-                index = QModelIndex(self.item_model.id_index_dict[selection_item_id])
-                self.set_selection(index, index)
+            selected_index = settings.value(SELECTED_INDEX, None)
+            if selected_index is not None:
+                self.set_selection(QModelIndex(selected_index), QModelIndex(selected_index))
 
             # restore palette
             palette = settings.value('theme')
@@ -580,17 +579,13 @@ class MainWindow(QMainWindow):
                     action.shortcut = QKeySequence()  # disable the old shortcut
 
     def expand_saved(self):
-        for item_id in self.expanded_ids_list:
-            if item_id in self.item_model.id_index_dict:
-                index = self.item_model.id_index_dict[item_id]
-                proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-                self.focused_column().view.expand(proxy_index)
+        for index in self.expanded_indexes:
+            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
+            self.focused_column().view.expand(proxy_index)
 
     def expand_saved_quicklinks(self):
-        for item_id in self.expanded_quicklink_ids_list:
-            if item_id in self.item_model.id_index_dict:
-                index = self.item_model.id_index_dict[item_id]
-                self.quicklinks_view.expand(QModelIndex(index))
+        for index in self.expanded_quicklink_indexes:
+            self.quicklinks_view.expand(QModelIndex(index))
 
     def get_widgets(self):
         return [QApplication,
@@ -609,6 +604,8 @@ class MainWindow(QMainWindow):
             widget.setPalette(new_palette)
 
     def fill_bookmarkShortcutsMenu(self):
+        # todo
+        return
         self.bookmarkShortcutsMenu.clear()
         map = "function(doc) { \
                     if (doc." + model.SHORTCUT + " != '' && doc." + model.DELETED + " == '') \
@@ -676,10 +673,9 @@ class MainWindow(QMainWindow):
         if self.file_name[0] != '':
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
-    def change_active_database(self, new_index, old_index=None):
-        self.save_expanded_state(old_index)
-        self.save_expanded_quicklinks_state(old_index)
-        self.item_model = self.server_model.get_server(new_index).model
+    def change_active_database(self):
+        self.save_expanded_state()
+        self.save_expanded_quicklinks_state()
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
         self.quicklinks_view.setModel(self.item_model)
@@ -719,21 +715,18 @@ class MainWindow(QMainWindow):
 
         # save expanded items
         self.save_expanded_state()
-        settings.setValue(EXPANDED_ITEMS, self.expanded_ids_list)
+        settings.setValue(EXPANDED_ITEMS, self.expanded_indexes)
 
         # save expanded quicklinks
         self.save_expanded_quicklinks_state()
-        settings.setValue(EXPANDED_QUICKLINKS, self.expanded_quicklink_ids_list)
+        settings.setValue(EXPANDED_QUICKLINKS_INDEXES, self.expanded_quicklink_indexes)
 
         # save selection
-        current_index = self.current_index()
-        settings.setValue(SELECTED_ID, self.focused_column().filter_proxy.getItem(current_index).id)
+        settings.setValue(SELECTED_INDEX, QPersistentModelIndex(self.current_index()))
 
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
-
-        self.item_model.updater.terminate()
 
         # __debug__ is true if Python was not started with an -O option. -O turns on basic optimizations.
         if not __debug__:
@@ -995,18 +988,17 @@ class MainWindow(QMainWindow):
             self.focused_column().view.hideColumn(2)
             self.focused_column().view.setHeaderHidden(True)
 
-    def save_expanded_state(self, index=None):
-        # todo save indexs, not id's
-        self.expanded_ids_list = []
+    def save_expanded_state(self):
+        self.expanded_indexes = []
         for index in self.focused_column().filter_proxy.persistentIndexList():
             if self.focused_column().view.isExpanded(index):
-                self.expanded_ids_list.append(self.focused_column().filter_proxy.getItem(index).id)
+                self.expanded_indexes.append(index)
 
-    def save_expanded_quicklinks_state(self, index=None):
-        self.expanded_quicklink_ids_list = []
+    def save_expanded_quicklinks_state(self):
+        self.expanded_quicklink_indexes = []
         for index in self.item_model.persistentIndexList():
             if self.quicklinks_view.isExpanded(index):
-                self.expanded_quicklink_ids_list.append(self.item_model.getItem(index).id)
+                self.expanded_quicklink_indexes.append(index)
 
     @pyqtSlot(str)
     def search(self, search_text):
