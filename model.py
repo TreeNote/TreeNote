@@ -108,7 +108,6 @@ class Tree_item(object):
 
 
 class TreeModel(QAbstractItemModel):
-
     def __init__(self, main_window, header_list):
         super(TreeModel, self).__init__()
         self.main_window = main_window
@@ -230,7 +229,6 @@ class TreeModel(QAbstractItemModel):
                 #     self.focused_column().view.sortByColumn(sorted_column, 1 - order)
                 #     self.focused_column().view.sortByColumn(sorted_column, order)
 
-
             def redo(self):
                 self.set_data(self.value)
 
@@ -252,7 +250,7 @@ class TreeModel(QAbstractItemModel):
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
             _fields = ['model', 'position', 'parent_index', 'id_list',
-                       'set_edit_focus', 'delete_child_from_parent_id_list']
+                       'set_edit_focus', 'indexes']
             title = 'Add or remove row'
 
             # set delete = false for redoing (re-adding) if it was deleted
@@ -287,17 +285,40 @@ class TreeModel(QAbstractItemModel):
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
-                for child_item_id, parent_item_id, _ in self.delete_child_from_parent_id_list:
-                    self.set_deleted_marker('True', child_item_id)
-                    # remove from parent and inform the updater thread
-                    parent_db_item = self.model.db[parent_item_id]
-                    children_list = parent_db_item['children'].split()
-                    parent_db_item['change'] = dict(
-                        method='removed', position=children_list.index(child_item_id),
-                        count=1, user=socket.gethostname())
-                    children_list.remove(child_item_id)
-                    parent_db_item['children'] = ' '.join(children_list)
-                    self.model.db[parent_item_id] = parent_db_item
+                # # for move horizontally: save expanded states of moved + children of moved
+                # if source_model is self.item_model:  # not for bookmarks
+                #     self.removed_id_expanded_state_dict = {}
+                #
+                #     # save and restore expanded state
+                #     def save_children(parent, from_child, to_child):
+                #         for child_item in parent.childItems[from_child:to_child]:
+                #             child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
+                #             proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
+                #             self.removed_id_expanded_state_dict[child_item.id] = \
+                #                 self.focused_column().view.isExpanded(proxy_index)
+                #             # save expanded state of all children
+                #             save_children(source_model.getItem(child_item_index), None, None)
+                #
+                #     save_children(item, position, position + count)
+                for index in self.indexes:
+                    parent_index = self.model.parent(index)
+                    parent_item = self.model.getItem(parent_index)
+                    item = self.model.getItem(index)
+                    position = item.child_number()
+                    self.model.beginRemoveRows(parent_index, position, position)
+                    del parent_item.childItems[position]
+                    self.model.endRemoveRows()
+
+                    # self.fill_bookmarkShortcutsMenu() # todo
+                    # if my_edit:
+                    #     # select the item below
+                    #     if position == len(item.childItems):  # there is no item below, so select the one above
+                    #         position -= 1
+                    #     if len(item.childItems) > 0:
+                    #         index_next_child = source_model.index(position, 0, index)
+                    #         self.set_selection(index_next_child, index_next_child)
+                    #     else:  # all children deleted, select parent
+                    #         self.set_selection(index, index)
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
@@ -346,16 +367,16 @@ class TreeModel(QAbstractItemModel):
                             self.model.main_window.bookmarks_view.selectionModel().setCurrentIndex(
                                 index_first_added, QItemSelectionModel.ClearAndSelect)
 
-                    # todo
-                    # restore horizontally moved items expanded states + expanded states of their childrens
-                    # self.focused_column().view.setAnimated(False)
-                    # for child_id in self.removed_id_expanded_state_dict:
-                    #     child_index = QModelIndex(source_model.id_index_dict[child_id])
-                    #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                    #     expanded_state = self.removed_id_expanded_state_dict[child_id]
-                    #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                    # self.removed_id_expanded_state_dict = {}
-                    # self.focused_column().view.setAnimated(True)
+                            # todo
+                            # restore horizontally moved items expanded states + expanded states of their childrens
+                            # self.focused_column().view.setAnimated(False)
+                            # for child_id in self.removed_id_expanded_state_dict:
+                            #     child_index = QModelIndex(source_model.id_index_dict[child_id])
+                            #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                            #     expanded_state = self.removed_id_expanded_state_dict[child_id]
+                            #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                            # self.removed_id_expanded_state_dict = {}
+                            # self.focused_column().view.setAnimated(True)
 
                 else:
                     self.remove_rows()
@@ -363,7 +384,7 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 if self.position is not None:  # undo insert command
                     self.remove_rows()
-                else:  # undo remove command
+                else:  # undo remove command # todo
                     for child_item_id, parent_item_id, position in self.delete_child_from_parent_id_list:
                         self.set_deleted_marker('', child_item_id)
                         self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
@@ -380,14 +401,8 @@ class TreeModel(QAbstractItemModel):
                 set_edit_focus = False
                 InsertRemoveRowCommand.add_rows(self, position, parent_index, id_list, set_edit_focus)
         else:  # remove command
-            delete_child_from_parent_id_list = list()
-            for parent_index in indexes:
-                child_item = self.getItem(parent_index)
-                # save the position information for adding (undo)
-                delete_child_from_parent_id_list.append(
-                    (child_item.id, child_item.parentItem.id, child_item.child_number()))
             self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index,
-                                                       id_list, False, delete_child_from_parent_id_list))
+                                                       id_list, False, indexes))
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
@@ -553,16 +568,15 @@ class TreeModel(QAbstractItemModel):
         return False
 
     def toggle_task(self, index):
-        db_item = self.get_db_item(index)
-        type = db_item['type']
-        if type != TASK and type != DONE_TASK:  # type is NOTE or a project
+        item = self.getItem(index)
+        if item.type != TASK and item.type != DONE_TASK:  # type is NOTE or a project
             self.set_data(TASK, index=index, field='type')
-        elif type == TASK:
+        elif item.type == TASK:
             # get what is behin the equal sign
-            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', db_item['text'])
+            repeat_in_list = re.findall(r'repeat=((?:\w|\d)*)(?:$| )', item.text)
             if len(repeat_in_list) == 1:
                 repeat_in = repeat_in_list[0]
-                old_qdate = QDateFromString(db_item['date'])
+                old_qdate = QDateFromString(item.date)
                 if repeat_in[1] == 'd':
                     new_qdate = old_qdate.addDays(int(repeat_in[0]))
                 elif repeat_in[1] == 'w':
@@ -574,19 +588,18 @@ class TreeModel(QAbstractItemModel):
                 self.set_data(new_qdate.toString('dd.MM.yy'), index=index, field='date')
             else:
                 self.set_data(DONE_TASK, index=index, field='type')
-        elif type == DONE_TASK:
+        elif item.type == DONE_TASK:
             self.set_data(NOTE, index=index, field='type')
 
     def toggle_project(self, index):
-        db_item = self.get_db_item(index)
-        type = db_item['type']
-        if type == NOTE or type == DONE_TASK or type == TASK:  # type is Note or Task
+        item = self.getItem(index)
+        if item.type == NOTE or item.type == DONE_TASK or item.type == TASK:  # type is Note or Task
             self.set_data(SEQ, index=index, field='type')
-        elif type == SEQ:
+        elif item.type == SEQ:
             self.set_data(PAR, index=index, field='type')
-        elif type == PAR:
+        elif item.type == PAR:
             self.set_data(PAUSED, index=index, field='type')
-        elif type == PAUSED:
+        elif item.type == PAUSED:
             self.set_data(NOTE, index=index, field='type')
 
     def set_db_item_field(self, item_id, field, value):
@@ -748,7 +761,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):
-
     def __init__(self, parent=None):
         super(FlatProxyModel, self).__init__(parent)
 
@@ -831,7 +843,6 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
-
     def __init__(self, parent, model, view_header):
         super(Delegate, self).__init__(parent)
         self.model = model
@@ -954,7 +965,6 @@ class Delegate(QStyledItemDelegate):
 
 
 class BookmarkDelegate(QStyledItemDelegate):
-
     def __init__(self, parent, model):
         super(BookmarkDelegate, self).__init__(parent)
         self.model = model
@@ -986,7 +996,6 @@ class BookmarkDelegate(QStyledItemDelegate):
 
 
 class EscCalendarWidget(QCalendarWidget):
-
     def __init__(self, parent):
         super(EscCalendarWidget, self).__init__(parent)
         # sadly, capture of the tab key is different on Windows and Mac.
@@ -1018,7 +1027,6 @@ class EscCalendarWidget(QCalendarWidget):
 
 
 class OpenPopupDateEdit(QDateEdit):
-
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
@@ -1054,7 +1062,8 @@ class OpenPopupDateEdit(QDateEdit):
         return False  # don't stop the event being handled further
 
 
-class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+class AutoCompleteEdit(
+    QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
 
     def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
@@ -1101,7 +1110,7 @@ class AutoCompleteEdit(QPlainTextEdit):  # source: http://blog.elentok.com/2011/
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             # new line on alt + enter
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or \
-                    event.modifiers() & Qt.AltModifier:
+                            event.modifiers() & Qt.AltModifier:
                 rows = self.document().size().height()
                 font_height = QFontMetrics(QFont(FONT, self.delegate.main_window.fontsize)).height()
                 row_height = font_height + self.delegate.main_window.padding * 2

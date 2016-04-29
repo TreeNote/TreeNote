@@ -42,14 +42,11 @@ if __debug__:
     from pprint import pprint
 
 COLUMNS_HIDDEN = 'columns_hidden'
-EDIT_BOOKMARK = 'Edit bookmark'
-EDIT_QUICKLINK = 'Edit quick link shortcut'
+EDIT_BOOKMARK = 'Edit selected bookmark'
+EDIT_QUICKLINK = 'Edit selected quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
 SELECTED_INDEX = 'SELECTED_ID'
-CREATE_DB = 'Create bookmark to a database server'
-EDIT_DB = 'Edit selected database bookmark'
-DEL_DB = 'Delete selected database bookmark'
 IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
@@ -257,11 +254,6 @@ class MainWindow(QMainWindow):
                 if list is not None:
                     list.append(qaction)
 
-            add_action('addDatabaseAct',
-                       QAction(self.tr(CREATE_DB), self, triggered=lambda: DatabaseDialog(self).exec_()))
-            add_action('deleteDatabaseAct', QAction(self.tr(DEL_DB), self, triggered=self.delete_database))
-            add_action('editDatabaseAct', QAction(self.tr(EDIT_DB), self, triggered=lambda: DatabaseDialog(
-                self, index=self.servers_view.selectionModel().currentIndex()).exec_()))
             add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
             add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
             add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,',
@@ -319,17 +311,17 @@ class MainWindow(QMainWindow):
                        list=self.item_view_actions)
             add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L',
                                                  triggered=self.open_links), list=self.item_view_actions)
-            add_action('renameTagAction', QAction(self.tr('Rename tag'), self, triggered=lambda: RenameTagDialog(
+            add_action('renameTagAction', QAction(self.tr('Rename selected tag'), self, triggered=lambda: RenameTagDialog(
                 self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
             add_action('editBookmarkAction',
                        QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(
                                self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()),
                        list=self.bookmark_view_actions)
             add_action('moveBookmarkUpAction',
-                       QAction(self.tr('Move bookmark up'), self, triggered=self.move_bookmark_up),
+                       QAction(self.tr('Move selected bookmark up'), self, triggered=self.move_bookmark_up),
                        list=self.bookmark_view_actions)
             add_action('moveBookmarkDownAction',
-                       QAction(self.tr('Move bookmark down'), self, triggered=self.move_bookmark_down),
+                       QAction(self.tr('Move selected bookmark down'), self, triggered=self.move_bookmark_down),
                        list=self.bookmark_view_actions)
             add_action('deleteBookmarkAction',
                        QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection),
@@ -374,7 +366,7 @@ class MainWindow(QMainWindow):
             add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste),
                        list=self.item_view_actions)
             add_action('exportPlainTextAction',
-                       QAction(self.tr('as a plain text file'), self, triggered=self.export_plain_text))
+                       QAction(self.tr('as a plain text file...'), self, triggered=self.export_plain_text))
             add_action('expandAction',
                        QAction('Expand selected rows / add children to selection', self, shortcut='Right',
                                triggered=self.expand), list=self.item_view_not_editing_actions)
@@ -383,44 +375,33 @@ class MainWindow(QMainWindow):
             add_action('quitAction',
                        QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=lambda: self.close()))
 
-            self.databasesMenu = self.menuBar().addMenu(self.tr('Databases list'))
-            self.databasesMenu.addAction(self.addDatabaseAct)
-            self.databasesMenu.addAction(self.deleteDatabaseAct)
-            self.databasesMenu.addAction(self.editDatabaseAct)
-            self.databasesMenu.addSeparator()
-            self.exportMenu = self.databasesMenu.addMenu(self.tr('Export selected database'))
-            self.exportMenu.addAction(self.exportDatabaseAct)
-            self.exportMenu.addAction(self.exportPlainTextAction)
-            self.databasesMenu.addAction(self.importDatabaseAct)
-            self.databasesMenu.addAction(self.settingsAct)
-            if sys.platform != "darwin":
-                self.databasesMenu.addSeparator()
-                self.databasesMenu.addAction(self.quitAction)
-
-            self.fileMenu = self.menuBar().addMenu(self.tr('Current database'))
+            self.fileMenu = self.menuBar().addMenu(self.tr('File'))
             self.fileMenu.addAction(self.editShortcutAction)
-            self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.editBookmarkAction)
             self.fileMenu.addAction(self.deleteBookmarkAction)
-            self.fileMenu.addAction(self.moveBookmarkUpAction)
-            self.fileMenu.addAction(self.moveBookmarkDownAction)
-            self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.renameTagAction)
+            self.fileMenu.addSeparator()
+            self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
+            self.fileMenu.addSeparator()
+            self.exportMenu.addAction(self.exportPlainTextAction)
+            self.fileMenu.addAction(self.settingsAct)
+            if sys.platform != "darwin":
+                self.fileMenu.addSeparator()
+                self.fileMenu.addAction(self.quitAction)
 
             self.structureMenu = self.menuBar().addMenu(self.tr('Edit structure'))
             self.structureMenu.addAction(self.insertRowAction)
             self.structureMenu.addAction(self.insertChildAction)
             self.structureMenu.addAction(self.deleteSelectedRowsAction)
-            self.structureMenu.addSeparator()
-            self.structureMenu.addAction(self.cutAction)
-            self.structureMenu.addAction(self.copyAction)
-            self.structureMenu.addAction(self.pasteAction)
-
             self.moveMenu = self.structureMenu.addMenu(self.tr('Move selected rows'))
             self.moveMenu.addAction(self.moveUpAction)
             self.moveMenu.addAction(self.moveDownAction)
             self.moveMenu.addAction(self.moveLeftAction)
             self.moveMenu.addAction(self.moveRightAction)
+            self.structureMenu.addSeparator()
+            self.structureMenu.addAction(self.cutAction)
+            self.structureMenu.addAction(self.copyAction)
+            self.structureMenu.addAction(self.pasteAction)
 
             self.editRowMenu = self.menuBar().addMenu(self.tr('Edit row'))
             self.editRowMenu.addAction(self.editRowAction)
@@ -879,38 +860,7 @@ class MainWindow(QMainWindow):
             source_model.changed = True
             item = source_model.getItem(index)
 
-            if method == 'removed':
-                # for move horizontally: save expanded states of moved + children of moved
-                if source_model is self.item_model:  # not for bookmarks
-                    self.removed_id_expanded_state_dict = {}
-
-                    # save and restore expanded state
-                    def save_children(parent, from_child, to_child):
-                        for child_item in parent.childItems[from_child:to_child]:
-                            child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                            proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                            self.removed_id_expanded_state_dict[child_item.id] = \
-                                self.focused_column().view.isExpanded(proxy_index)
-                            # save expanded state of all children
-                            save_children(source_model.getItem(child_item_index), None, None)
-
-                    save_children(item, position, position + count)
-
-                source_model.beginRemoveRows(index, position, position + count - 1)
-                item.childItems[position:position + count] = []
-                source_model.endRemoveRows()
-                self.fill_bookmarkShortcutsMenu()
-                if my_edit:
-                    # select the item below
-                    if position == len(item.childItems):  # there is no item below, so select the one above
-                        position -= 1
-                    if len(item.childItems) > 0:
-                        index_next_child = source_model.index(position, 0, index)
-                        self.set_selection(index_next_child, index_next_child)
-                    else:  # all children deleted, select parent
-                        self.set_selection(index, index)
-
-            elif method == model.DELETED:
+            if method == model.DELETED:
                 if source_model.db[item_id][model.DELETED] == '':
                     source_model.pointer_set.add(index.internalId())
                 else:
@@ -1246,7 +1196,7 @@ class MainWindow(QMainWindow):
 
     def remove_selection(self):
         # workaround against data loss due to crashes: backup db as txt file before delete operations
-        self.backup_db(self.get_current_server())
+        # self.backup_db(self.get_current_server()) # todo
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def backup_db(self, server):
@@ -1272,11 +1222,6 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             self.bookmarks_view.setFocus()
             self.bookmark_model.insert_remove_rows(indexes=self.selected_indexes())
-
-    def delete_database(self):
-        reply = QMessageBox.question(self, '', 'Delete this database?', QMessageBox.Yes, QMessageBox.Cancel)
-        if reply == QMessageBox.Yes:
-            self.server_model.delete_server(self.servers_view.selectionModel().currentIndex())
 
     def cut(self):
         print("cut")
