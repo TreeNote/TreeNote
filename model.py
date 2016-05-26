@@ -108,6 +108,7 @@ class Tree_item(object):
 
 
 class TreeModel(QAbstractItemModel):
+
     def __init__(self, main_window, header_list):
         super(TreeModel, self).__init__()
         self.main_window = main_window
@@ -214,20 +215,19 @@ class TreeModel(QAbstractItemModel):
                 self.model.main_window.setup_tag_model()
                 self.model.dataChanged.emit(self.index, self.index)
 
-                # todo
-                # # update next available task in a sequential project
-                # project_index = source_model.parent(index)
-                # project_parent_index = source_model.parent(project_index)
-                # available_index = source_model.get_next_available_task(project_index.row(), project_parent_index)
-                # if isinstance(available_index, QModelIndex):
-                #     source_model.dataChanged.emit(available_index, available_index)
-                #
-                # # update the sort by changing the ordering
-                # sorted_column = self.focused_column().view.header().sortIndicatorSection()
-                # if sorted_column == 1 or sorted_column == 2:
-                #     order = self.focused_column().view.header().sortIndicatorOrder()
-                #     self.focused_column().view.sortByColumn(sorted_column, 1 - order)
-                #     self.focused_column().view.sortByColumn(sorted_column, order)
+                # update next available task in a sequential project
+                project_index = self.model.parent(index)
+                project_parent_index = self.model.parent(project_index)
+                available_index = self.model.get_next_available_task(project_index.row(), project_parent_index)
+                if isinstance(available_index, QModelIndex):
+                    self.model.dataChanged.emit(available_index, available_index)
+
+                # update the sort by changing the ordering
+                sorted_column = self.model.main_window.focused_column().view.header().sortIndicatorSection()
+                if sorted_column == 1 or sorted_column == 2:
+                    order = self.model.main_window.focused_column().view.header().sortIndicatorOrder()
+                    self.model.main_window.focused_column().view.sortByColumn(sorted_column, 1 - order)
+                    self.model.main_window.focused_column().view.sortByColumn(sorted_column, order)
 
             def redo(self):
                 self.set_data(self.value)
@@ -308,16 +308,18 @@ class TreeModel(QAbstractItemModel):
                     del parent_item.childItems[position]
                     self.model.endRemoveRows()
 
+                # select the item below
+                if len(parent_item.childItems) > 0:
+                    # there is no item below, so select the one above
+                    if position == len(parent_item.childItems):
+                        position -= 1
+                    index_next_child = self.model.index(position, 0, parent_index)
+                    self.model.main_window.set_selection(index_next_child, index_next_child)
+                # all children deleted, select parent
+                else:
+                    self.model.main_window.set_selection(parent_index, parent_index)
+
                     # self.fill_bookmarkShortcutsMenu() # todo
-                    # if my_edit:
-                    #     # select the item below
-                    #     if position == len(item.childItems):  # there is no item below, so select the one above
-                    #         position -= 1
-                    #     if len(item.childItems) > 0:
-                    #         index_next_child = source_model.index(position, 0, index)
-                    #         self.set_selection(index_next_child, index_next_child)
-                    #     else:  # all children deleted, select parent
-                    #         self.set_selection(index, index)
 
             def redo(self):  # is called when pushed to the stack
                 if position is not None:  # insert command
@@ -353,29 +355,21 @@ class TreeModel(QAbstractItemModel):
 
                     index_first_added = self.model.index(position, 0, self.parent_index)
                     index_last_added = self.model.index(position + len(self.indexes) - 1, 0, self.parent_index)
-                    if not self.set_edit_focus:
-                        self.model.main_window.set_selection(index_first_added, index_last_added)
-                    else:  # update selection_and_edit
-                        if index_first_added.model() is self.model.main_window.item_model:
-                            index_first_added = self.model.main_window.filter_proxy_index_from_model_index(
-                                index_first_added)
-                            self.model.main_window.focusWidget().selectionModel().setCurrentIndex(
-                                index_first_added, QItemSelectionModel.ClearAndSelect)
-                            self.model.main_window.focusWidget().edit(index_first_added)
-                        else:  # bookmark
-                            self.model.main_window.bookmarks_view.selectionModel().setCurrentIndex(
-                                index_first_added, QItemSelectionModel.ClearAndSelect)
+                    self.model.main_window.set_selection(index_first_added, index_last_added)
+                    if self.set_edit_focus and index_first_added.model() is self.model.main_window.item_model:
+                        self.model.main_window.focusWidget().edit(
+                            self.model.main_window.filter_proxy_index_from_model_index(index_first_added))
 
-                            # todo
-                            # restore horizontally moved items expanded states + expanded states of their childrens
-                            # self.focused_column().view.setAnimated(False)
-                            # for child_id in self.removed_id_expanded_state_dict:
-                            #     child_index = QModelIndex(source_model.id_index_dict[child_id])
-                            #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                            #     expanded_state = self.removed_id_expanded_state_dict[child_id]
-                            #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                            # self.removed_id_expanded_state_dict = {}
-                            # self.focused_column().view.setAnimated(True)
+                        # todo
+                        # restore horizontally moved items expanded states + expanded states of their childrens
+                        # self.focused_column().view.setAnimated(False)
+                        # for child_id in self.removed_id_expanded_state_dict:
+                        #     child_index = QModelIndex(source_model.id_index_dict[child_id])
+                        #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                        #     expanded_state = self.removed_id_expanded_state_dict[child_id]
+                        #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                        # self.removed_id_expanded_state_dict = {}
+                        # self.focused_column().view.setAnimated(True)
 
                 else:
                     self.remove_rows()
@@ -759,6 +753,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):
+
     def __init__(self, parent=None):
         super(FlatProxyModel, self).__init__(parent)
 
@@ -841,6 +836,7 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
+
     def __init__(self, parent, model, view_header):
         super(Delegate, self).__init__(parent)
         self.model = model
@@ -963,6 +959,7 @@ class Delegate(QStyledItemDelegate):
 
 
 class BookmarkDelegate(QStyledItemDelegate):
+
     def __init__(self, parent, model):
         super(BookmarkDelegate, self).__init__(parent)
         self.model = model
@@ -994,6 +991,7 @@ class BookmarkDelegate(QStyledItemDelegate):
 
 
 class EscCalendarWidget(QCalendarWidget):
+
     def __init__(self, parent):
         super(EscCalendarWidget, self).__init__(parent)
         # sadly, capture of the tab key is different on Windows and Mac.
@@ -1025,6 +1023,7 @@ class EscCalendarWidget(QCalendarWidget):
 
 
 class OpenPopupDateEdit(QDateEdit):
+
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
@@ -1061,7 +1060,7 @@ class OpenPopupDateEdit(QDateEdit):
 
 
 class AutoCompleteEdit(
-    QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+        QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
 
     def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
@@ -1108,7 +1107,7 @@ class AutoCompleteEdit(
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             # new line on alt + enter
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or \
-                            event.modifiers() & Qt.AltModifier:
+                    event.modifiers() & Qt.AltModifier:
                 rows = self.document().size().height()
                 font_height = QFontMetrics(QFont(FONT, self.delegate.main_window.fontsize)).height()
                 row_height = font_height + self.delegate.main_window.padding * 2

@@ -106,6 +106,7 @@ class MainWindow(QMainWindow):
             def load_tree_from_file(file_name):
                 file = open(os.path.dirname(os.path.realpath(__file__)) + os.sep + file_name, 'rb')
                 return pickle.load(file)
+
             try:
                 self.item_model = load_tree_from_file('tree.pickle')
                 self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'bookmarks.pickle')
@@ -311,11 +312,12 @@ class MainWindow(QMainWindow):
                        list=self.item_view_actions)
             add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L',
                                                  triggered=self.open_links), list=self.item_view_actions)
-            add_action('renameTagAction', QAction(self.tr('Rename selected tag'), self, triggered=lambda: RenameTagDialog(
-                self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
+            add_action('renameTagAction',
+                       QAction(self.tr('Rename selected tag'), self, triggered=lambda: RenameTagDialog(
+                           self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
             add_action('editBookmarkAction',
                        QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(
-                               self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()),
+                           self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()),
                        list=self.bookmark_view_actions)
             add_action('moveBookmarkUpAction',
                        QAction(self.tr('Move selected bookmark up'), self, triggered=self.move_bookmark_up),
@@ -328,7 +330,7 @@ class MainWindow(QMainWindow):
                        list=self.bookmark_view_actions)
             add_action('editShortcutAction',
                        QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(
-                               self, self.quicklinks_view.selectionModel().currentIndex()).exec_()),
+                           self, self.quicklinks_view.selectionModel().currentIndex()).exec_()),
                        list=self.quick_links_view_actions)
             add_action('resetViewAction',
                        QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
@@ -471,10 +473,10 @@ class MainWindow(QMainWindow):
             self.change_active_database()
             # restore expanded item states
             self.expanded_indexes = settings.value(EXPANDED_ITEMS, [])
-            self.expand_saved()
+            # self.expand_saved() todo
             # restore expanded quick link states
-            self.expanded_quicklink_indexes = settings.value(EXPANDED_QUICKLINKS, [])
-            self.expand_saved_quicklinks()
+            self.expanded_quicklink_indexes = settings.value(EXPANDED_QUICKLINKS_INDEXES, [])
+            # self.expand_saved_quicklinks() todo
 
             self.reset_view()  # inits checkboxes
             self.focused_column().view.setFocus()
@@ -1187,6 +1189,7 @@ class MainWindow(QMainWindow):
                 else:
                     self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
             elif self.focused_column().view.state() == QAbstractItemView.EditingState:
+                # todo: this is never called?
                 # commit data by changing the current selection
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
             else:
