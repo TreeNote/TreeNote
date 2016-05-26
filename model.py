@@ -249,7 +249,7 @@ class TreeModel(QAbstractItemModel):
         # the undo of 'delete' would create an item with a new id. Therefore rename won't work.
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
-            _fields = ['model', 'position', 'parent_index', 'id_list',
+            _fields = ['model', 'position', 'parent_index', 'deleted_child_parent_index_position_list',
                        'set_edit_focus', 'indexes']
             title = 'Add or remove row'
 
@@ -322,7 +322,7 @@ class TreeModel(QAbstractItemModel):
                     # self.fill_bookmarkShortcutsMenu() # todo
 
             def redo(self):  # is called when pushed to the stack
-                if position is not None:  # insert command
+                if self.position is not None:  # insert command
                     # todo remove this commented code
                     # if self.id_list is None:  # for newly created items. else: add existing item (for move)
                     #     child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
@@ -346,32 +346,38 @@ class TreeModel(QAbstractItemModel):
                     #     # when pasting parent and children, the children gets automatically loaded,
                     #     # so don't load it manually additionally
                     #     return
-                    parent_item = self.model.getItem(self.parent_index)
-                    self.model.beginInsertRows(self.parent_index, position, position)
-                    parent_item.add_child(position)
-                    self.model.endInsertRows()
 
-                    index_of_new_entry = self.model.index(position, 0, self.parent_index)
-                    self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
-                    if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
-                        self.model.main_window.focusWidget().edit(
-                            self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
+                    # if redoing an insert, insert the deleted item instead of creating a new one
+                    if self.deleted_child_parent_index_position_list:
+                        for child_item, parent_index, position in self.deleted_child_parent_index_position_list:
+                            self.insert_existing_entry(self.model, position, parent_index, [child_item], False)
+                        # if redoing an insert, it should not get edit focus
+                        self.set_edit_focus = False
+                    else:
+                        parent_item = self.model.getItem(self.parent_index)
+                        self.model.beginInsertRows(self.parent_index, self.position, self.position)
+                        parent_item.add_child(self.position)
+                        self.model.endInsertRows()
 
-                    # save index if it gets deleted with 'undo insert'
-                    self.indexes = [index_of_new_entry]
-                    # if redoing an insert, it should not get edit focus
-                    self.set_edit_focus = False
+                        index_of_new_entry = self.model.index(self.position, 0, self.parent_index)
+                        self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
+                        if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
+                            self.model.main_window.focusWidget().edit(
+                                self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
 
-                    # todo
-                    # restore horizontally moved items expanded states + expanded states of their childrens
-                    # self.focused_column().view.setAnimated(False)
-                    # for child_id in self.removed_id_expanded_state_dict:
-                    #     child_index = QModelIndex(source_model.id_index_dict[child_id])
-                    #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                    #     expanded_state = self.removed_id_expanded_state_dict[child_id]
-                    #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                    # self.removed_id_expanded_state_dict = {}
-                    # self.focused_column().view.setAnimated(True)
+                        # save index if it gets deleted with 'undo insert'
+                        self.indexes = [index_of_new_entry]
+
+                        # todo
+                        # restore horizontally moved items expanded states + expanded states of their childrens
+                        # self.focused_column().view.setAnimated(False)
+                        # for child_id in self.removed_id_expanded_state_dict:
+                        #     child_index = QModelIndex(source_model.id_index_dict[child_id])
+                        #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                        #     expanded_state = self.removed_id_expanded_state_dict[child_id]
+                        #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                        # self.removed_id_expanded_state_dict = {}
+                        # self.focused_column().view.setAnimated(True)
 
                 else:
                     self.remove_rows()
@@ -395,8 +401,7 @@ class TreeModel(QAbstractItemModel):
                 set_edit_focus = False
                 InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, id_list, set_edit_focus)
         else:  # remove command
-            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index,
-                                                       id_list, False, indexes))
+            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, False, indexes))
 
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
