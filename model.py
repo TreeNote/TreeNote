@@ -346,30 +346,32 @@ class TreeModel(QAbstractItemModel):
                     #     # when pasting parent and children, the children gets automatically loaded,
                     #     # so don't load it manually additionally
                     #     return
-                    self.indexes = [0]  # todo übergeben
                     parent_item = self.model.getItem(self.parent_index)
-                    self.model.beginInsertRows(self.parent_index, position, position + len(self.indexes) - 1)
-                    for i in range(len(self.indexes)):
-                        parent_item.add_child(position + i)
+                    self.model.beginInsertRows(self.parent_index, position, position)
+                    parent_item.add_child(position)
                     self.model.endInsertRows()
 
-                    index_first_added = self.model.index(position, 0, self.parent_index)
-                    index_last_added = self.model.index(position + len(self.indexes) - 1, 0, self.parent_index)
-                    self.model.main_window.set_selection(index_first_added, index_last_added)
-                    if self.set_edit_focus and index_first_added.model() is self.model.main_window.item_model:
+                    index_of_new_entry = self.model.index(position, 0, self.parent_index)
+                    self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
+                    if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
                         self.model.main_window.focusWidget().edit(
-                            self.model.main_window.filter_proxy_index_from_model_index(index_first_added))
+                            self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
 
-                        # todo
-                        # restore horizontally moved items expanded states + expanded states of their childrens
-                        # self.focused_column().view.setAnimated(False)
-                        # for child_id in self.removed_id_expanded_state_dict:
-                        #     child_index = QModelIndex(source_model.id_index_dict[child_id])
-                        #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                        #     expanded_state = self.removed_id_expanded_state_dict[child_id]
-                        #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                        # self.removed_id_expanded_state_dict = {}
-                        # self.focused_column().view.setAnimated(True)
+                    # save index if it gets deleted with 'undo insert'
+                    self.indexes = [index_of_new_entry]
+                    # if redoing an insert, it should not get edit focus
+                    self.set_edit_focus = False
+
+                    # todo
+                    # restore horizontally moved items expanded states + expanded states of their childrens
+                    # self.focused_column().view.setAnimated(False)
+                    # for child_id in self.removed_id_expanded_state_dict:
+                    #     child_index = QModelIndex(source_model.id_index_dict[child_id])
+                    #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
+                    #     expanded_state = self.removed_id_expanded_state_dict[child_id]
+                    #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                    # self.removed_id_expanded_state_dict = {}
+                    # self.focused_column().view.setAnimated(True)
 
                 else:
                     self.remove_rows()
@@ -377,7 +379,7 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 if self.position is not None:  # undo insert command
                     self.remove_rows()
-                else:  # undo remove command # todo
+                else:  # undo remove command
                     for child_item, parent_index, position in self.deleted_child_parent_index_position_list:
                         self.insert_existing_entry(self.model, position, parent_index, [child_item], False)
 
