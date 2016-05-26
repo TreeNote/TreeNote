@@ -4,7 +4,7 @@
 # TreeNote
 # A collaboratively usable outliner for personal knowledge and task management.
 #
-# Copyright (C) 2015 Jan Korte (jan.korte@uni-oldenburg.de)
+# Copyright (C) 2015 Jan Korte (j.korte@me.com)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1512,10 +1512,10 @@ class AboutBox(QDialog):
             self.tr(
                 'Version ' + version.version_nr.replace('v', '') +
                 '<br><br>'
-                'TreeNote is a collaboratively usable outliner for personal knowledge and task management.'
+                'TreeNote is an easy outliner for personal knowledge and task management.'
                 'More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>'
                 '<br>'
-                'Contact me at jan.korte@uni-oldenburg.de if you have an idea or issue!<br>'
+                'Contact me at j.korte@me.com if you have an idea or issue!<br>'
                 '<br>'
                 'This program is free software: you can redistribute it and/or modify it under the terms of the'
                 'GNU General Public License as published by the Free Software Foundation, version 3 of the License.'))
@@ -1695,6 +1695,7 @@ class UpdateDialog(QDialog):
         ignoreButton = QPushButton('Ignore for now')
         ignoreButton.clicked.connect(self.close)
         downloadButton = QPushButton('Download')
+        downloadButton.setDefault(True)
         downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://www.treenote.de/download/')))
 
         grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan

@@ -274,14 +274,11 @@ class TreeModel(QAbstractItemModel):
                 delete_children(child_db_item)
 
             @staticmethod  # static because it is called from the outside for moving
-            def add_rows(model, position, parent_item_id, id_list, set_edit_focus):
-                db_item = model.db[parent_item_id]
-                children_list = db_item['children'].split()
-                children_list_new = children_list[:position] + id_list + children_list[position:]
-                db_item['children'] = ' '.join(children_list_new)
-                db_item['change'] = dict(method='added', id_list=id_list, position=position,
-                                         set_edit_focus=set_edit_focus, user=socket.gethostname())
-                model.db[parent_item_id] = db_item
+            def insert_existing_entry(model, position, parent_index, child_item_list, set_edit_focus):
+                parent_item = model.getItem(parent_index)
+                model.beginInsertRows(parent_index, position, position + len(child_item_list) - 1)
+                parent_item.childItems.insert(position, child_item_list[0])
+                model.endInsertRows()
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
@@ -300,11 +297,13 @@ class TreeModel(QAbstractItemModel):
                 #             save_children(source_model.getItem(child_item_index), None, None)
                 #
                 #     save_children(item, position, position + count)
+                self.deleted_child_parent_index_position_list = []
                 for index in self.indexes:
                     parent_index = self.model.parent(index)
                     parent_item = self.model.getItem(parent_index)
                     item = self.model.getItem(index)
                     position = item.child_number()
+                    self.deleted_child_parent_index_position_list.append((item, parent_index, position))
                     self.model.beginRemoveRows(parent_index, position, position)
                     del parent_item.childItems[position]
                     self.model.endRemoveRows()
@@ -385,9 +384,8 @@ class TreeModel(QAbstractItemModel):
                 if self.position is not None:  # undo insert command
                     self.remove_rows()
                 else:  # undo remove command # todo
-                    for child_item_id, parent_item_id, position in self.delete_child_from_parent_id_list:
-                        self.set_deleted_marker('', child_item_id)
-                        self.add_rows(self.model, position, parent_item_id, [child_item_id], False)
+                    for child_item, parent_index, position in self.deleted_child_parent_index_position_list:
+                        self.insert_existing_entry(self.model, position, parent_index, [child_item], False)
 
         if position is not None:  # insert command
             if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
@@ -399,7 +397,7 @@ class TreeModel(QAbstractItemModel):
             # Don't add to stack, because already part of an UndoCommand
             else:
                 set_edit_focus = False
-                InsertRemoveRowCommand.add_rows(self, position, parent_index, id_list, set_edit_focus)
+                InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, id_list, set_edit_focus)
         else:  # remove command
             self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index,
                                                        id_list, False, indexes))
