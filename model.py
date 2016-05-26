@@ -412,11 +412,11 @@ class TreeModel(QAbstractItemModel):
 
             def move(self, up_or_down):
                 item = self.model.getItem(self.indexes[0])
-                position = item.child_number()
                 parent_index = self.model.parent(self.indexes[0])
                 parent_item = self.model.getItem(parent_index)
                 count = len(indexes)
 
+                # todo
                 # bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
                 id_expanded_state_dict = {}
                 # if not bool_moved_bookmark:
@@ -438,10 +438,10 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = self.model.index(item.child_number() + up_or_down + count - 1, 0, parent_index)
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
 
-                # select first moved item
-                # self.set_selection(index_first_moved_item, index_last_moved_item)
+                # todo: does not work, indexes are wrong
+                self.model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
-                # restore expanded states
+                # restore expanded states # todo
                 # if not bool_moved_bookmark:
                 #     for child_index, child_item_id in child_index_list:
                 #         proxy_index = self.filter_proxy_index_from_model_index(child_index)
@@ -711,7 +711,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
-            elif token.startswith(FOCUS + '='):
+            elif token.startswith('FOCUS' + '='):
+                # todo
                 if FLATTEN not in self.filter:  # ignore
                     continue
                 else:
@@ -726,7 +727,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                                 return True
                         return False
 
-                    flatten_id = token[len(FOCUS + '='):]
+                    flatten_id = token[len('FOCUS' + '='):]
                     if is_somehow_child_of_flatten_id(item.id, flatten_id):
                         continue
             elif token.startswith(SORT + '='):  # ignore
@@ -1193,7 +1194,6 @@ CHAR_TYPE_DICT = {
     't': TASK,  # task
     'n': NOTE  # note
 }
-FOCUS = 'focus'
 EMPTY_DATE = '14.09.52'  # random date. we regard this date as 'empty'
 DELETED = 'deleted'
 SEARCH_TEXT = 'search_text'  # for bookmarks

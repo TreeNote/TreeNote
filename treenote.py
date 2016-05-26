@@ -954,11 +954,8 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def search(self, search_text):
-        if model.FOCUS not in search_text:
-            self.flattenViewCheckBox.setEnabled(True)
-
         # before doing the search: save expanded states
-        if self.old_search_text == '' or model.FOCUS in self.old_search_text:
+        if self.old_search_text == '':
             self.save_expanded_state()
         self.old_search_text = search_text  # needed by the line above next time this method is called
 
@@ -1003,43 +1000,36 @@ class MainWindow(QMainWindow):
             apply_filter()
             set_model(self.item_model)
 
-        # focus
-        new_root_index = QModelIndex()
-        if model.FOCUS in search_text and model.FLATTEN not in search_text:
-            item_id_with_space_behind = search_text.split(model.FOCUS)[1]  # second item is the one behind FOCUS
-            item_id_with_equalsign_before = item_id_with_space_behind.split()
-            item_id = item_id_with_equalsign_before[0][1:]
-            index = QModelIndex(self.item_model.id_index_dict[item_id])  # convert QPersistentModelIndex
-            new_root_index = self.filter_proxy_index_from_model_index(index)
-        self.focused_column().view.setRootIndex(new_root_index)
-
         # expand
-        if search_text == '' or model.FOCUS in search_text:
+        if search_text == '':
             self.expand_or_collapse_children(QModelIndex(), False)
             self.expand_saved()
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
-        def is_selection_visible():
-            if not self.focused_column().view.selectionModel().selectedRows():
-                return False
-
-            def check_parents(index):
-                if index == new_root_index:
-                    return True
-                elif index == QModelIndex():
-                    return False
-                else:
-                    return check_parents(index.parent())
-
-            return check_parents(self.current_index().parent())
-
         # set selection
         # ( the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row() )
         # Set only if text was set programmatically e.g. because the user selected a dropdown,
         # and if the previous selected row was filtered out by the search.
-        if not self.focused_column().search_bar.isModified() and not is_selection_visible():
+        if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
+
+    def is_selection_visible(self):
+        if not self.focused_column().view.selectionModel().selectedRows():
+            return False
+
+        # check if the parent of the selection is the current root
+        # if not, the check if one of it's parent is the current root - then the selection is visible
+        # if we dont find the current root but the root of the whole tree, the selection is not visible
+        def check_parents(index):
+            if index == self.focused_column().view.rootIndex():
+                return True
+            elif index == QModelIndex():
+                return False
+            else:
+                return check_parents(index.parent())
+
+        return check_parents(self.current_index().parent())
 
     def expand_or_collapse_children_selected(self, bool_expand):
         for index in self.selected_indexes():
@@ -1175,11 +1165,10 @@ class MainWindow(QMainWindow):
 
     def insert_row(self):
         index = self.current_index()
-        # if the user focused on an empty row, pressing enter shall create a child of the focused row
-        search_bar_text = self.focused_column().search_bar.text()
-        if model.FOCUS in search_bar_text and index == QModelIndex():
-            parent_id = search_bar_text[len(model.FOCUS + '='):]
-            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(0, parent_id)
+        # if the user sees not entries, pressing enter shall create a child of the current root entry
+        if index == QModelIndex():
+            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(0,
+                                                                                self.focused_column().view.rootIndex())
         else:
             if self.focused_column().view.hasFocus():
                 # if selection has childs and is expanded: create top child instead of sibling
@@ -1362,14 +1351,17 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
-        search_bar_text = self.focused_column().search_bar.text()
-        if index.model() is None:  # for the case 'root item'
-            self.set_searchbar_text_and_search('')
-        else:
-            item_id = index.model().get_db_item(index)['_id']
-            self.set_searchbar_text_and_search(model.FOCUS + '=' + item_id)
         self.flattenViewCheckBox.setEnabled(False)
-        self.focused_column().view.setFocus()
+
+        self.save_expanded_state()
+
+        self.focused_column().view.setRootIndex(index)
+
+        self.expand_or_collapse_children(QModelIndex(), False)
+        self.expand_saved()
+
+        if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
+            self.set_top_row_selected()
 
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()
