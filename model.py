@@ -229,6 +229,9 @@ class TreeModel(QAbstractItemModel):
                     child_item.parentItem = parent_item
                     parent_item.childItems.insert(position + i, child_item)
                 model.endInsertRows()
+                index_first_moved_item = model.index(position, 0, parent_index)
+                index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
+                model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
