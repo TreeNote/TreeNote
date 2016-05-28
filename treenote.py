@@ -844,33 +844,6 @@ class MainWindow(QMainWindow):
             model_index = self.focused_column().flat_proxy.mapFromSource(model_index)
         return self.focused_column().filter_proxy.mapFromSource(model_index)
 
-    @pyqtSlot(dict, QAbstractItemModel)
-    def db_change_signal(self, db_item, source_model):
-        try:
-            change_dict = db_item['change']
-            my_edit = change_dict['user'] == socket.gethostname()
-            method = change_dict['method']
-            position = change_dict.get('position')
-            count = change_dict.get('count')
-            item_id = db_item['_id']
-
-            # ignore cases when the 'update delete marker' change comes before the corresponding item is created
-            if item_id not in source_model.id_index_dict:
-                return
-            index = QModelIndex(source_model.id_index_dict[item_id])
-
-            source_model.changed = True
-            item = source_model.getItem(index)
-
-            if method == model.DELETED:
-                if source_model.db[item_id][model.DELETED] == '':
-                    source_model.pointer_set.add(index.internalId())
-                else:
-                    source_model.pointer_set.remove(index.internalId())
-                self.setup_tag_model()
-        except Exception as e:
-            QMessageBox.warning(self, '', 'Error when receiving changes: ' + str(e))
-
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
             view = self.focused_column().view
@@ -1167,8 +1140,8 @@ class MainWindow(QMainWindow):
         index = self.current_index()
         # if the user sees not entries, pressing enter shall create a child of the current root entry
         if index == QModelIndex():
-            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(0,
-                                                                                self.focused_column().view.rootIndex())
+            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(
+                position=0, parent_index=self.focused_column().view.rootIndex())
         else:
             if self.focused_column().view.hasFocus():
                 # if selection has childs and is expanded: create top child instead of sibling
