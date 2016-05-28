@@ -11,14 +11,14 @@
 # the Free Software Foundation, version 3 of the License.
 #################################################################################
 
-import sys
-import socket
 import re
+import socket
+import sys
 from xml.sax.saxutils import escape
 
 from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
 def QDateFromString(string):
@@ -50,37 +50,9 @@ class QUndoCommandStructure(QUndoCommand):
         super(QUndoCommandStructure, self).__init__(QApplication.translate('command', self.title))
 
 
-class Updater(QThread):
+class Tree_item():
     """
-    This Thread watches the db for own and foreign changes and updates the view.
-    """
-
-    def __init__(self, model):
-        super(QThread, self).__init__()
-        self.model = model
-
-    def run(self):  # this updates the view
-        all_changes = self.model.db.changes(descending=True)
-        last_seq = all_changes['results'][0]['seq']
-        # no need for heartbeet, because the db is local
-        changes_list = self.model.db.changes(feed='continuous', heartbeat=sys.maxsize,
-                                             include_docs=True, since=last_seq)
-        for line in changes_list:
-            if 'doc' in line:
-                # pprint(line)
-                db_item = line['doc']
-                if 'change' in db_item:
-                    self.model.db_change_signal.emit(db_item, self.model)
-
-
-class Tree_item(object):
-    """
-    This item holds all id, parent, children, text, estimate and date attributes.
-    Other attributes like color are in the db only.
-    Attributes saved here are accessed faster than through the db.
-
     To understand Qt's way of building a TreeView, read:
-    http://trevorius.com/scrapbook/uncategorized/pyqt-custom-abstractitemmodel/
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
@@ -134,10 +106,6 @@ class TreeModel(QAbstractItemModel):
 
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def get_db_item(self, index):
-        item = self.getItem(index)
-        return self.db[item.id]
-
     def getItem(self, index):
         if index.isValid():
             item = index.internalPointer()
@@ -151,7 +119,7 @@ class TreeModel(QAbstractItemModel):
             return QModelIndex()
 
         parentItem = self.getItem(parent)
-        if row >= len(parentItem.childItems):  # bugfix
+        if row >= len(parentItem.childItems):
             return QModelIndex()
 
         childItem = parentItem.childItems[row]
@@ -365,7 +333,7 @@ class TreeModel(QAbstractItemModel):
                             self.model.main_window.focusWidget().edit(
                                 self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
 
-                        # save index if it gets deleted with 'undo insert'
+                        # save index for case it gets deleted with 'undo insert'
                         self.indexes = [index_of_new_entry]
 
                         # todo
@@ -642,7 +610,7 @@ class ProxyTools():
         return self.sourceModel().is_task_available(self.mapToSource(index))
 
     def insert_row(self, position, parent_index):
-        self.sourceModel().insert_remove_rows(position, parent_index)
+        self.sourceModel().insert_remove_rows(position, self.mapToSource(parent_index))
 
     def move_horizontal(self, indexes, direction):
         if len(indexes) > 0:
