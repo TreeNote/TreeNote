@@ -383,6 +383,7 @@ class TreeModel(QAbstractItemModel):
                 parent_index = self.model.parent(self.indexes[0])
                 parent_item = self.model.getItem(parent_index)
                 count = len(indexes)
+                old_child_number = item.child_number()
 
                 # todo
                 # bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
@@ -394,20 +395,29 @@ class TreeModel(QAbstractItemModel):
                 #         id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
 
                 self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
+
+                index_first_moved_item = self.model.index(old_child_number, 0, parent_index)
+                index_last_moved_item = self.model.index(old_child_number + count - 1, 0, parent_index)
+
                 if up_or_down == -1:
+                    if old_child_number == 0:
+                        return
                     # if we want to move several items up, we can move the item-above below the selection instead:
                     parent_item.childItems.insert(item.child_number() + count - 1,
-                                                  parent_item.childItems.pop(item.child_number() - 1))
+                                                  parent_item.childItems.pop(old_child_number - 1))
                 elif up_or_down == +1:
-                    parent_item.childItems.insert(
-                        item.child_number(),
-                        parent_item.childItems.pop(item.child_number() + count))
-                index_first_moved_item = self.model.index(item.child_number() + up_or_down, 0, parent_index)
-                index_last_moved_item = self.model.index(item.child_number() + up_or_down + count - 1, 0, parent_index)
-                self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
+                    if old_child_number == len(parent_item.childItems) - 1:
+                        return
+                    parent_item.childItems.insert(item.child_number(),
+                                                  parent_item.childItems.pop(old_child_number + count))
 
-                # todo: does not work, indexes are wrong
-                self.model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
+                index_first_moved_item_new = self.model.index(old_child_number + up_or_down, 0, parent_index)
+                index_last_moved_item_new = self.model.index(old_child_number + up_or_down + count - 1, 0, parent_index)
+                self.model.changePersistentIndex(index_first_moved_item, index_first_moved_item_new)
+                self.model.changePersistentIndex(index_last_moved_item, index_last_moved_item_new)
+
+                self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
+                self.model.main_window.set_selection(index_first_moved_item_new, index_last_moved_item_new)
 
                 # restore expanded states # todo
                 # if not bool_moved_bookmark:
