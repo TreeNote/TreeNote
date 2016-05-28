@@ -417,31 +417,34 @@ class TreeModel(QAbstractItemModel):
 
     def move_horizontal(self, indexes, direction):
         item = self.getItem(indexes[0])
+        position = item.parentItem.child_number() + 1
+        original_position = item.child_number()
+        sibling_index = self.index(original_position - 1, 0, self.parent(indexes[0]))
+        parent_index = self.parent(indexes[0])
+        parent_parent_index = self.parent(parent_index)
+        last_childnr_of_sibling = len(item.parentItem.childItems[original_position - 1].childItems)
 
-        parent_parent_index = self.parent(self.parent(indexes[0]))
-        if parent_parent_index is QModelIndex() and direction == -1:  # stop moving left if parent is root_item
+        # stop moving left if parent is root_item
+        if parent_index == QModelIndex() and direction == -1:
             return
 
-        original_position = item.child_number()
         # stop moving right if the moving item is the top item
         if original_position == 0 and direction == 1:
             return
-        sibling_index = self.index(original_position - 1, 0, self.parent(indexes[0]))
-        last_childnr_of_sibling = len(item.parentItem.childItems[original_position - 1].childItems)
-        position = item.parentItem.child_number() + 1
 
         class MoveHorizontalCommand(QUndoCommandStructure):
-            _fields = ['model', 'direction', 'parent_parent_index', 'from_parent_item', 'indexes_to_insert',
+            _fields = ['model', 'direction', 'parent_parent_index', 'parent_index', 'indexes_to_insert',
                        'position', 'original_position', 'sibling_index', 'last_childnr_of_sibling']
             title = 'move horizontal'
 
-            def move(self, from_parent_item, insert_in_index, position, original_position):
+            def move(self, parent_index, insert_in_index, position, original_position):
                 items = [self.model.getItem(index) for index in self.indexes_to_insert]
+                parent_item = self.model.getItem(parent_index)
                 # remove consecutive rows from_parent
-                self.model.beginRemoveRows(self.model.parent(self.indexes_to_insert[0]), original_position,
-                                           original_position + len(self.indexes_to_insert) - 1)
+                self.model.beginRemoveRows(parent_index, original_position,
+                                           original_position + len(items) - 1)
                 # todo make undo possible
-                del from_parent_item.childItems[original_position:original_position + len(self.indexes_to_insert)]
+                del parent_item.childItems[original_position:original_position + len(items)]
                 self.model.endRemoveRows()
                 # add rows to new parent
                 self.model.insert_remove_rows(position=position, parent_index=insert_in_index, items=items)
@@ -450,23 +453,24 @@ class TreeModel(QAbstractItemModel):
                 # left
                 if self.direction == -1:
                     # insert as a child of the parent's parent
-                    self.move(self.from_parent_item, self.parent_parent_index, self.position, self.original_position)
+                    self.move(self.parent_index, self.parent_parent_index, self.position, self.original_position)
                 # right
                 else:
                     # insert as a child of the sibling above
-                    self.move(self.from_parent_item, self.sibling_index, self.last_childnr_of_sibling,
+                    self.move(self.parent_index, self.sibling_index, self.last_childnr_of_sibling,
                               self.original_position)
 
             def undo(self):
-                # undo moving right
-                if self.direction == 1:
-                    self.move(self.sibling_index, self.from_parent_item, self.original_position, self.position)
                 # undo moving left
+                if self.direction == - 1:
+                    self.move(self.parent_parent_index, self.parent_index, self.original_position, self.position)
+                # undo moving right
                 else:
-                    self.move(self.parent_parent_index, self.from_parent_item, self.original_position, self.position)
+                    self.move(self.sibling_index, self.parent_index,
+                              self.original_position, self.last_childnr_of_sibling)
 
         self.undoStack.push(
-            MoveHorizontalCommand(self, direction, parent_parent_index, item.parentItem, indexes, position,
+            MoveHorizontalCommand(self, direction, parent_parent_index, parent_index, indexes, position,
                                   original_position, sibling_index, last_childnr_of_sibling))
 
     def get_tags_set(self, cut_delimiter=True):
