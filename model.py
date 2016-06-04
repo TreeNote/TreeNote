@@ -80,7 +80,6 @@ class Tree_item():
 
 
 class TreeModel(QAbstractItemModel):
-
     def __init__(self, main_window, header_list):
         super(TreeModel, self).__init__()
         self.main_window = main_window
@@ -115,7 +114,7 @@ class TreeModel(QAbstractItemModel):
         return self.rootItem
 
     def index(self, row, column, parent=QModelIndex()):
-        if parent.isValid() and parent.column() != 0:
+        if row < 0 or parent.isValid() and parent.column() != 0:
             return QModelIndex()
 
         parentItem = self.getItem(parent)
@@ -477,16 +476,9 @@ class TreeModel(QAbstractItemModel):
                                   original_position, sibling_index, last_childnr_of_sibling))
 
     def get_tags_set(self, cut_delimiter=True):
-        # todo
         tags_set = set()
-        return tags_set
-        map = "function(doc) { \
-                    if (doc.text && doc.text.indexOf('" + DELIMITER + "') != -1 && doc." + DELETED + " == '') \
-                        emit(doc, null); \
-                }"
-        res = self.db.query(map)
-        for row in res:
-            word_list = row.key['text'].split()
+        for index in self.match(self.index(0, 0), Qt.DisplayRole, DELIMITER, -1, Qt.MatchContains | Qt.MatchRecursive):
+            word_list = index.data().split()
             for word in word_list:
                 if word[0] == DELIMITER:
                     delimiter = '' if cut_delimiter else DELIMITER
@@ -722,7 +714,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
 
 class FlatProxyModel(QAbstractProxyModel, ProxyTools):
-
     def __init__(self, parent=None):
         super(FlatProxyModel, self).__init__(parent)
 
@@ -805,7 +796,6 @@ class FlatProxyModel(QAbstractProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
-
     def __init__(self, parent, model, view_header):
         super(Delegate, self).__init__(parent)
         self.model = model
@@ -928,7 +918,6 @@ class Delegate(QStyledItemDelegate):
 
 
 class BookmarkDelegate(QStyledItemDelegate):
-
     def __init__(self, parent, model):
         super(BookmarkDelegate, self).__init__(parent)
         self.model = model
@@ -960,7 +949,6 @@ class BookmarkDelegate(QStyledItemDelegate):
 
 
 class EscCalendarWidget(QCalendarWidget):
-
     def __init__(self, parent):
         super(EscCalendarWidget, self).__init__(parent)
         # sadly, capture of the tab key is different on Windows and Mac.
@@ -992,7 +980,6 @@ class EscCalendarWidget(QCalendarWidget):
 
 
 class OpenPopupDateEdit(QDateEdit):
-
     def __init__(self, parent, delegate):
         super(OpenPopupDateEdit, self).__init__(parent)
         self.delegate = delegate
@@ -1028,8 +1015,8 @@ class OpenPopupDateEdit(QDateEdit):
         return False  # don't stop the event being handled further
 
 
-class AutoCompleteEdit(
-        QPlainTextEdit):  # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
+class AutoCompleteEdit(QPlainTextEdit):
+    # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
 
     def __init__(self, parent, model, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
@@ -1076,7 +1063,7 @@ class AutoCompleteEdit(
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             # new line on alt + enter
             if event.modifiers() & Qt.MetaModifier or event.modifiers() & Qt.ShiftModifier or \
-                    event.modifiers() & Qt.AltModifier:
+                            event.modifiers() & Qt.AltModifier:
                 rows = self.document().size().height()
                 font_height = QFontMetrics(QFont(FONT, self.delegate.main_window.fontsize)).height()
                 row_height = font_height + self.delegate.main_window.padding * 2

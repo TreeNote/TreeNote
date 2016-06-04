@@ -63,7 +63,6 @@ def git_tag_to_versionnr(git_tag):
 
 
 class MainWindow(QMainWindow):
-
     def __init__(self):
         super(MainWindow, self).__init__()
         try:  # catch db connect errors
@@ -535,9 +534,9 @@ class MainWindow(QMainWindow):
     def check_for_software_update(self):
         self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
         skip_this_version = self.getQSettings().value('skip_version') is not None and \
-            self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
+                            self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
         is_newer_version = git_tag_to_versionnr(version.version_nr) < \
-            git_tag_to_versionnr(self.new_version_data['tag_name'])
+                           git_tag_to_versionnr(self.new_version_data['tag_name'])
         if not skip_this_version and is_newer_version:
             UpdateDialog(self).exec_()
         return is_newer_version
@@ -551,8 +550,8 @@ class MainWindow(QMainWindow):
             self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
             for action in actions:
                 if action is self.moveBookmarkUpAction or \
-                        action is self.moveBookmarkDownAction or \
-                        action is self.deleteBookmarkAction:  # the shortcuts of these are already used
+                                action is self.moveBookmarkDownAction or \
+                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
                     continue
                 keySequence = action.shortcut()
                 if keySequence.count() == 1:
@@ -1146,7 +1145,7 @@ class MainWindow(QMainWindow):
             if self.focused_column().view.hasFocus():
                 # if selection has childs and is expanded: create top child instead of sibling
                 if self.focused_column().view.isExpanded(self.current_index()) and \
-                        self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
+                                self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
                     self.insert_child()
                 else:
                     self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
@@ -1166,9 +1165,9 @@ class MainWindow(QMainWindow):
 
     def backup_db(self, server):
         proposed_file_name = server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' \
-            + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
+                             + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
         with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep +
-                  proposed_file_name, 'w', encoding='utf-8') as file:
+                          proposed_file_name, 'w', encoding='utf-8') as file:
             file.write(self.tree_as_string(server.model))
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
@@ -1205,7 +1204,7 @@ class MainWindow(QMainWindow):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None and index in selected_source_indexes:
                     rows_string += indention_string + '- ' + \
-                        index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
+                                   index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
                 for child_nr in range(self.item_model.rowCount(index)):
                     child_index = self.item_model.index(child_nr, 0, index)
                     rows_string = tree_as_string(child_index, rows_string)
@@ -1471,7 +1470,6 @@ class MainWindow(QMainWindow):
 
 
 class AboutBox(QDialog):
-
     def __init__(self, parent):
         super(AboutBox, self).__init__()
         headline = QLabel('TreeNote')
@@ -1502,7 +1500,6 @@ class AboutBox(QDialog):
 
 
 class SearchBarQLineEdit(QLineEdit):
-
     def __init__(self, main):
         super(QLineEdit, self).__init__()
         self.main = main
@@ -1598,7 +1595,6 @@ class BookmarkDialog(QDialog):
 
 
 class ShortcutDialog(QDialog):
-
     def __init__(self, parent, index):
         super(QDialog, self).__init__(parent)
         self.setMinimumWidth(340)
@@ -1629,7 +1625,6 @@ class ShortcutDialog(QDialog):
 
 
 class RenameTagDialog(QDialog):
-
     def __init__(self, parent, tag):
         super(RenameTagDialog, self).__init__(parent)
         self.parent = parent
@@ -1652,7 +1647,6 @@ class RenameTagDialog(QDialog):
 
 
 class UpdateDialog(QDialog):
-
     def __init__(self, parent):
         super(UpdateDialog, self).__init__(parent)
         releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
@@ -1694,7 +1688,6 @@ class UpdateDialog(QDialog):
 
 
 class SettingsDialog(QDialog):
-
     def __init__(self, parent):
         super(SettingsDialog, self).__init__(parent)
         self.parent = parent
@@ -1769,7 +1762,6 @@ class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action
 
 # changes the header text
 class CustomHeaderView(QHeaderView):
-
     def __init__(self, text):
         super(CustomHeaderView, self).__init__(Qt.Horizontal)
         self.setSectionResizeMode(QHeaderView.Stretch)
@@ -1783,7 +1775,6 @@ class CustomHeaderView(QHeaderView):
 
 
 class ResizeTreeView(QTreeView):
-
     def resizeEvent(self, event):
         self.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
