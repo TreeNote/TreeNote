@@ -368,14 +368,12 @@ class TreeModel(QAbstractItemModel):
                 count = len(indexes)
                 old_child_number = item.child_number()
 
-                # todo
-                # bool_moved_bookmark = source_model is self.bookmark_model  # but not for bookmarks
-                id_expanded_state_dict = {}
-                # if not bool_moved_bookmark:
-                #     for child_item.child_number(), child_item in enumerate(item.childItems):
-                #         child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                #         proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                #         id_expanded_state_dict[child_item.id] = self.focused_column().view.isExpanded(proxy_index)
+                indexes_expanded_state_dict = {}
+                for child_number in range(len(parent_item.childItems)):
+                    child_index = self.model.index(child_number, 0, parent_index)
+                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(child_index)
+                    indexes_expanded_state_dict[child_index] = self.model.main_window.focused_column().view.isExpanded(
+                        proxy_index)
 
                 self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
 
@@ -402,12 +400,12 @@ class TreeModel(QAbstractItemModel):
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
                 self.model.main_window.set_selection(index_first_moved_item_new, index_last_moved_item_new)
 
-                # restore expanded states # todo
-                # if not bool_moved_bookmark:
-                #     for child_index, child_item_id in child_index_list:
-                #         proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                #         expanded_state = id_expanded_state_dict[child_item_id]
-                #         self.focused_column().view.setExpanded(proxy_index, expanded_state)
+                # restore expanded states
+                self.model.main_window.focused_column().view.setAnimated(False)
+                for index, state in indexes_expanded_state_dict.items():
+                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(index)
+                    self.model.main_window.focused_column().view.setExpanded(proxy_index, state)
+                self.model.main_window.focused_column().view.setAnimated(True)
 
             def redo(self):
                 self.move(self.up_or_down)
@@ -445,7 +443,6 @@ class TreeModel(QAbstractItemModel):
                 # remove consecutive rows from_parent
                 self.model.beginRemoveRows(parent_index, original_position,
                                            original_position + len(items) - 1)
-                # todo make undo possible
                 del parent_item.childItems[original_position:original_position + len(items)]
                 self.model.endRemoveRows()
                 # add rows to new parent
