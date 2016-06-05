@@ -1025,6 +1025,7 @@ class MainWindow(QMainWindow):
                     self.focused_column().view.selectionModel().select(QItemSelection(child_index, child_index_to),
                                                                        QItemSelectionModel.Select)
             else:
+                self.focused_column().filter_proxy.getItem(index).expanded = True
                 self.focused_column().view.setExpanded(index, True)
 
     def collapse(self):
@@ -1043,6 +1044,7 @@ class MainWindow(QMainWindow):
                     self.focused_column().view.selectionModel().select(QItemSelection(index, index_to),
                                                                        QItemSelectionModel.Deselect)
             else:
+                self.focused_column().filter_proxy.getItem(index).expanded = False
                 self.focused_column().view.setExpanded(index, False)
 
     def rename_tag(self, tag, new_name):

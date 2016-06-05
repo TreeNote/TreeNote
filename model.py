@@ -64,6 +64,7 @@ class Tree_item():
         self.date = ''
         self.color = NO_COLOR
         self.estimate = ''
+        self.expanded = True
 
         # just for bookmarks
         self.search_text = ''
@@ -308,6 +309,7 @@ class TreeModel(QAbstractItemModel):
                         self.set_edit_focus = False
                     else:
                         parent_item = self.model.getItem(self.parent_index)
+                        parent_item.expanded = True
                         self.model.beginInsertRows(self.parent_index, self.position, self.position)
                         child = parent_item.add_child(self.position)
                         # type of new items depends on their parent: note -> note, projekt -> task
@@ -315,6 +317,11 @@ class TreeModel(QAbstractItemModel):
                         self.model.endInsertRows()
 
                         index_of_new_entry = self.model.index(self.position, 0, self.parent_index)
+                        proxy_index = self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry)
+                        # qt needs to init the expanded state,
+                        # otherwise segmentation faults will appear when expanding programmatically
+                        self.model.main_window.focused_column().view.expand(proxy_index)
+
                         self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
                         if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
                             self.model.main_window.focusWidget().edit(
@@ -371,44 +378,42 @@ class TreeModel(QAbstractItemModel):
                 count = len(indexes)
                 old_child_number = item.child_number()
 
-                indexes_expanded_state_dict = {}
-                for child_number in range(len(parent_item.childItems)):
-                    child_index = self.model.index(child_number, 0, parent_index)
-                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(child_index)
-                    indexes_expanded_state_dict[child_index] = self.model.main_window.focused_column().view.isExpanded(
-                        proxy_index)
-
                 self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
 
                 index_first_moved_item = self.model.index(old_child_number, 0, parent_index)
                 index_last_moved_item = self.model.index(old_child_number + count - 1, 0, parent_index)
 
+                # if we want to move several items up, we can move the item-above below the selection instead
                 if up_or_down == -1:
                     if old_child_number == 0:
                         return
-                    # if we want to move several items up, we can move the item-above below the selection instead:
-                    parent_item.childItems.insert(item.child_number() + count - 1,
-                                                  parent_item.childItems.pop(old_child_number - 1))
+                    new_position = item.child_number() + count - 1
+                    old_position = old_child_number - 1
+                    index_moving_item = self.model.index(old_position, 0, parent_index)
                 elif up_or_down == +1:
                     if old_child_number == len(parent_item.childItems) - 1:
                         return
-                    parent_item.childItems.insert(item.child_number(),
-                                                  parent_item.childItems.pop(old_child_number + count))
+                    new_position = item.child_number()
+                    old_position = old_child_number + count
+                index_moving_item = self.model.index(old_position, 0, parent_index)
+                parent_item.childItems.insert(new_position, parent_item.childItems.pop(old_position))
+                index_moving_item_new = self.model.index(new_position, 0, parent_index)
 
                 index_first_moved_item_new = self.model.index(old_child_number + up_or_down, 0, parent_index)
                 index_last_moved_item_new = self.model.index(old_child_number + up_or_down + count - 1, 0, parent_index)
                 self.model.changePersistentIndex(index_first_moved_item, index_first_moved_item_new)
                 self.model.changePersistentIndex(index_last_moved_item, index_last_moved_item_new)
+                self.model.changePersistentIndex(index_moving_item, index_moving_item_new)
 
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
+
                 self.model.main_window.set_selection(index_first_moved_item_new, index_last_moved_item_new)
 
-                # restore expanded states
-                self.model.main_window.focused_column().view.setAnimated(False)
-                for index, state in indexes_expanded_state_dict.items():
-                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(index)
+                for child_number in range(self.model.rowCount(parent_index)):
+                    child_index = self.model.index(child_number, 0, parent_index)
+                    state = self.model.getItem(child_index).expanded
+                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(child_index)
                     self.model.main_window.focused_column().view.setExpanded(proxy_index, state)
-                self.model.main_window.focused_column().view.setAnimated(True)
 
             def redo(self):
                 self.move(self.up_or_down)
