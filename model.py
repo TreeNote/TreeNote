@@ -225,6 +225,7 @@ class TreeModel(QAbstractItemModel):
             @staticmethod  # static because it is called from the outside for moving
             def insert_existing_entry(model, position, parent_index, child_item_list):
                 parent_item = model.getItem(parent_index)
+                parent_item.expanded = True
                 model.beginInsertRows(parent_index, position, position + len(child_item_list) - 1)
                 for i, child_item in enumerate(child_item_list):
                     child_item.parentItem = parent_item
@@ -234,23 +235,20 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
                 model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
+                model.main_window.focused_column().view.setAnimated(False)
+
+                def restore_children_expanded_state(index):
+                    for i, child_item in enumerate(model.getItem(index).childItems):
+                        child_index = model.index(i, 0, index)
+                        proxy_index = model.main_window.filter_proxy_index_from_model_index(child_index)
+                        model.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
+                        restore_children_expanded_state(child_index)
+
+                restore_children_expanded_state(parent_index)
+                model.main_window.focused_column().view.setAnimated(True)
+
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
-                # # for move horizontally: save expanded states of moved + children of moved
-                # if source_model is self.item_model:  # not for bookmarks
-                #     self.removed_id_expanded_state_dict = {}
-                #
-                #     # save and restore expanded state
-                #     def save_children(parent, from_child, to_child):
-                #         for child_item in parent.childItems[from_child:to_child]:
-                #             child_item_index = QModelIndex(source_model.id_index_dict[child_item.id])
-                #             proxy_index = self.filter_proxy_index_from_model_index(child_item_index)
-                #             self.removed_id_expanded_state_dict[child_item.id] = \
-                #                 self.focused_column().view.isExpanded(proxy_index)
-                #             # save expanded state of all children
-                #             save_children(source_model.getItem(child_item_index), None, None)
-                #
-                #     save_children(item, position, position + count)
                 self.deleted_child_parent_index_position_list = []
                 for index in self.indexes:
                     parent_index = self.model.parent(index)
@@ -277,30 +275,6 @@ class TreeModel(QAbstractItemModel):
 
             def redo(self):  # is called when pushed to the stack
                 if self.position is not None:  # insert command
-                    # todo remove this commented code
-                    # if self.id_list is None:  # for newly created items. else: add existing item (for move)
-                    #     child_id, _ = self.model.db.save(NEW_DB_ITEM.copy())
-                    #     self.id_list = [child_id]
-                    #
-                    #     # type of new items depends on their parent: note -> note, projekt -> task
-                    #     parent_type = self.model.db[parent_index]['type']
-                    #     child_type = NOTE if parent_type == NOTE else TASK
-                    #     self.model.set_db_item_field(child_id, 'type', child_type)
-                    #
-                    # # remove delete marker. just one item is inserted / re-inserted
-                    # self.set_deleted_marker('', self.id_list[0])
-                    # self.add_rows(self.model, self.position, self.parent_item_id, self.id_list, self.set_edit_focus)
-                    # # when redo is called the second time (when the user is redoing), he doesn't want edit focus
-                    # self.set_edit_focus = False
-                    # self.delete_child_from_parent_id_list = [
-                    #     (self.id_list[0], parent_index, None)]  # info for undoing
-
-                    # id_list = change_dict['id_list']
-                    # if id_list[0] in [child.id for child in item.childItems]:
-                    #     # when pasting parent and children, the children gets automatically loaded,
-                    #     # so don't load it manually additionally
-                    #     return
-
                     # if redoing an insert, insert the deleted item instead of creating a new one
                     if self.deleted_child_parent_index_position_list:
                         for child_item, parent_index, position in self.deleted_child_parent_index_position_list:
@@ -329,18 +303,6 @@ class TreeModel(QAbstractItemModel):
 
                         # save index for case it gets deleted with 'undo insert'
                         self.indexes = [index_of_new_entry]
-
-                        # todo
-                        # restore horizontally moved items expanded states + expanded states of their childrens
-                        # self.focused_column().view.setAnimated(False)
-                        # for child_id in self.removed_id_expanded_state_dict:
-                        #     child_index = QModelIndex(source_model.id_index_dict[child_id])
-                        #     proxy_index = self.filter_proxy_index_from_model_index(child_index)
-                        #     expanded_state = self.removed_id_expanded_state_dict[child_id]
-                        #     self.focused_column().view.setExpanded(proxy_index, expanded_state)
-                        # self.removed_id_expanded_state_dict = {}
-                        # self.focused_column().view.setAnimated(True)
-
                 else:
                     self.remove_rows()
 
