@@ -1461,8 +1461,6 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'bookmark_model'):
             def json_encoder(obj):
                 dic = obj.__dict__.copy()
-                del dic['search_text']
-                del dic['save_method']
                 del dic['parentItem']
                 return dic
 
@@ -1477,9 +1475,8 @@ class MainWindow(QMainWindow):
 
         def json_decoder(obj):
             if 'text' in obj:
-                item = model.Tree_item(self.save_file)
-                item.init(obj)
-                item.save_method = self.save_file
+                item = model.Tree_item()
+                item.__dict__.update(obj)
                 item.childItems = obj['childItems']
                 return item
             return obj

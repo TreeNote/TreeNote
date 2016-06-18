@@ -50,51 +50,31 @@ class QUndoCommandStructure(QUndoCommand):
         super(QUndoCommandStructure, self).__init__(QApplication.translate('command', self.title))
 
 
-class Save_changes_list(list):
-    def __init__(self, save_method):
-        super(Save_changes_list, self).__init__()
-        self.save_method = save_method
-
-    def insert(self, index, p_object):
-        super(Save_changes_list, self).insert(index, p_object)
-        self.save_method()
-
-
 class Tree_item():
     """
     To understand Qt's way of building a TreeView, read:
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
-    def __init__(self, save_method, parentItem=None):
-        self.save_method = save_method
+    def __init__(self, parentItem=None):
         self.parentItem = parentItem
-        self.childItems = Save_changes_list(save_method)
+        self.childItems = []
         self.text = ''
         self.type = NOTE
         self.date = ''
         self.color = NO_COLOR
         self.estimate = ''
         self.expanded = True
-
-        # just for bookmarks
-        self.search_text = ''
-        self.shortcut = ''
-
-    def init(self, dictionary):
-        self.__dict__.update(dictionary)
-
-    def __setattr__(self, attr, value):
-        object.__setattr__(self, attr, value)
-        self.save_method()
+        self.search_text = ''  # for bookmarks
+        self.shortcut = ''  # for bookmarks
 
     def child_number(self):
         if self.parentItem is not None:
             return self.parentItem.childItems.index(self)
         return 0
 
-    def add_child(self, save_method, position):
-        item = Tree_item(save_method, self)
+    def add_child(self, position):
+        item = Tree_item(self)
         self.childItems.insert(position, item)
         return item
 
@@ -106,9 +86,8 @@ class TreeModel(QAbstractItemModel):
         self.changed = False
         self.undoStack = QUndoStack(self)
 
-        self.rootItem = Tree_item(main_window.save_file, None)
+        self.rootItem = Tree_item(None)
         self.rootItem.header_list = header_list
-        self.rootItem.type = NOTE
 
     def headerData(self, column, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -223,10 +202,9 @@ class TreeModel(QAbstractItemModel):
                 self.set_data(self.old_value)
 
         self.undoStack.push(SetDataCommand(self, index, value, column, field))
-        return True
 
     def set_data(self, value, index, field='text'):
-        return self.set_data_with_id(value, index, index.column(), field)
+        self.set_data_with_id(value, index, index.column(), field)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_index=None, items=None, indexes=None, set_edit_focus=None):
@@ -303,7 +281,7 @@ class TreeModel(QAbstractItemModel):
                         parent_item = self.model.getItem(self.parent_index)
                         parent_item.expanded = True
                         self.model.beginInsertRows(self.parent_index, self.position, self.position)
-                        child = parent_item.add_child(self.model.main_window.save_file, self.position)
+                        child = parent_item.add_child(self.position)
                         # type of new items depends on their parent: note -> note, projekt -> task
                         child.type = NOTE if parent_item.type == NOTE else TASK
                         self.model.endInsertRows()
@@ -545,7 +523,7 @@ class TreeModel(QAbstractItemModel):
         self.db[item_id] = db_item
 
     def setData(self, index, value, role=None):
-        return self.set_data(value, index=index, field='text')
+        self.set_data(value, index=index, field='text')
 
     def remove_rows(self, indexes):
         self.insert_remove_rows(indexes=indexes)
@@ -556,19 +534,25 @@ class ProxyTools():
     # it is overwritten from QAbstractProxyModel
 
     def setData(self, index, value, role=None):
-        return self.sourceModel().setData(self.mapToSource(index), value, role=role)
+        self.sourceModel().setData(self.mapToSource(index), value, role=role)
+        self.sourceModel().main_window.save_file()
+        return True
 
     def set_data(self, value, index=None, field='text'):
-        return self.sourceModel().set_data(value, index=self.mapToSource(index), field=field)
+        self.sourceModel().set_data(value, index=self.mapToSource(index), field=field)
+        self.sourceModel().main_window.save_file()
 
     def remove_rows(self, indexes):
         self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
+        self.sourceModel().main_window.save_file()
 
     def toggle_task(self, index):
         self.sourceModel().toggle_task(self.mapToSource(index))
+        self.sourceModel().main_window.save_file()
 
     def toggle_project(self, index):
         self.sourceModel().toggle_project(self.mapToSource(index))
+        self.sourceModel().main_window.save_file()
 
     def get_db_item_id(self, index):
         return self.sourceModel().get_db_item(self.mapToSource(index))['_id']
@@ -581,14 +565,17 @@ class ProxyTools():
 
     def insert_row(self, position, parent_index):
         self.sourceModel().insert_remove_rows(position=position, parent_index=self.mapToSource(parent_index))
+        self.sourceModel().main_window.save_file()
 
     def move_horizontal(self, indexes, direction):
         if len(indexes) > 0:
             self.sourceModel().move_horizontal([self.mapToSource(index) for index in indexes], direction)
+            self.sourceModel().main_window.save_file()
 
     def move_vertical(self, indexes, up_or_down):
         if len(indexes) > 0:
             self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
+            self.sourceModel().main_window.save_file()
 
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))
