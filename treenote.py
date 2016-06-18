@@ -561,6 +561,7 @@ class MainWindow(QMainWindow):
                     action.shortcut = QKeySequence()  # disable the old shortcut
 
     def expand_saved(self):
+        return  # todo
         for index in self.expanded_indexes:
             proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
             self.focused_column().view.expand(proxy_index)
@@ -656,7 +657,6 @@ class MainWindow(QMainWindow):
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
     def change_active_database(self):
-        self.save_expanded_state()
         self.save_expanded_quicklinks_state()
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
@@ -694,10 +694,6 @@ class MainWindow(QMainWindow):
         settings.setValue('indentation', self.focused_column().view.indentation())
         settings.setValue('backup_interval', self.backup_interval)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
-
-        # save expanded items
-        self.save_expanded_state()
-        settings.setValue(EXPANDED_ITEMS, self.expanded_indexes)
 
         # save expanded quicklinks
         self.save_expanded_quicklinks_state()
@@ -912,12 +908,6 @@ class MainWindow(QMainWindow):
             self.focused_column().view.hideColumn(2)
             self.focused_column().view.setHeaderHidden(True)
 
-    def save_expanded_state(self):
-        self.expanded_indexes = []
-        for index in self.focused_column().filter_proxy.persistentIndexList():
-            if self.focused_column().view.isExpanded(index):
-                self.expanded_indexes.append(index)
-
     def save_expanded_quicklinks_state(self):
         self.expanded_quicklink_indexes = []
         for index in self.item_model.persistentIndexList():
@@ -926,9 +916,6 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def search(self, search_text):
-        # before doing the search: save expanded states
-        if self.old_search_text == '':
-            self.save_expanded_state()
         self.old_search_text = search_text  # needed by the line above next time this method is called
 
         # sort
@@ -1141,8 +1128,7 @@ class MainWindow(QMainWindow):
         index = self.current_index()
         # if the user sees not entries, pressing enter shall create a child of the current root entry
         if index == QModelIndex():
-            self.focused_column().filter_proxy.sourceModel().insert_remove_rows(
-                position=0, parent_index=self.focused_column().view.rootIndex())
+            self.focused_column().filter_proxy.insert_row(0, self.focused_column().view.rootIndex())
         else:
             if self.focused_column().view.hasFocus():
                 # if selection has childs and is expanded: create top child instead of sibling
@@ -1152,7 +1138,7 @@ class MainWindow(QMainWindow):
                 else:
                     self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
             elif self.focused_column().view.state() == QAbstractItemView.EditingState:
-                # todo: this is never called?
+                # todo irgendwann: this is never called?
                 # commit data by changing the current selection
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
             else:
@@ -1327,12 +1313,11 @@ class MainWindow(QMainWindow):
     def focus_index(self, index):
         self.flattenViewCheckBox.setEnabled(False)
 
-        self.save_expanded_state()
-
         self.focused_column().view.setRootIndex(index)
 
-        self.expand_or_collapse_children(QModelIndex(), False)
-        self.expand_saved()
+        # todo
+        # self.expand_or_collapse_children(QModelIndex(), False)
+        # self.expand_saved()
 
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
