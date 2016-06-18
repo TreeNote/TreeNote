@@ -23,7 +23,7 @@ import time
 import traceback
 from functools import partial
 #
-import pickle
+import json
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
@@ -65,9 +65,7 @@ def git_tag_to_versionnr(git_tag):
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        try:  # catch db connect errors
-            app.focusChanged.connect(self.update_actions)
-
+        try:  # catch db connect errors # todo: remove?
             app.setStyle("Fusion")
             self.light_palette = app.palette()
             self.light_palette.setColor(QPalette.Highlight, model.SELECTION_LIGHT_BLUE)
@@ -102,18 +100,11 @@ class MainWindow(QMainWindow):
             # load databases
             settings = self.getQSettings()
 
-            def load_tree_from_file(file_name):
-                file = open(os.path.dirname(os.path.realpath(__file__)) + os.sep + file_name, 'rb')
-                return pickle.load(file)
+            last_opened_file_path = settings.value('last_opened_file_path', os.path.dirname(os.path.realpath(__file__))
+                                                   + os.sep + 'example_tree.json')
+            self.open_file(last_opened_file_path)
 
-            try:
-                self.item_model = load_tree_from_file('tree.pickle')
-                self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'bookmarks.pickle')
-            except FileNotFoundError:
-                # self.item_model = load_tree_from_file(RESOURCE_FOLDER + 'default_tree_de.txt') # todo
-                # self.bookmark_model = load_tree_from_file(RESOURCE_FOLDER + 'default_bookmarks_de.txt')
-                self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
-                self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+            app.focusChanged.connect(self.update_actions)
 
             # set font-size and padding
             # second value is loaded, if nothing was saved before in the settings
@@ -374,15 +365,22 @@ class MainWindow(QMainWindow):
             add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left',
                                                  triggered=self.collapse), list=self.item_view_not_editing_actions)
             add_action('quitAction',
-                       QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=lambda: self.close()))
+                       QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=self.close))
+            add_action('openFileAction',
+                       QAction(self.tr('Open file...'), self, shortcut='Ctrl+O', triggered=lambda: self.open_file(
+                           QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])))
+            add_action('newFileAction',
+                       QAction(self.tr('New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
 
             self.fileMenu = self.menuBar().addMenu(self.tr('File'))
+            self.fileMenu.addAction(self.newFileAction)
+            self.fileMenu.addAction(self.openFileAction)
+            self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
+            self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.editShortcutAction)
             self.fileMenu.addAction(self.editBookmarkAction)
             self.fileMenu.addAction(self.deleteBookmarkAction)
             self.fileMenu.addAction(self.renameTagAction)
-            self.fileMenu.addSeparator()
-            self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
             self.fileMenu.addSeparator()
             self.exportMenu.addAction(self.exportPlainTextAction)
             self.fileMenu.addAction(self.settingsAct)
@@ -520,10 +518,12 @@ class MainWindow(QMainWindow):
             logger.exception(e)
 
     def backup_all_db_with_changes(self):
-        for server in self.server_model.servers:
-            if server.model.changed:
-                server.model.changed = False
-                self.backup_db(server)
+        # todo
+        pass
+        # for server in self.server_model.servers:
+        #     if server.model.changed:
+        #         server.model.changed = False
+        #         self.backup_db(server)
 
     def start_backup_service(self, minutes):
         self.backup_interval = int(minutes)
@@ -1454,6 +1454,51 @@ class MainWindow(QMainWindow):
                                          'padding-top: 10px;'
                                          'padding-bottom: 10px;'
                                          'padding-left: ' + padding + 'px;}')
+
+    def new_file(self):
+        self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
+        self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+        self.path = QFileDialog.getSaveFileName(self, "Save", '.json', "*.json")[0]
+        self.setWindowTitle(self.path + ' - TreeNote')
+        self.save_file()
+
+    def save_file(self):
+        if hasattr(self, 'bookmark_model'):
+            def json_encoder(obj):
+                dic = obj.__dict__.copy()
+                del dic['search_text']
+                del dic['save_method']
+                del dic['parentItem']
+                return dic
+
+            json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
+                      default=json_encoder, indent=4)
+
+    def open_file(self, path):
+        self.path = path
+        self.setWindowTitle(path + ' - TreeNote')
+        self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
+        self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+
+        def json_decoder(obj):
+            if 'text' in obj:
+                item = model.Tree_item(self.save_file)
+                item.init(obj)
+                item.save_method = self.save_file
+                item.childItems = obj['childItems']
+                return item
+            return obj
+
+        self.item_model.rootItem, self.bookmark_model.rootItem = json.load(open(path, 'r'), object_hook=json_decoder)
+
+        def set_parents(parent_item):
+            for child_item in parent_item.childItems:
+                child_item.parentItem = parent_item
+                set_parents(child_item)
+
+        set_parents(self.item_model.rootItem)
+        set_parents(self.bookmark_model.rootItem)
+        # todo: expand saved
 
 
 class AboutBox(QDialog):

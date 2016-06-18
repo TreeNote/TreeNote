@@ -50,15 +50,26 @@ class QUndoCommandStructure(QUndoCommand):
         super(QUndoCommandStructure, self).__init__(QApplication.translate('command', self.title))
 
 
+class Save_changes_list(list):
+    def __init__(self, save_method):
+        super(Save_changes_list, self).__init__()
+        self.save_method = save_method
+
+    def insert(self, index, p_object):
+        super(Save_changes_list, self).insert(index, p_object)
+        self.save_method()
+
+
 class Tree_item():
     """
     To understand Qt's way of building a TreeView, read:
     http://doc.qt.io/qt-5/qtwidgets-itemviews-editabletreemodel-example.html
     """
 
-    def __init__(self, parent=None):
-        self.parentItem = parent
-        self.childItems = []
+    def __init__(self, save_method, parentItem=None):
+        self.save_method = save_method
+        self.parentItem = parentItem
+        self.childItems = Save_changes_list(save_method)
         self.text = ''
         self.type = NOTE
         self.date = ''
@@ -70,13 +81,20 @@ class Tree_item():
         self.search_text = ''
         self.shortcut = ''
 
+    def init(self, dictionary):
+        self.__dict__.update(dictionary)
+
+    def __setattr__(self, attr, value):
+        object.__setattr__(self, attr, value)
+        self.save_method()
+
     def child_number(self):
         if self.parentItem is not None:
             return self.parentItem.childItems.index(self)
         return 0
 
-    def add_child(self, position):
-        item = Tree_item(self)
+    def add_child(self, save_method, position):
+        item = Tree_item(save_method, self)
         self.childItems.insert(position, item)
         return item
 
@@ -88,7 +106,7 @@ class TreeModel(QAbstractItemModel):
         self.changed = False
         self.undoStack = QUndoStack(self)
 
-        self.rootItem = Tree_item(None)
+        self.rootItem = Tree_item(main_window.save_file, None)
         self.rootItem.header_list = header_list
         self.rootItem.type = NOTE
 
@@ -285,7 +303,7 @@ class TreeModel(QAbstractItemModel):
                         parent_item = self.model.getItem(self.parent_index)
                         parent_item.expanded = True
                         self.model.beginInsertRows(self.parent_index, self.position, self.position)
-                        child = parent_item.add_child(self.position)
+                        child = parent_item.add_child(self.model.main_window.save_file, self.position)
                         # type of new items depends on their parent: note -> note, projekt -> task
                         child.type = NOTE if parent_item.type == NOTE else TASK
                         self.model.endInsertRows()
