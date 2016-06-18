@@ -24,6 +24,7 @@ import traceback
 from functools import partial
 #
 import json
+import threading
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
@@ -87,10 +88,6 @@ class MainWindow(QMainWindow):
         self.dark_palette.setColor(QPalette.ToolTipBase, model.FOREGROUND_GRAY)
         self.dark_palette.setColor(QPalette.ToolTipText, model.TEXT_GRAY)
 
-        self.expanded_indexes = []  # for restoring the expanded state after a search
-        self.expanded_quicklink_indexes = []
-        # remember expanded state when moving horizontally (removing then adding at other place)
-        self.removed_id_expanded_state_dict = {}
         # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
         self.old_search_text = ''
 
@@ -466,11 +463,6 @@ class MainWindow(QMainWindow):
 
         # first (do this before the label 'second')
         self.change_active_database()
-        # restore expanded item states
-        self.expanded_indexes = settings.value(EXPANDED_ITEMS, [])
-        # self.expand_saved() todo
-        # restore expanded quick link states
-        self.expanded_quicklink_indexes = settings.value(EXPANDED_QUICKLINKS_INDEXES, [])
         # self.expand_saved_quicklinks() todo
 
         self.reset_view()  # inits checkboxes
@@ -555,14 +547,10 @@ class MainWindow(QMainWindow):
                     action.shortcut = QKeySequence()  # disable the old shortcut
 
     def expand_saved(self):
-        return  # todo
-        for index in self.expanded_indexes:
-            proxy_index = self.filter_proxy_index_from_model_index(QModelIndex(index))
-            self.focused_column().view.expand(proxy_index)
+        self.item_model.expand_saved(QModelIndex())
 
-    def expand_saved_quicklinks(self):
-        for index in self.expanded_quicklink_indexes:
-            self.quicklinks_view.expand(QModelIndex(index))
+    def expand_saved_quicklinks(self):  # todo
+        pass
 
     def get_widgets(self):
         return [QApplication,
@@ -1011,6 +999,7 @@ class MainWindow(QMainWindow):
             else:
                 self.focused_column().filter_proxy.getItem(index).expanded = True
                 self.focused_column().view.setExpanded(index, True)
+                self.save_file()
 
     def collapse(self):
         for index in self.selected_indexes():
@@ -1030,6 +1019,7 @@ class MainWindow(QMainWindow):
             else:
                 self.focused_column().filter_proxy.getItem(index).expanded = False
                 self.focused_column().view.setExpanded(index, False)
+                self.save_file()
 
     def rename_tag(self, tag, new_name):
         map = "function(doc) {{ \
@@ -1463,14 +1453,18 @@ class MainWindow(QMainWindow):
             self.save_file()
 
     def save_file(self):
-        if hasattr(self, 'bookmark_model'):
-            def json_encoder(obj):
-                dic = obj.__dict__.copy()
-                del dic['parentItem']
-                return dic
+        def save():
+            if hasattr(self, 'bookmark_model'):
+                def json_encoder(obj):
+                    dic = obj.__dict__.copy()
+                    del dic['parentItem']
+                    return dic
 
-            json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
-                      default=json_encoder, indent=4)
+                json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
+                          default=json_encoder, indent=4)
+
+        thread = threading.Thread(target=save)
+        thread.start()
 
     def start_open_file(self):
         path = self.open_file(QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])

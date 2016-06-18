@@ -206,6 +206,18 @@ class TreeModel(QAbstractItemModel):
     def set_data(self, value, index, field='text'):
         self.set_data_with_id(value, index, index.column(), field)
 
+    def expand_saved(self, idx):
+        def restore_children_expanded_state(index):
+            for i, child_item in enumerate(self.getItem(index).childItems):
+                child_index = self.index(i, 0, index)
+                proxy_index = self.main_window.filter_proxy_index_from_model_index(child_index)
+                self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
+                restore_children_expanded_state(child_index)
+
+        self.main_window.focused_column().view.setAnimated(False)
+        restore_children_expanded_state(idx)
+        self.main_window.focused_column().view.setAnimated(True)
+
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
     def insert_remove_rows(self, position=None, parent_index=None, items=None, indexes=None, set_edit_focus=None):
 
@@ -231,17 +243,7 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
                 model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
-                model.main_window.focused_column().view.setAnimated(False)
-
-                def restore_children_expanded_state(index):
-                    for i, child_item in enumerate(model.getItem(index).childItems):
-                        child_index = model.index(i, 0, index)
-                        proxy_index = model.main_window.filter_proxy_index_from_model_index(child_index)
-                        model.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
-                        restore_children_expanded_state(child_index)
-
-                restore_children_expanded_state(parent_index)
-                model.main_window.focused_column().view.setAnimated(True)
+                model.expand_saved(parent_index)
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
