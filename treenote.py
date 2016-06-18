@@ -366,8 +366,7 @@ class MainWindow(QMainWindow):
         add_action('quitAction',
                    QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=self.close))
         add_action('openFileAction',
-                   QAction(self.tr('Open file...'), self, shortcut='Ctrl+O', triggered=lambda: self.open_file(
-                       QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])))
+                   QAction(self.tr('Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
         add_action('newFileAction',
                    QAction(self.tr('New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
 
@@ -652,6 +651,8 @@ class MainWindow(QMainWindow):
             DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
 
     def change_active_database(self):
+        if not hasattr(self, 'item_views_splitter'):
+            return
         self.save_expanded_quicklinks_state()
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
@@ -688,6 +689,7 @@ class MainWindow(QMainWindow):
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
         settings.setValue('indentation', self.focused_column().view.indentation())
         settings.setValue('backup_interval', self.backup_interval)
+        settings.setValue('last_opened_file_path', self.path)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save expanded quicklinks
@@ -1451,11 +1453,14 @@ class MainWindow(QMainWindow):
                                          'padding-left: ' + padding + 'px;}')
 
     def new_file(self):
-        self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
-        self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
-        self.path = QFileDialog.getSaveFileName(self, "Save", '.json', "*.json")[0]
-        self.setWindowTitle(self.path + ' - TreeNote')
-        self.save_file()
+        path = QFileDialog.getSaveFileName(self, "Save", '.json', "*.json")[0]
+        if len(path) > 0:
+            self.path = path
+            self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
+            self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+            self.setWindowTitle(self.path + ' - TreeNote')
+            self.change_active_database()
+            self.save_file()
 
     def save_file(self):
         if hasattr(self, 'bookmark_model'):
@@ -1466,6 +1471,11 @@ class MainWindow(QMainWindow):
 
             json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
                       default=json_encoder, indent=4)
+
+    def start_open_file(self):
+        path = self.open_file(QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])
+        if path and len(path) > 0:
+            self.open_file(path)
 
     def open_file(self, path):
         self.path = path
@@ -1490,6 +1500,9 @@ class MainWindow(QMainWindow):
 
         set_parents(self.item_model.rootItem)
         set_parents(self.bookmark_model.rootItem)
+
+        self.change_active_database()
+
         # todo: expand saved
 
 
