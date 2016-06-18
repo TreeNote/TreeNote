@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
         self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
-        self.bookmarks_view.clicked.connect(self.filter_bookmark_click)
+        self.bookmarks_view.clicked.connect(self.filter_bookmark)
         self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
         self.bookmarks_view.hideColumn(1)
@@ -580,7 +580,7 @@ class MainWindow(QMainWindow):
         for row in res:
             db_item = self.bookmark_model.db[row.id]
             self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
-                                                         triggered=partial(self.filter_bookmark, row.id)))
+                                                         triggered=partial(self.filter_bookmark, index)))
 
         for server in self.server_model.servers:
             qtmodel = server.model
@@ -783,17 +783,11 @@ class MainWindow(QMainWindow):
             self.set_searchbar_text_and_search(new_text)
 
     # set the search bar text according to the selected bookmark
-    def filter_bookmark(self, item_id):
-        new_search_bar_text = self.bookmark_model.db[item_id][model.SEARCH_TEXT]
+    def filter_bookmark(self, index):
+        new_search_bar_text = self.bookmark_model.getItem(index).search_text
         self.set_searchbar_text_and_search(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
-        index = self.bookmark_model.id_index_dict[item_id]
         self.set_selection(index, index)
-
-    @pyqtSlot(QModelIndex)
-    def filter_bookmark_click(self, index):
-        item_id = self.bookmark_model.getItem(index).id
-        self.filter_bookmark(item_id)
 
     # just for one character filters
     def filter(self, key, value):
@@ -1298,14 +1292,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
-        self.flattenViewCheckBox.setEnabled(False)
-
         self.focused_column().view.setRootIndex(index)
-
-        # todo
-        # self.expand_or_collapse_children(QModelIndex(), False)
-        # self.expand_saved()
-
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
 
@@ -1565,24 +1552,23 @@ class BookmarkDialog(QDialog):
     # search_bar_text is set: create new bookmark
     # index is set: edit existing bookmark
 
-    def __init__(self, parent, search_bar_text=None, index=None):
-        super(BookmarkDialog, self).__init__(parent)
+    def __init__(self, main_window, search_bar_text=None, index=None):
+        super(BookmarkDialog, self).__init__(main_window)
         self.setMinimumWidth(600)
-        self.parent = parent
+        self.main_window = main_window
         self.search_bar_text = search_bar_text
         self.index = index
         if index is not None:
-            item = parent.bookmark_model.getItem(index)
-            db_item = parent.bookmark_model.db[item.id]
+            item = main_window.bookmark_model.getItem(index)
 
-        name = '' if index is None else db_item[model.TEXT]
+        name = '' if index is None else item.text
         self.name_edit = QLineEdit(name)
 
         if search_bar_text is None:
-            search_bar_text = db_item[model.SEARCH_TEXT]
+            search_bar_text = item.search_text
         self.search_bar_text_edit = QLineEdit(search_bar_text)
 
-        shortcut = '' if index is None else db_item[model.SHORTCUT]
+        shortcut = '' if index is None else item.shortcut
         self.shortcut_edit = QKeySequenceEdit()
         self.shortcut_edit.setKeySequence(QKeySequence(shortcut))
         clearButton = QPushButton('Clear')
@@ -1609,19 +1595,14 @@ class BookmarkDialog(QDialog):
 
     def apply(self):
         if self.index is None:
-            new_item_position = len(self.parent.bookmark_model.rootItem.childItems)
-            self.parent.bookmark_model.insert_remove_rows(new_item_position, model.ROOT_ID)
-            # get id directly from db, because the db is changed instantly
-            children_list = self.parent.bookmark_model.db[model.ROOT_ID]['children'].split()
-            item_id = children_list[-1]
-        else:
-            item_id = self.parent.bookmark_model.get_db_item(self.index)['_id']
-        self.parent.bookmark_model.set_data_with_id(self.name_edit.text(), item_id=item_id, column=0, field='text')
-        self.parent.bookmark_model.set_data_with_id(self.search_bar_text_edit.text(), item_id=item_id, column=0,
-                                                    field=model.SEARCH_TEXT)
-        self.parent.bookmark_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=item_id,
-                                                    column=0, field=model.SHORTCUT)
-        self.parent.fill_bookmarkShortcutsMenu()
+            new_item_position = len(self.main_window.bookmark_model.rootItem.childItems)
+            self.main_window.bookmark_model.insert_remove_rows(new_item_position, QModelIndex())
+            self.index = self.main_window.bookmark_model.index(new_item_position, 0, QModelIndex())
+        self.main_window.bookmark_model.set_data(self.name_edit.text(), index=self.index, field='text')
+        self.main_window.bookmark_model.set_data(self.search_bar_text_edit.text(), index=self.index, field=model.SEARCH_TEXT)
+        self.main_window.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
+                                                 field=model.SHORTCUT)
+        self.main_window.fill_bookmarkShortcutsMenu()
         super(BookmarkDialog, self).accept()
 
 

@@ -154,7 +154,7 @@ class TreeModel(QAbstractItemModel):
             return item.estimate
 
     # directly used by bookmark dialog, because it has no index of the new created item
-    def set_data_with_id(self, value, index, column, field='text'):
+    def set_data_with_id(self, value, index, column, field='text'):  # todo: rename to without 'id'
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'index', 'value', 'column', 'field']
             title = 'Edit row'
@@ -289,15 +289,16 @@ class TreeModel(QAbstractItemModel):
                         self.model.endInsertRows()
 
                         index_of_new_entry = self.model.index(self.position, 0, self.parent_index)
-                        proxy_index = self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry)
-                        # qt needs to init the expanded state,
-                        # otherwise segmentation faults will appear when expanding programmatically
-                        self.model.main_window.focused_column().view.expand(proxy_index)
+                        if self.model is not self.model.main_window.bookmark_model:
+                            proxy_index = self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry)
+                            # qt needs to init the expanded state,
+                            # otherwise segmentation faults will appear when expanding programmatically
+                            self.model.main_window.focused_column().view.expand(proxy_index)
 
-                        self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
-                        if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
-                            self.model.main_window.focusWidget().edit(
-                                self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
+                            self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
+                            if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
+                                self.model.main_window.focusWidget().edit(
+                                    self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
 
                         # save index for case it gets deleted with 'undo insert'
                         self.indexes = [index_of_new_entry]
@@ -556,12 +557,6 @@ class ProxyTools():
         self.sourceModel().toggle_project(self.mapToSource(index))
         self.sourceModel().main_window.save_file()
 
-    def get_db_item_id(self, index):
-        return self.sourceModel().get_db_item(self.mapToSource(index))['_id']
-
-    def get_db_item(self, index):
-        return self.sourceModel().get_db_item(self.mapToSource(index))
-
     def is_task_available(self, index):
         return self.sourceModel().is_task_available(self.mapToSource(index))
 
@@ -639,7 +634,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
             elif token.startswith('FOCUS' + '='):
-                # todo
+                # todo later: flatten + focus
                 if FLATTEN not in self.filter:  # ignore
                     continue
                 else:
@@ -1083,7 +1078,6 @@ ESTIMATE = 'estimate'
 STARTDATE = 'startdate'
 ASC = '_ascending'
 DESC = '_descending'
-ROOT_ID = '0'
 TEXT_GRAY = QColor(188, 195, 208)
 SELECTION_GRAY = QColor('#555B6E')
 SELECTION_LIGHT_BLUE = QColor(181, 213, 253)
