@@ -12,7 +12,6 @@
 #################################################################################
 
 import re
-import socket
 import sys
 from xml.sax.saxutils import escape
 
@@ -175,8 +174,7 @@ class TreeModel(QAbstractItemModel):
         else:  # index.column() == 2:
             return item.estimate
 
-    # directly used by bookmark dialog, because it has no index of the new created item
-    def set_data_with_id(self, value, index, column, field='text'):  # todo: rename to without 'id'
+    def set_data(self, value, index, field='text'):
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'index', 'value', 'column', 'field']
             title = 'Edit row'
@@ -223,10 +221,7 @@ class TreeModel(QAbstractItemModel):
             def undo(self):
                 self.set_data(self.old_value)
 
-        self.undoStack.push(SetDataCommand(self, index, value, column, field))
-
-    def set_data(self, value, index, field='text'):
-        self.set_data_with_id(value, index, index.column(), field)
+        self.undoStack.push(SetDataCommand(self, index, value, index.column(), field))
 
     def expand_saved(self, idx):
         def restore_children_expanded_state(index):
@@ -337,11 +332,11 @@ class TreeModel(QAbstractItemModel):
         if position is not None:  # insert command
             if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
-            # used from move methods, add existing db items to the parent.
+            # used from move methods, add existing items to the parent.
             # Don't add to stack, because already part of an UndoCommand
             elif items:
                 InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, items)
-            elif indexes is None:  # used from view, create a single new row / self.db item
+            elif indexes is None:  # used from view, create a single new row / item
                 set_edit_focus = True
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
         else:  # remove command
@@ -541,11 +536,6 @@ class TreeModel(QAbstractItemModel):
             self.set_data(PAUSED, index=index, field='type')
         elif item.type == PAUSED:
             self.set_data(NOTE, index=index, field='type')
-
-    def set_db_item_field(self, item_id, field, value):
-        db_item = self.db[item_id]
-        db_item[field] = value
-        self.db[item_id] = db_item
 
     def setData(self, index, value, role=None):
         self.set_data(value, index=index, field='text')

@@ -11,26 +11,21 @@
 # the Free Software Foundation, version 3 of the License.
 #################################################################################
 
-import json
 import logging
 import os
 import re
-import socket
-import subprocess
 import sys
 import textwrap
-import time
-import traceback
 from functools import partial
 #
 import json
 import threading
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
+from resources import qrc_resources  # get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from resources import qrc_resources  # get's removed with 'optimize imports'!
 #
 import model
 import tag_model
@@ -38,20 +33,14 @@ import util
 import version
 
 HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
-
-if __debug__:
-    from pprint import pprint
-
 COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit selected bookmark'
 EDIT_QUICKLINK = 'Edit selected quick link shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
 SELECTED_INDEX = 'SELECTED_ID'
-IMPORT_DB = 'Import JSON file into a new  database'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
-
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
@@ -243,8 +232,6 @@ class MainWindow(QMainWindow):
             if list is not None:
                 list.append(qaction)
 
-        add_action('exportDatabaseAct', QAction(self.tr('as JSON file'), self, triggered=self.export_db))
-        add_action('importDatabaseAct', QAction(self.tr(IMPORT_DB), self, triggered=self.import_db))
         add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,',
                                           triggered=lambda: SettingsDialog(self).exec_()))
         add_action('updateAct',
@@ -464,7 +451,7 @@ class MainWindow(QMainWindow):
             self.first_column_splitter.restoreState(first_column_splitter_state)
 
         # first (do this before the label 'second')
-        self.change_active_database()
+        self.change_active_tree()
         # self.expand_saved_quicklinks() todo
 
         self.reset_view()  # inits checkboxes
@@ -608,15 +595,6 @@ class MainWindow(QMainWindow):
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
 
-    def export_db(self):
-        with open(self.filename_from_dialog('.json'), 'w', encoding='utf-8') as file:
-            row_list = []
-            map = "function(doc) { \
-            if (doc." + model.DELETED + " == '') \
-                emit(doc, null); }"
-            res = self.item_model.db.query(map, include_docs=True)
-            file.write(json.dumps([row.doc for row in res], indent=4))
-
     def filename_from_dialog(self, file_type):
         return QFileDialog.getSaveFileName(self, "Save", QDate.currentDate().toString('yyyy-MM-dd') + file_type,
                                            "*" + file_type)[0]
@@ -625,12 +603,7 @@ class MainWindow(QMainWindow):
         with open(self.filename_from_dialog('.txt'), 'w', encoding='utf-8') as file:
             file.write(self.tree_as_string(self.item_model))
 
-    def import_db(self):
-        self.file_name = QFileDialog.getOpenFileName(self, "Open", "", "*.json")
-        if self.file_name[0] != '':
-            DatabaseDialog(self, import_file_name=self.file_name[0]).exec_()
-
-    def change_active_database(self):
+    def change_active_tree(self):
         if not hasattr(self, 'item_views_splitter'):
             return
         self.save_expanded_quicklinks_state()
@@ -639,7 +612,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.setModel(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.set_undo_actions()
-        self.old_search_text = 'dont save expanded states of next db when switching to next db'
+        self.old_search_text = 'dont save expanded states of last tree when switching to next tree'
         self.setup_tag_model()
         self.expand_saved_quicklinks()
         self.reset_view()
@@ -682,11 +655,6 @@ class MainWindow(QMainWindow):
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
-
-        # __debug__ is true if Python was not started with an -O option. -O turns on basic optimizations.
-        if not __debug__:
-            if sys.platform == "darwin":
-                subprocess.call(['osascript', '-e', 'tell application "Apache CouchDB" to quit'])
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
@@ -1101,8 +1069,6 @@ class MainWindow(QMainWindow):
                     self.set_top_row_selected()
 
     def remove_selection(self):
-        # workaround against data loss due to crashes: backup db as txt file before delete operations
-        # self.backup_db(self.get_current_server()) # todo
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def backup_db(self, server):
@@ -1408,7 +1374,7 @@ class MainWindow(QMainWindow):
             self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
             self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
             self.setWindowTitle(self.path + ' - TreeNote')
-            self.change_active_database()
+            self.change_active_tree()
             self.save_file()
 
     def save_file(self):
@@ -1454,7 +1420,7 @@ class MainWindow(QMainWindow):
         set_parents(self.item_model.rootItem)
         set_parents(self.bookmark_model.rootItem)
 
-        self.change_active_database()
+        self.change_active_tree()
 
         # todo: expand saved
 
@@ -1766,9 +1732,6 @@ class ResizeTreeView(QTreeView):
 
 
 if __name__ == '__main__':
-    if sys.platform == "darwin":
-        subprocess.call(['/usr/bin/open', '/Applications/Apache CouchDB.app'])
-
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
