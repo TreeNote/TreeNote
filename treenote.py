@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
         self.quicklinks_view.clicked.connect(lambda i: self.focus_index(self.filter_proxy_index_from_model_index(i)))
         self.quicklinks_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.quicklinks_view.setHeader(CustomHeaderView('Quick links'))
+        self.quicklinks_view.setHeader(CustomHeaderView('Quick tree'))
         self.quicklinks_view.header().setToolTip('Focus on the clicked row')
         self.quicklinks_view.hideColumn(1)
         self.quicklinks_view.hideColumn(2)
@@ -455,7 +455,6 @@ class MainWindow(QMainWindow):
 
         # first (do this before the label 'second')
         self.change_active_tree()
-        # self.expand_saved_quicklinks() todo
 
         self.reset_view()  # inits checkboxes
         self.focused_column().view.setFocus()
@@ -504,14 +503,17 @@ class MainWindow(QMainWindow):
             self.backup_timer.start(self.backup_interval * 1000 * 60)  # time specified in ms
 
     def check_for_software_update(self):
-        self.new_version_data = requests.get('https://api.github.com/repos/treenote/treenote/releases/latest').json()
-        skip_this_version = self.getQSettings().value('skip_version') is not None and \
-                            self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
-        is_newer_version = git_tag_to_versionnr(version.version_nr) < \
-                           git_tag_to_versionnr(self.new_version_data['tag_name'])
-        if not skip_this_version and is_newer_version:
-            UpdateDialog(self).exec_()
-        return is_newer_version
+        try:
+            self.new_version_data = requests.get(
+                'https://api.github.com/repos/treenote/treenote/releases/latest').json()
+            skip_this_version = self.getQSettings().value('skip_version') is not None and \
+                                self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
+            is_newer_version = git_tag_to_versionnr(version.version_nr) < \
+                               git_tag_to_versionnr(self.new_version_data['tag_name'])
+            if not skip_this_version and is_newer_version:
+                UpdateDialog(self).exec_()
+        except:
+            pass
 
     def make_single_key_menu_shortcuts_work_on_mac(self, actions):
         # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
@@ -531,10 +533,6 @@ class MainWindow(QMainWindow):
                     shortcut.activated.connect(self.signalMapper.map)
                     self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
                     action.shortcut = QKeySequence()  # disable the old shortcut
-
-
-    def expand_saved_quicklinks(self):  # todo
-        pass
 
     def get_widgets(self):
         return [QApplication,
@@ -601,7 +599,6 @@ class MainWindow(QMainWindow):
     def change_active_tree(self):
         if not hasattr(self, 'item_views_splitter'):
             return
-        self.save_expanded_quicklinks_state()
         self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
         self.quicklinks_view.setModel(self.item_model)
@@ -609,7 +606,6 @@ class MainWindow(QMainWindow):
         self.set_undo_actions()
         self.old_search_text = 'dont save expanded states of last tree when switching to next tree'
         self.setup_tag_model()
-        self.expand_saved_quicklinks()
         self.reset_view()
 
     def set_undo_actions(self):
@@ -639,13 +635,6 @@ class MainWindow(QMainWindow):
         settings.setValue('backup_interval', self.backup_interval)
         settings.setValue('last_opened_file_path', self.path)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
-
-        # save expanded quicklinks
-        self.save_expanded_quicklinks_state()
-        settings.setValue(EXPANDED_QUICKLINKS_INDEXES, self.expanded_quicklink_indexes)
-
-        # save selection
-        self.focused_column().filter_proxy.getItem(self.current_index()).selected = True
 
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
@@ -842,12 +831,6 @@ class MainWindow(QMainWindow):
             self.focused_column().view.hideColumn(1)
             self.focused_column().view.hideColumn(2)
             self.focused_column().view.setHeaderHidden(True)
-
-    def save_expanded_quicklinks_state(self):
-        self.expanded_quicklink_indexes = []
-        for index in self.item_model.persistentIndexList():
-            if self.quicklinks_view.isExpanded(index):
-                self.expanded_quicklink_indexes.append(index)
 
     @pyqtSlot(str)
     def search(self, search_text):
@@ -1375,14 +1358,21 @@ class MainWindow(QMainWindow):
 
     def save_file(self):
         def save():
-            if hasattr(self, 'bookmark_model'):
-                def json_encoder(obj):
-                    dic = obj.__dict__.copy()
-                    del dic['parentItem']
-                    return dic
+            self.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
+            for index in self.item_model.indexes():
+                proxy_index = self.filter_proxy_index_from_model_index(index)
+                self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
+                self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
+                self.item_model.getItem(index).selected = False
+            self.selected_item.selected = True
 
-                json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
-                          default=json_encoder, indent=4)
+            def json_encoder(obj):
+                dic = obj.__dict__.copy()
+                del dic['parentItem']
+                return dic
+
+            json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
+                      default=json_encoder, indent=4)
 
         thread = threading.Thread(target=save)
         thread.start()

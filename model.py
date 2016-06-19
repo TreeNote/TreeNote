@@ -63,7 +63,8 @@ class Tree_item():
         self.date = ''
         self.color = NO_COLOR
         self.estimate = ''
-        self.expanded = True
+        self.expanded = False
+        self.quicklink_expanded = False
         self.search_text = ''  # for bookmarks
         self.shortcut = None  # for bookmarks
         self.selected = False
@@ -89,6 +90,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem = Tree_item(None)
         self.rootItem.header_list = header_list
 
+    # necessary, because persistentIndexList() seems not to include all indexes
     def indexes(self):
         indexes = []
 
@@ -224,16 +226,16 @@ class TreeModel(QAbstractItemModel):
 
         self.undoStack.push(SetDataCommand(self, index, value, index.column(), field))
 
-    def expand_saved_and_restore_selection(self, idx):
+    def expand_saved_and_restore_selection(self, idx, restore_selection=True):
         def restore_children_expanded_state(index):
             for i, child_item in enumerate(self.getItem(index).childItems):
                 child_index = self.index(i, 0, index)
                 proxy_index = self.main_window.filter_proxy_index_from_model_index(child_index)
                 self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
+                self.main_window.quicklinks_view.setExpanded(child_index, child_item.quicklink_expanded)
                 restore_children_expanded_state(child_index)
-                if child_item.selected:
+                if restore_selection and child_item.selected:
                     self.main_window.set_selection(child_index, child_index)
-                    child_item.selected = False
 
         self.main_window.focused_column().view.setAnimated(False)
         restore_children_expanded_state(idx)
@@ -264,7 +266,7 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
                 model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
-                model.expand_saved_and_restore_selection(parent_index)
+                model.expand_saved_and_restore_selection(parent_index, restore_selection=False)
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
