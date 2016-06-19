@@ -1189,7 +1189,7 @@ class MainWindow(QMainWindow):
         lines = re.split(r'\r', text)
         source_index = self.focused_column().filter_proxy.mapToSource(start_index)
         indention_insert_position_dict = {0: source_index.row() + 1}
-        indention_parent_id_dict = {-1: self.item_model.getItem(source_index.parent()).id}
+        indention_parent_index_dict = {-1: source_index.parent()}
         for line in lines:
             stripped_line = line.lstrip('\t')
             indention = len(line) - len(stripped_line)
@@ -1197,20 +1197,19 @@ class MainWindow(QMainWindow):
             cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)
             if indention not in indention_insert_position_dict:
                 indention_insert_position_dict[indention] = 0
-            child_id = self.paste_row_with_id(indention_insert_position_dict[indention],
-                                              indention_parent_id_dict[indention - 1], cleaned_line)
+            child_index = self.paste_row(indention_insert_position_dict[indention],
+                                         indention_parent_index_dict[indention - 1], cleaned_line)
             indention_insert_position_dict[indention] += 1
             for key in indention_insert_position_dict.keys():
                 if key > indention:
                     indention_insert_position_dict[key] = 0
-            indention_parent_id_dict[indention] = child_id
+            indention_parent_index_dict[indention] = child_index
 
-    def paste_row_with_id(self, new_position, parent_item_id, text):
-        self.item_model.insert_remove_rows(new_position, parent_item_id, set_edit_focus=False)
-        children_list = self.item_model.db[parent_item_id]['children'].split()
-        item_id = children_list[new_position]
-        self.item_model.set_data_with_id(text, item_id, 0)
-        return item_id
+    def paste_row(self, new_position, parent_index, text):
+        self.item_model.insert_remove_rows(new_position, parent_index, set_edit_focus=False)
+        child_index = self.item_model.index(new_position, 0, parent_index)
+        self.item_model.set_data(text, child_index)
+        return child_index
 
     # task menu actions
 

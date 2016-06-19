@@ -335,7 +335,7 @@ class TreeModel(QAbstractItemModel):
                         self.insert_existing_entry(self.model, position, parent_index, [child_item])
 
         if position is not None:  # insert command
-            if set_edit_focus:  # used when adding rows programmatically e.g. pasting
+            if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
             # used from move methods, add existing db items to the parent.
             # Don't add to stack, because already part of an UndoCommand
@@ -918,9 +918,9 @@ class BookmarkDelegate(QStyledItemDelegate):
         item = self.model.getItem(index)
         document = QTextDocument()
         shortcut = item.shortcut
-        if len(item.shortcut) > 0:
+        if shortcut:
             shortcut = ' (' + shortcut + ')'
-        document.setPlainText(item.text + shortcut)
+        document.setPlainText(item.text + str(shortcut))
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
         else:
