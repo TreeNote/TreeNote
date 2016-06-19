@@ -292,7 +292,7 @@ class TreeModel(QAbstractItemModel):
                 else:
                     self.model.main_window.set_selection(parent_index, parent_index)
 
-                    # self.fill_bookmarkShortcutsMenu() # todo
+                self.model.main_window.fill_bookmarkShortcutsMenu()
 
             def redo(self):  # is called when pushed to the stack
                 if self.position is not None:  # insert command

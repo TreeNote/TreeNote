@@ -482,19 +482,24 @@ class MainWindow(QMainWindow):
             self.toggle_columns()
 
         self.backup_timer = QTimer()
-        self.backup_timer.timeout.connect(self.backup_all_db_with_changes)
+        self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 10))
 
         self.set_indentation(settings.value('indentation', 40))
         self.check_for_software_update()
 
-    def backup_all_db_with_changes(self):
-        # todo
-        pass
-        # for server in self.server_model.servers:
-        #     if server.model.changed:
-        #         server.model.changed = False
-        #         self.backup_db(server)
+    def backup_tree_if_changed(self):
+        if self.item_model.changed:
+            self.item_model.changed = False
+            thread = threading.Thread(target=self.backup_tree)
+            thread.start()
+
+    def backup_tree(self):
+        file_name = self.path.split(os.sep)[-1].replace('.json', '') + '_' + QDate.currentDate().toString(
+            'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
+        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + file_name, 'w',
+                  encoding='utf-8') as file:
+            file.write(self.tree_as_string(self.item_model))
 
     def start_backup_service(self, minutes):
         self.backup_interval = int(minutes)
@@ -1039,7 +1044,6 @@ class MainWindow(QMainWindow):
                 else:
                     self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
             elif self.focused_column().view.state() == QAbstractItemView.EditingState:
-                # todo irgendwann: this is never called?
                 # commit data by changing the current selection
                 self.focused_column().view.selectionModel().currentChanged.emit(index, index)
             else:
@@ -1049,13 +1053,6 @@ class MainWindow(QMainWindow):
 
     def remove_selection(self):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
-
-    def backup_db(self, server):
-        proposed_file_name = server.database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd') + '-' \
-                             + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep +
-                          proposed_file_name, 'w', encoding='utf-8') as file:
-            file.write(self.tree_as_string(server.model))
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
         indention_string = (model.indention_level(index) - 1) * '\t'
@@ -1358,6 +1355,7 @@ class MainWindow(QMainWindow):
 
     def save_file(self):
         def save():
+            self.item_model.changed = True
             self.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
             for index in self.item_model.indexes():
                 proxy_index = self.filter_proxy_index_from_model_index(index)
@@ -1407,8 +1405,6 @@ class MainWindow(QMainWindow):
         set_parents(self.bookmark_model.rootItem)
 
         self.change_active_tree()
-
-        # todo: expand saved
 
 
 class AboutBox(QDialog):
