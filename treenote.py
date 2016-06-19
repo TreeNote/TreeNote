@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.quicklinks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
-        self.quicklinks_view.clicked.connect(self.focus_index)
+        self.quicklinks_view.clicked.connect(lambda i: self.focus_index(self.filter_proxy_index_from_model_index(i)))
         self.quicklinks_view.setHeader(CustomHeaderView('Quick links'))
         self.quicklinks_view.header().setToolTip('Focus on the clicked row')
         self.quicklinks_view.hideColumn(1)
@@ -434,7 +434,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.increaseInterFaceFontAction)
         self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
-        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Filter shortcuts'))
+        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Saved shortcuts'))
         self.fill_bookmarkShortcutsMenu()
 
         self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
@@ -569,30 +569,14 @@ class MainWindow(QMainWindow):
             widget.setPalette(new_palette)
 
     def fill_bookmarkShortcutsMenu(self):
-        # todo
-        return
         self.bookmarkShortcutsMenu.clear()
-        map = "function(doc) { \
-                    if (doc." + model.SHORTCUT + " != '' && doc." + model.DELETED + " == '') \
-                        emit(doc, null); \
-                }"
-        res = self.bookmark_model.db.query(map)
-        for row in res:
-            db_item = self.bookmark_model.db[row.id]
-            self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self, shortcut=db_item[model.SHORTCUT],
+        for i in range(self.bookmark_model.rowCount()):
+            index = self.bookmark_model.index(i, 0)
+            item = self.bookmark_model.getItem(index)
+            self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
                                                          triggered=partial(self.filter_bookmark, index)))
 
-        for server in self.server_model.servers:
-            qtmodel = server.model
-            res = qtmodel.db.query(map)
-            for row in res:
-                db_item = qtmodel.db[row.id]
-                self.bookmarkShortcutsMenu.addAction(QAction(db_item[model.TEXT], self,
-                                                             shortcut=db_item[model.SHORTCUT],
-                                                             triggered=partial(self.open_quicklink_shortcut, row.id)))
-
-    def open_quicklink_shortcut(self, item_id):
-        index = QModelIndex(self.item_model.id_index_dict[item_id])
+    def open_quicklink_shortcut(self, index):
         self.focus_index(index)
         # select row for visual highlight
         self.quicklinks_view.selectionModel().select(QItemSelection(index, index), QItemSelectionModel.ClearAndSelect)
@@ -1057,18 +1041,6 @@ class MainWindow(QMainWindow):
         menu = QMenu()
         menu.addAction(self.editShortcutAction)
         menu.exec_(self.quicklinks_view.viewport().mapToGlobal(point))
-
-    @pyqtSlot(QPoint)
-    def open_edit_server_contextmenu(self, point):
-        menu = QMenu()
-        menu.addAction(self.addDatabaseAct)
-        index = self.servers_view.indexAt(point)
-        if index.isValid():
-            menu.addAction(self.editDatabaseAct)
-            menu.addAction(self.deleteDatabaseAct)
-            menu.addAction(self.exportDatabaseAct)
-        menu.addAction(self.importDatabaseAct)
-        menu.exec_(self.servers_view.viewport().mapToGlobal(point))
 
     # structure menu actions
     def move_bookmark_up(self):
@@ -1599,7 +1571,8 @@ class BookmarkDialog(QDialog):
             self.main_window.bookmark_model.insert_remove_rows(new_item_position, QModelIndex())
             self.index = self.main_window.bookmark_model.index(new_item_position, 0, QModelIndex())
         self.main_window.bookmark_model.set_data(self.name_edit.text(), index=self.index, field='text')
-        self.main_window.bookmark_model.set_data(self.search_bar_text_edit.text(), index=self.index, field=model.SEARCH_TEXT)
+        self.main_window.bookmark_model.set_data(self.search_bar_text_edit.text(), index=self.index,
+                                                 field=model.SEARCH_TEXT)
         self.main_window.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
                                                  field=model.SHORTCUT)
         self.main_window.fill_bookmarkShortcutsMenu()
@@ -1608,14 +1581,14 @@ class BookmarkDialog(QDialog):
 
 
 class ShortcutDialog(QDialog):
-    def __init__(self, parent, index):
-        super(QDialog, self).__init__(parent)
+    def __init__(self, main_window, index):
+        super(QDialog, self).__init__(main_window)
         self.setMinimumWidth(340)
-        self.parent = parent
-        self.item = parent.item_model.getItem(index)
-        db_item = parent.item_model.db[self.item.id]
+        self.main_window = main_window
+        self.index = index
+        item = main_window.item_model.getItem(index)
         self.shortcut_edit = QKeySequenceEdit()
-        self.shortcut_edit.setKeySequence(QKeySequence(db_item[model.SHORTCUT]))
+        self.shortcut_edit.setKeySequence(QKeySequence(item.shortcut))
         clearButton = QPushButton('Clear')
         clearButton.clicked.connect(self.shortcut_edit.clear)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
@@ -1631,9 +1604,9 @@ class ShortcutDialog(QDialog):
         self.setWindowTitle(EDIT_QUICKLINK)
 
     def apply(self):
-        self.parent.item_model.set_data_with_id(self.shortcut_edit.keySequence().toString(), item_id=self.item.id,
-                                                column=0, field=model.SHORTCUT)
-        self.parent.fill_bookmarkShortcutsMenu()
+        self.main_window.item_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
+                                             field=model.SHORTCUT)
+        self.main_window.fill_bookmarkShortcutsMenu()
         super(ShortcutDialog, self).accept()
 
 
