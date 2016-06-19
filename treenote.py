@@ -1603,6 +1603,7 @@ class BookmarkDialog(QDialog):
         self.main_window.bookmark_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
                                                  field=model.SHORTCUT)
         self.main_window.fill_bookmarkShortcutsMenu()
+        self.main_window.save_file()
         super(BookmarkDialog, self).accept()
 
 

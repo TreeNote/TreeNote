@@ -895,12 +895,10 @@ class BookmarkDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
         document = QTextDocument()
-        if item.shortcut.startswith('Ctrl+'):
-            item.shortcut = item.shortcut.replace('Ctrl+', '')
-        if item.shortcut != '':
-            item.shortcut += ' '
-        first_text_row = re.sub(r'\n(.|\n)*', ' ...', item.text)
-        document.setPlainText(item.shortcut + first_text_row)
+        shortcut = item.shortcut
+        if len(item.shortcut) > 0:
+            shortcut = ' (' + shortcut + ')'
+        document.setPlainText(item.text + shortcut)
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
         else:
