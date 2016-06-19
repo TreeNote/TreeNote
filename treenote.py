@@ -618,9 +618,8 @@ class MainWindow(QMainWindow):
             file.write(json.dumps([row.doc for row in res], indent=4))
 
     def filename_from_dialog(self, file_type):
-        proposed_file_name = self.get_current_server().database_name + '_' + QDate.currentDate().toString('yyyy-MM-dd')
-        file_name = QFileDialog.getSaveFileName(self, "Save", proposed_file_name + file_type, "*" + file_type)
-        return file_name[0]
+        return QFileDialog.getSaveFileName(self, "Save", QDate.currentDate().toString('yyyy-MM-dd') + file_type,
+                                           "*" + file_type)[0]
 
     def export_plain_text(self):
         with open(self.filename_from_dialog('.txt'), 'w', encoding='utf-8') as file:
