@@ -1247,6 +1247,7 @@ class MainWindow(QMainWindow):
                 if not re.search(r'https?://', url):
                     url = 'http://' + url
                 QDesktopServices.openUrl(QUrl(url))
+                break
             else:  # no urls found: search the web for the selected entry
                 text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                 QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
