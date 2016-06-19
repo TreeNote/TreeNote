@@ -66,7 +66,7 @@ class Tree_item():
         self.estimate = ''
         self.expanded = True
         self.search_text = ''  # for bookmarks
-        self.shortcut = ''  # for bookmarks
+        self.shortcut = None  # for bookmarks
 
     def child_number(self):
         if self.parentItem is not None:
@@ -88,6 +88,17 @@ class TreeModel(QAbstractItemModel):
 
         self.rootItem = Tree_item(None)
         self.rootItem.header_list = header_list
+
+    def indexes(self):
+        indexes = []
+
+        def add_indexes(parent_index):
+            indexes.append(parent_index)
+            for i in range(self.rowCount(parent_index)):
+                add_indexes(self.index(i, 0))
+
+        add_indexes(QModelIndex())
+        return indexes
 
     def headerData(self, column, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:

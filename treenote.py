@@ -434,7 +434,7 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.increaseInterFaceFontAction)
         self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
-        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('Saved shortcuts'))
+        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('My shortcuts'))
         self.fill_bookmarkShortcutsMenu()
 
         self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
@@ -570,13 +570,20 @@ class MainWindow(QMainWindow):
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
-        for i in range(self.bookmark_model.rowCount()):
-            index = self.bookmark_model.index(i, 0)
+        for index in self.item_model.indexes():
             item = self.bookmark_model.getItem(index)
-            self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
-                                                         triggered=partial(self.filter_bookmark, index)))
+            if item.shortcut:
+                self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
+                                                             triggered=partial(self.open_quicklink_shortcut, index)))
+        self.bookmarkShortcutsMenu.addSeparator()
+        for index in self.bookmark_model.indexes():
+            item = self.bookmark_model.getItem(index)
+            if item.shortcut:
+                self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
+                                                             triggered=partial(self.filter_bookmark, index)))
 
-    def open_quicklink_shortcut(self, index):
+    def open_quicklink_shortcut(self, real_index):
+        index = self.filter_proxy_index_from_model_index(real_index)
         self.focus_index(index)
         # select row for visual highlight
         self.quicklinks_view.selectionModel().select(QItemSelection(index, index), QItemSelectionModel.ClearAndSelect)
