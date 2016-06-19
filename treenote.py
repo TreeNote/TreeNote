@@ -477,8 +477,8 @@ class MainWindow(QMainWindow):
             self.toggle_sidebars()
 
         # restore columns
-        columns_hidden = settings.value(COLUMNS_HIDDEN)
-        if columns_hidden or columns_hidden is None:
+        columns_hidden = settings.value(COLUMNS_HIDDEN, 'true')
+        if columns_hidden == 'true':
             self.toggle_columns()
 
         self.backup_timer = QTimer()
