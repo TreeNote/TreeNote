@@ -1033,7 +1033,7 @@ class AutoCompleteEdit(QPlainTextEdit):
         before_tag = self.toPlainText()[:self.textCursor().position() - len(self._completer.completionPrefix())]
         after_tag = self.toPlainText()[self.textCursor().position():]
         until_cursor = before_tag + completion + ' '
-        self.setText(until_cursor + after_tag)
+        self.setPlainText(until_cursor + after_tag)
         cursor = self.textCursor()
         cursor.setPosition(len(until_cursor))
         self.setTextCursor(cursor)
