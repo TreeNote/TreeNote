@@ -664,6 +664,8 @@ class MainWindow(QMainWindow):
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
+        if len(sys.argv) > 1 and sys.argv[1] == 'develop':
+            settings_file = 'treenote_settings_for_developing.ini'
         return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + settings_file, QSettings.IniFormat)
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
