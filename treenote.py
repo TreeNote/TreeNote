@@ -82,7 +82,6 @@ class MainWindow(QMainWindow):
 
         self.flatten = False
 
-        # load databases
         settings = self.getQSettings()
 
         last_opened_file_path = settings.value('last_opened_file_path', os.path.dirname(os.path.realpath(__file__))
@@ -285,6 +284,10 @@ class MainWindow(QMainWindow):
         add_action('colorNoColorAction',
                    QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')),
                    list=self.item_view_actions)
+        for i in range(10):
+            add_action('estimate{}Action'.format(i),
+                       QAction('Estimate ' + str(i), self, shortcut=str(i), triggered=partial(self.estimate, i)),
+                       list=self.item_view_actions)
         add_action('toggleTaskAction',
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
@@ -401,6 +404,17 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorNoColorAction)
+        self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
+        self.estimateMenu.addAction(self.estimate0Action)
+        self.estimateMenu.addAction(self.estimate1Action)
+        self.estimateMenu.addAction(self.estimate2Action)
+        self.estimateMenu.addAction(self.estimate3Action)
+        self.estimateMenu.addAction(self.estimate4Action)
+        self.estimateMenu.addAction(self.estimate5Action)
+        self.estimateMenu.addAction(self.estimate6Action)
+        self.estimateMenu.addAction(self.estimate7Action)
+        self.estimateMenu.addAction(self.estimate8Action)
+        self.estimateMenu.addAction(self.estimate9Action)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('View'))
         self.viewMenu.addAction(self.goDownAction)
@@ -1196,6 +1210,10 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.set_data(QDate.currentDate().toString('dd.MM.yy'), index=index, field='date')
         self.focused_column().filter_proxy.set_data(index.data() + ' repeat=1w', index=index)
         self.edit_row()
+
+    def estimate(self, number):
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            self.focused_column().filter_proxy.set_data(str(number), index=row_index, field=model.ESTIMATE)
 
     @pyqtSlot(str)
     def color_row(self, color_character):
