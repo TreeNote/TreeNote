@@ -617,7 +617,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # return True if this row's data is accepted
         tokens = self.filter.split()  # all tokens must be in the row's data
         for token in tokens:
-            if token.startswith((FLATTEN, SORT)):  # ignore these
+            if token.startswith(SORT):  # ignore / let it pass
                 continue
             elif token.startswith('c='):
                 color_character = token[2:3]
@@ -651,25 +651,21 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
-            elif token.startswith('FOCUS' + '='):
-                # todo later: flatten + focus
-                if FLATTEN not in self.filter:  # ignore
-                    continue
-                else:
-                    # focus + flatten: show just children of flatten
-                    # return if somehow_child_id is a child or grandchild etc of parent_id
-                    def is_somehow_child_of_flatten_id(somehow_child_id, parent_id):
-                        if somehow_child_id in self.sourceModel().sourceModel().db[parent_id]['children']:
-                            return True
-                        parameter_children_list = self.sourceModel().sourceModel().db[parent_id]['children'].split()
-                        for child_id in parameter_children_list:
-                            if is_somehow_child_of_flatten_id(somehow_child_id, child_id):
+            elif FLATTEN in self.filter:
+                focused_item = self.sourceModel().sourceModel().main_window.focused_item
+                if focused_item:
+                    # focus + flatten: show just children of focused, but flat
+                    # return if somehow_child_id is a child or grandchild etc of the focused item
+                    def is_somehow_child_of(parent_item):
+                        for child_item in parent_item.childItems:
+                            if item == child_item or is_somehow_child_of(child_item):
                                 return True
                         return False
 
-                    flatten_id = token[len('FOCUS' + '='):]
-                    if is_somehow_child_of_flatten_id(item.id, flatten_id):
+                    if is_somehow_child_of(focused_item):
                         continue
+                else:
+                    continue
             elif token.startswith(SORT + '='):  # ignore
                 continue
             elif token.casefold() in index.data().casefold():

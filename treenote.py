@@ -790,6 +790,7 @@ class MainWindow(QMainWindow):
         self.focused_column().view.setFocus()
 
     def reset_view(self):
+        self.focused_item = None
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
         self.flattenViewCheckBox.setChecked(False)
@@ -1207,6 +1208,10 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
         self.focused_column().view.setRootIndex(index)
+        real_index = self.focused_column().filter_proxy.mapToSource(index)
+        self.focused_item = self.item_model.getItem(real_index)
+        self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
+                                                     QItemSelectionModel.ClearAndSelect)
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
 
