@@ -173,9 +173,9 @@ class TreeModel(QAbstractItemModel):
         if index.column() == 0:
             return item.text
         elif index.column() == 1:
-            return item.date
-        else:  # index.column() == 2:
             return item.estimate
+        else:  # index.column() == 2:
+            return item.date
 
     def set_data(self, value, index, field='text'):
         class SetDataCommand(QUndoCommandStructure):
@@ -188,6 +188,9 @@ class TreeModel(QAbstractItemModel):
                     self.old_value = getattr(item, self.field)
                     setattr(item, self.field, value)
                 elif self.column == 1:
+                    self.old_value = item.estimate
+                    item.estimate = value
+                elif self.column == 2:
                     self.old_value = item.date
                     # user has not selected a date other than 'today'
                     if type(value) == QDate and value == QDate.currentDate():
@@ -196,9 +199,6 @@ class TreeModel(QAbstractItemModel):
                     if value == EMPTY_DATE:  # user pressed del
                         value = ''
                     item.date = value
-                elif self.column == 2:
-                    self.old_value = item.estimate
-                    item.estimate = value
 
                 self.model.main_window.set_selection(self.index, self.index)
                 self.model.main_window.setup_tag_model()
@@ -688,11 +688,12 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         if column == 0:
             return True
         elif column == 1:
-            new_left_data = QDateFromString(left_data)
-            new_right_data = QDateFromString(right_data)
-        elif column == 2:
             new_left_data = int(left_data) if left_data != '' else 0
             new_right_data = int(right_data) if right_data != '' else 0
+        elif column == 2:
+            new_left_data = QDateFromString(left_data)
+            new_right_data = QDateFromString(right_data)
+
         return new_left_data > new_right_data
 
 
@@ -871,6 +872,12 @@ class Delegate(QStyledItemDelegate):
                 str(self.main_window.padding - 1) + 'px;}')
             return edit
         if index.column() == 1:
+            line_edit = QLineEdit(parent)
+            line_edit.setValidator(QIntValidator(0, 999, self))
+            line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
+            line_edit.setFont(QFont(FONT, self.main_window.fontsize))
+            return line_edit
+        else:  # index.column() == 2:
             date_edit = OpenPopupDateEdit(parent, self)
             date = QDate.currentDate() if index.data() == '' else QDateFromString(index.data())
             date_edit.setDate(date)
@@ -878,12 +885,6 @@ class Delegate(QStyledItemDelegate):
             date_edit.setCalendarWidget(EscCalendarWidget(parent))
             date_edit.setStyleSheet('QDateEdit {padding-left: 14px;}')
             return date_edit
-        else:  # index.column() == 2:
-            line_edit = QLineEdit(parent)
-            line_edit.setValidator(QIntValidator(0, 999, self))
-            line_edit.setStyleSheet('QLineEdit {padding-left: 16px;}')
-            line_edit.setFont(QFont(FONT, self.main_window.fontsize))
-            return line_edit
 
     def setEditorData(self, editor, index):
         if isinstance(editor, QTextEdit):
@@ -940,23 +941,24 @@ class EscCalendarWidget(QCalendarWidget):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
-            open_popup_date_edit = self.parent().parent()
-            open_popup_date_edit.delegate.closeEditor.emit(open_popup_date_edit, QAbstractItemDelegate.NoHint)
-            current_index = open_popup_date_edit.delegate.main_window.current_index()
-            open_popup_date_edit.delegate.main_window.set_selection(current_index, current_index)
+            self.done()
+
+    def done(self):
+        open_popup_date_edit = self.parent().parent()
+        open_popup_date_edit.delegate.closeEditor.emit(open_popup_date_edit, QAbstractItemDelegate.NoHint)
+        current_index = open_popup_date_edit.delegate.main_window.current_index()
+        open_popup_date_edit.delegate.main_window.set_selection(current_index, current_index)
 
     def eventFilter(self, obj, event):
         open_popup_date_edit = self.parent().parent()
-        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Tab:
-            # annoying bug that this event is sent two times. so filter the first event out.
-            if self.first_tab_done and sys.platform == 'linux':  # linux behaves different to windows
-                self.first_tab_done = False
-            else:
-                open_popup_date_edit.delegate.main_window.edit_estimate()
-        if event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
+        if event.type() == QEvent.ShortcutOverride and (event.key() == Qt.Key_Return or event.key() == Qt.Key_Tab):
+            open_popup_date_edit.commit()
+            self.done()
+        elif event.type() == QEvent.ShortcutOverride and event.key() == Qt.Key_Delete:
             open_popup_date_edit.setSpecialValueText(' ')
             open_popup_date_edit.setDate(QDateFromString(EMPTY_DATE))  # workaround to set empty date
             open_popup_date_edit.commit()
+            self.done()
         return False  # don't stop the event being handled further
 
 

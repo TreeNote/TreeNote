@@ -32,6 +32,8 @@ import tag_model
 import util
 import version
 
+BOOKMARKS_HEADER = ['Bookmarks']
+TREE_HEADER = ['Text', 'Estimate', 'Start date']
 HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
 COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit selected bookmark'
@@ -1177,21 +1179,18 @@ class MainWindow(QMainWindow):
     def edit_row_without_check(self):
         current_index = self.current_index()
         if self.focused_column().view.state() == QAbstractItemView.EditingState:  # change column with tab key
-            next_column_number = (current_index.column() + 1) % 3
-            sibling_index = current_index.sibling(current_index.row(), next_column_number)
-            self.focused_column().view.selectionModel().setCurrentIndex(sibling_index,
-                                                                        QItemSelectionModel.ClearAndSelect)
-            self.focused_column().view.edit(sibling_index)
+            next_column_number = (current_index.column() + 2)
+            if next_column_number == 0 or next_column_number == 2:
+                sibling_index = current_index.sibling(current_index.row(), next_column_number)
+                self.focused_column().view.selectionModel().setCurrentIndex(sibling_index,
+                                                                            QItemSelectionModel.ClearAndSelect)
+                self.focused_column().view.edit(sibling_index)
+            else:
+                self.focused_column().view.setFocus()
         elif self.focused_column().view.hasFocus():
             self.focused_column().view.edit(current_index)
         else:
             self.focused_column().view.setFocus()
-
-    def edit_estimate(self):
-        current_index = self.current_index()
-        sibling_index = current_index.sibling(current_index.row(), 2)
-        self.focused_column().view.selectionModel().setCurrentIndex(sibling_index, QItemSelectionModel.ClearAndSelect)
-        self.focused_column().view.edit(sibling_index)
 
     def current_index(self):
         return self.focused_column().view.selectionModel().currentIndex()
@@ -1263,7 +1262,7 @@ class MainWindow(QMainWindow):
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
         new_column.toggle_columns_button = QPushButton()
-        new_column.toggle_columns_button.setToolTip("Hide / show the columns 'Start date' and 'Estimate'")
+        new_column.toggle_columns_button.setToolTip("Hide / show the columns 'Estimate' and 'Start date'")
         new_column.toggle_columns_button.setIcon(QIcon(':/toggle_columns'))
         new_column.toggle_columns_button.setStyleSheet('QPushButton {\
             width: 22px;\
@@ -1370,8 +1369,8 @@ class MainWindow(QMainWindow):
         path = QFileDialog.getSaveFileName(self, "Save", '.json', "*.json")[0]
         if len(path) > 0:
             self.path = path
-            self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
-            self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+            self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+            self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
             self.setWindowTitle(self.path + ' - TreeNote')
             self.change_active_tree()
             self.save_file()
@@ -1406,8 +1405,8 @@ class MainWindow(QMainWindow):
     def open_file(self, path):
         self.path = path
         self.setWindowTitle(path + ' - TreeNote')
-        self.item_model = model.TreeModel(self, header_list=['Text', 'Start date', 'Estimate'])
-        self.bookmark_model = model.TreeModel(self, header_list=['Bookmarks'])
+        self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+        self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
 
         def json_decoder(obj):
             if 'text' in obj:
