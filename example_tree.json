@@ -1,0 +1,117 @@
+[
+    {
+        "shortcut": null,
+        "quicklink_expanded": false,
+        "color": "NO_COLOR",
+        "estimate": "",
+        "selected": false,
+        "type": "note",
+        "text": "",
+        "date": "",
+        "search_text": "",
+        "header_list": [
+            "Text",
+            "Start date",
+            "Estimate"
+        ],
+        "expanded": false,
+        "childItems": [
+            {
+                "shortcut": null,
+                "quicklink_expanded": true,
+                "color": "NO_COLOR",
+                "estimate": "",
+                "selected": false,
+                "type": "note",
+                "text": "a",
+                "date": "26.06.16",
+                "search_text": "",
+                "expanded": true,
+                "childItems": [
+                    {
+                        "shortcut": null,
+                        "quicklink_expanded": false,
+                        "color": "NO_COLOR",
+                        "estimate": "",
+                        "selected": true,
+                        "type": "note",
+                        "text": "b",
+                        "date": "29.06.16",
+                        "search_text": "",
+                        "expanded": true,
+                        "childItems": []
+                    },
+                    {
+                        "shortcut": null,
+                        "quicklink_expanded": true,
+                        "color": "NO_COLOR",
+                        "estimate": "",
+                        "selected": false,
+                        "type": "note",
+                        "text": "c",
+                        "date": "21.06.16",
+                        "search_text": "",
+                        "expanded": true,
+                        "childItems": [
+                            {
+                                "shortcut": null,
+                                "quicklink_expanded": false,
+                                "color": "NO_COLOR",
+                                "estimate": "3",
+                                "selected": false,
+                                "type": "note",
+                                "text": "d",
+                                "date": "25.06.16",
+                                "search_text": "",
+                                "expanded": true,
+                                "childItems": []
+                            },
+                            {
+                                "shortcut": null,
+                                "quicklink_expanded": false,
+                                "color": "NO_COLOR",
+                                "estimate": "",
+                                "selected": false,
+                                "type": "note",
+                                "text": "ff",
+                                "date": "",
+                                "search_text": "",
+                                "expanded": true,
+                                "childItems": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "shortcut": null,
+                "quicklink_expanded": false,
+                "color": "#8a9add",
+                "estimate": "",
+                "selected": false,
+                "type": "note",
+                "text": "e :bla",
+                "date": "",
+                "search_text": "",
+                "expanded": true,
+                "childItems": []
+            }
+        ]
+    },
+    {
+        "shortcut": null,
+        "quicklink_expanded": false,
+        "color": "NO_COLOR",
+        "estimate": "",
+        "selected": false,
+        "type": "note",
+        "text": "",
+        "date": "",
+        "search_text": "",
+        "header_list": [
+            "Bookmarks"
+        ],
+        "expanded": false,
+        "childItems": []
+    }
+]
