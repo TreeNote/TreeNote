@@ -1009,16 +1009,9 @@ class MainWindow(QMainWindow):
                 self.save_file()
 
     def rename_tag(self, tag, new_name):
-        map = "function(doc) {{ \
-                    if (doc.text.indexOf('{}') != -1 ) \
-                        emit(doc, null); \
-                }}".format(tag)
-        res = self.item_model.db.query(map)
-        for row in res:
-            db_item = self.item_model.db[row.id]
-            db_item['text'] = db_item['text'].replace(tag, new_name)
-            db_item['change'] = dict(method='updated', user=socket.gethostname())
-            self.item_model.db[row.id] = db_item
+        for item in self.item_model.items():
+            if tag in item.text:
+                item.text = item.text.replace(tag, new_name)
 
     @pyqtSlot(QPoint)
     def open_rename_tag_contextmenu(self, point):

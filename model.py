@@ -100,6 +100,17 @@ class TreeModel(QAbstractItemModel):
         add_indexes(QModelIndex())
         return indexes
 
+    def items(self):
+        items = []
+
+        def add_items(item):
+            items.append(item)
+            for child in item.childItems:
+                add_items(child)
+
+        add_items(self.rootItem)
+        return items
+
     def headerData(self, column, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.rootItem.header_list[column]
