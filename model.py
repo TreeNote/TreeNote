@@ -66,6 +66,7 @@ class Tree_item():
         self.expanded = True
         self.search_text = ''  # for bookmarks
         self.shortcut = None  # for bookmarks
+        self.selected = False
 
     def child_number(self):
         if self.parentItem is not None:
@@ -94,7 +95,7 @@ class TreeModel(QAbstractItemModel):
         def add_indexes(parent_index):
             indexes.append(parent_index)
             for i in range(self.rowCount(parent_index)):
-                add_indexes(self.index(i, 0))
+                add_indexes(self.index(i, 0, parent_index))
 
         add_indexes(QModelIndex())
         return indexes
@@ -223,13 +224,16 @@ class TreeModel(QAbstractItemModel):
 
         self.undoStack.push(SetDataCommand(self, index, value, index.column(), field))
 
-    def expand_saved(self, idx):
+    def expand_saved_and_restore_selection(self, idx):
         def restore_children_expanded_state(index):
             for i, child_item in enumerate(self.getItem(index).childItems):
                 child_index = self.index(i, 0, index)
                 proxy_index = self.main_window.filter_proxy_index_from_model_index(child_index)
                 self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
                 restore_children_expanded_state(child_index)
+                if child_item.selected:
+                    self.main_window.set_selection(child_index, child_index)
+                    child_item.selected = False
 
         self.main_window.focused_column().view.setAnimated(False)
         restore_children_expanded_state(idx)
@@ -260,7 +264,7 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
                 model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
-                model.expand_saved(parent_index)
+                model.expand_saved_and_restore_selection(parent_index)
 
             # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
@@ -907,10 +911,10 @@ class BookmarkDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
         document = QTextDocument()
-        shortcut = item.shortcut
-        if shortcut:
-            shortcut = ' (' + shortcut + ')'
-        document.setPlainText(item.text + str(shortcut))
+        text = item.text
+        if item.shortcut:
+            text += ' (' + item.shortcut + ')'
+        document.setPlainText(text)
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
         else:

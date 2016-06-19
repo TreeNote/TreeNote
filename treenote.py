@@ -87,7 +87,10 @@ class MainWindow(QMainWindow):
 
         last_opened_file_path = settings.value('last_opened_file_path', os.path.dirname(os.path.realpath(__file__))
                                                + os.sep + 'example_tree.json')
-        self.open_file(last_opened_file_path)
+        try:
+            self.open_file(last_opened_file_path)
+        except:
+            self.new_file()
 
         app.focusChanged.connect(self.update_actions)
 
@@ -459,12 +462,6 @@ class MainWindow(QMainWindow):
         self.update_actions()
 
         # second
-        # restore selection
-        # second value is loaded, if nothing was saved before in the settings
-        selected_index = settings.value(SELECTED_INDEX, None)
-        if selected_index is not None:
-            self.set_selection(QModelIndex(selected_index), QModelIndex(selected_index))
-
         # restore palette
         palette = settings.value('theme')
         if palette is not None:
@@ -535,8 +532,6 @@ class MainWindow(QMainWindow):
                     self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
                     action.shortcut = QKeySequence()  # disable the old shortcut
 
-    def expand_saved(self):
-        self.item_model.expand_saved(QModelIndex())
 
     def expand_saved_quicklinks(self):  # todo
         pass
@@ -650,11 +645,12 @@ class MainWindow(QMainWindow):
         settings.setValue(EXPANDED_QUICKLINKS_INDEXES, self.expanded_quicklink_indexes)
 
         # save selection
-        settings.setValue(SELECTED_INDEX, QPersistentModelIndex(self.current_index()))
+        self.focused_column().filter_proxy.getItem(self.current_index()).selected = True
 
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
+        self.save_file()
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
@@ -901,7 +897,7 @@ class MainWindow(QMainWindow):
         # expand
         if search_text == '':
             self.expand_or_collapse_children(QModelIndex(), False)
-            self.expand_saved()
+            self.item_model.expand_saved_and_restore_selection(QModelIndex())
         else:  # expand all items
             self.expand_or_collapse_children(QModelIndex(), True)
 
