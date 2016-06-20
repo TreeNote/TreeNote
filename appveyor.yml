@@ -24,7 +24,7 @@ install:
 
 build_script:
   - cd /D %APPVEYOR_BUILD_FOLDER%
-  - "pyinstaller --windowed --icon=resources\images\logo.ico treenote.py"
+  - "pyinstaller --windowed --icon=resources/images/logo.ico treenote.py"
   - ps: "cp resources dist/"
   - cd dist
   - ps: "& 7z a -r treenote.zip ."
