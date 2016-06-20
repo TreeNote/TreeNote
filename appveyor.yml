@@ -24,20 +24,12 @@ install:
 
 build_script:
   - cd /D %APPVEYOR_BUILD_FOLDER%
-  - "pyinstaller treenote.py"
+  - "pyinstaller --windowed --icon=resources\images\logo.ico treenote.py"
+  - ps: "cp resources dist/"
   - cd dist
-  - IF NOT DEFINED APPVEYOR_REPO_TAG_NAME set APPVEYOR_REPO_TAG_NAME=%APPVEYOR_REPO_COMMIT:~0,7%
-  - ps: "& 7z a -r starcheat-$env:APPVEYOR_REPO_TAG_NAME-$env:PYTHON_ARCH.zip ."
+  - ps: "& 7z a -r treenote.zip ."
 
 test: off
 
 artifacts:
-  - path: dist/starcheat-$(APPVEYOR_REPO_TAG_NAME)-$(PYTHON_ARCH).zip
-
-deploy:
-  provider: GitHub
-  auth_token:
-    secure: ZtfwMzuwFmGDrJhj3T3Nz3s+Nhz7Tw2mLhG15mE0BxDdDZCjwF5qzl9ZMKg20ILK
-  artifact: dist/starcheat-$(APPVEYOR_REPO_TAG_NAME)-$(PYTHON_ARCH).zip
-  on:
-    appveyor_repo_tag: true
+  - path: dist/treenote.zip
