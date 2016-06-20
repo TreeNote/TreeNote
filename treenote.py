@@ -86,11 +86,11 @@ class MainWindow(QMainWindow):
 
         settings = self.getQSettings()
 
-        last_opened_file_path = settings.value('last_opened_file_path', os.path.dirname(os.path.realpath(__file__))
-                                               + os.sep + 'example_tree.json')
+        last_opened_file_path = settings.value('last_opened_file_path', RESOURCE_FOLDER + 'example_tree.json')
         try:
             self.open_file(last_opened_file_path)
         except:
+            print('did not find example json or last json file, creating a new one...')
             self.new_file()
 
         app.focusChanged.connect(self.update_actions)
