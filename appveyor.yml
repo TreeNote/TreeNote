@@ -1,0 +1,43 @@
+os: Visual Studio 2015
+version: '{branch}-b{build}'
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python34"
+      PYTHON_ARCH: "win32"
+      PyQT: "http://download.sourceforge.net/project/pyqt/PyQt5/PyQt-5.5/PyQt5-5.5-gpl-Py3.4-Qt5.5.0-x32.exe"
+init:
+  - ps: "ls -Name \"C:/\""
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+install:
+  - REG ADD HKCU\Software\Python\PythonCore\3.4\InstallPath /f /ve /t REG_SZ /d %PYTHON%
+  - git submodule update --init --recursive
+  - ps: Start-FileDownload $env:PyQT -FileName $env:temp/pyqt5_install.exe
+  - ps: "& $env:temp/pyqt5_install.exe /S"
+  - ps: "Wait-Process -Name pyqt5_install -Timeout 600"
+  - "python --version"
+  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+  - "python -c \"import PyQt5\""
+  - "pip --version"
+  - "pip install requests pyinstaller"
+
+build_script:
+  - cd /D %APPVEYOR_BUILD_FOLDER%
+  - "pyinstaller treenote.py"
+  - cd dist
+  - IF NOT DEFINED APPVEYOR_REPO_TAG_NAME set APPVEYOR_REPO_TAG_NAME=%APPVEYOR_REPO_COMMIT:~0,7%
+  - ps: "& 7z a -r starcheat-$env:APPVEYOR_REPO_TAG_NAME-$env:PYTHON_ARCH.zip ."
+
+test: off
+
+artifacts:
+  - path: dist/starcheat-$(APPVEYOR_REPO_TAG_NAME)-$(PYTHON_ARCH).zip
+
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: ZtfwMzuwFmGDrJhj3T3Nz3s+Nhz7Tw2mLhG15mE0BxDdDZCjwF5qzl9ZMKg20ILK
+  artifact: dist/starcheat-$(APPVEYOR_REPO_TAG_NAME)-$(PYTHON_ARCH).zip
+  on:
+    appveyor_repo_tag: true
