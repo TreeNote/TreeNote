@@ -820,10 +820,10 @@ class MainWindow(QMainWindow):
         self.task_dropdown.setCurrentIndex(0)
         self.estimate_dropdown.setCurrentIndex(0)
         self.color_dropdown.setCurrentIndex(0)
-        self.set_searchbar_text_and_search('')
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
+        self.set_searchbar_text_and_search('')
 
     def change_interface_font_size(self, step):
         self.new_if_size = self.interface_fontsize + step
@@ -905,11 +905,11 @@ class MainWindow(QMainWindow):
             apply_filter()
             set_model(self.item_model)
 
-        # expand
-        if search_text == '':
-            self.expand_or_collapse_children(QModelIndex(), False)
+        # restore expanded state when we are now in normal mode again after a text search
+        if self.is_no_text_search(search_text):
             self.item_model.expand_saved_and_restore_selection(QModelIndex())
-        else:  # expand all items
+        # expand all items when doing a text search
+        else:
             self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
@@ -958,9 +958,12 @@ class MainWindow(QMainWindow):
                     self.focused_column().view.selectionModel().select(QItemSelection(child_index, child_index_to),
                                                                        QItemSelectionModel.Select)
             else:
-                self.focused_column().filter_proxy.getItem(index).expanded = True
                 self.focused_column().view.setExpanded(index, True)
-                self.save_file()
+                # save expanded state only when in normal mode,
+                # not when doing a text search and therefore having everything expanded
+                if self.is_no_text_search(self.focused_column().search_bar.text()):
+                    self.focused_column().filter_proxy.getItem(index).expanded = True
+                    self.save_file()
 
     def collapse(self):
         for index in self.selected_indexes():
@@ -978,9 +981,20 @@ class MainWindow(QMainWindow):
                     self.focused_column().view.selectionModel().select(QItemSelection(index, index_to),
                                                                        QItemSelectionModel.Deselect)
             else:
-                self.focused_column().filter_proxy.getItem(index).expanded = False
                 self.focused_column().view.setExpanded(index, False)
-                self.save_file()
+                if self.is_no_text_search(self.focused_column().search_bar.text()):
+                    self.focused_column().filter_proxy.getItem(index).expanded = False
+                    self.save_file()
+
+    def is_no_text_search(self, text):
+        def is_filter_keyword(token):
+            return token.startswith(model.SORT) or token.startswith('c=') or token.startswith('t=') or \
+                   re.match(r'e(<|>|=)', token) or token.startswith(model.ONLY_START_DATE) or \
+                   token.startswith(model.HIDE_TAGS) or token.startswith(model.HIDE_FUTURE_START_DATE) \
+                   or model.FLATTEN in token
+
+        # it is no text search, if it is empty or all tokens are a filter keyword
+        return text == '' or all(is_filter_keyword(token) for token in text.split())
 
     def rename_tag(self, tag, new_name):
         for item in self.item_model.items():
