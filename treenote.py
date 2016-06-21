@@ -511,10 +511,11 @@ class MainWindow(QMainWindow):
             thread.start()
 
     def backup_tree(self):
-        file_name = self.path.split(os.sep)[-1].replace('.json', '') + '_' + QDate.currentDate().toString(
-            'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz') + '.txt'
-        with open(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + file_name, 'w',
-                  encoding='utf-8') as file:
+        path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + self.path.split(os.sep)[
+            -1].replace('.json', '') + '_' + QDate.currentDate().toString(
+            'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
+        self.save_json(path + '.json')
+        with open(path + '.txt', 'w', encoding='utf-8') as file:
             file.write(self.tree_as_string(self.item_model))
 
     def start_backup_service(self, minutes):
@@ -1381,6 +1382,8 @@ class MainWindow(QMainWindow):
 
     def save_file(self):
         def save():
+            # this method is called everytime a change is done.
+            # therefore it is the right place to set the model changed for backup purposes
             self.item_model.changed = True
             self.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
             for index in self.item_model.indexes():
@@ -1389,17 +1392,19 @@ class MainWindow(QMainWindow):
                 self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
                 self.item_model.getItem(index).selected = False
             self.selected_item.selected = True
-
-            def json_encoder(obj):
-                dic = obj.__dict__.copy()
-                del dic['parentItem']
-                return dic
-
-            json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.path, 'w'),
-                      default=json_encoder, indent=4)
+            self.save_json(self.path)
 
         thread = threading.Thread(target=save)
         thread.start()
+
+    def save_json(self, path):
+        def json_encoder(obj):
+            dic = obj.__dict__.copy()
+            del dic['parentItem']
+            return dic
+
+        json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(path, 'w'),
+                  default=json_encoder)
 
     def start_open_file(self):
         path = self.open_file(QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])
