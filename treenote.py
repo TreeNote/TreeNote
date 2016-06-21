@@ -589,7 +589,8 @@ class MainWindow(QMainWindow):
         index = self.filter_proxy_index_from_model_index(real_index)
         self.focus_index(index)
         # select row for visual highlight
-        self.quicklinks_view.selectionModel().select(QItemSelection(index, index), QItemSelectionModel.ClearAndSelect)
+        self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
+                                                     QItemSelectionModel.ClearAndSelect)
 
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
