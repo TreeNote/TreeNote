@@ -286,7 +286,9 @@ class MainWindow(QMainWindow):
         add_action('colorNoColorAction',
                    QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')),
                    list=self.item_view_actions)
-        for i in range(10):
+        add_action('noEstimateAction', QAction('No estimate', self, shortcut='0', triggered=partial(self.estimate, '')),
+                   list=self.item_view_actions)
+        for i in range(1, 10):
             add_action('estimate{}Action'.format(i),
                        QAction('Estimate ' + str(i), self, shortcut=str(i), triggered=partial(self.estimate, i)),
                        list=self.item_view_actions)
@@ -407,7 +409,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
-        self.estimateMenu.addAction(self.estimate0Action)
+        self.estimateMenu.addAction(self.noEstimateAction)
         self.estimateMenu.addAction(self.estimate1Action)
         self.estimateMenu.addAction(self.estimate2Action)
         self.estimateMenu.addAction(self.estimate3Action)
