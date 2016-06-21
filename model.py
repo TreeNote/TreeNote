@@ -807,7 +807,7 @@ class Delegate(QStyledItemDelegate):
         html = "<font color={}>{}</font>".format(text_color, html)
         html = '<p style="white-space: pre-wrap">' + html + '</p>'
 
-        document = self.create_document(html, option.rect.width())
+        document = self.create_document(index, html, option.rect.width())
 
         painter.save()
         pen = QPen()
@@ -838,26 +838,27 @@ class Delegate(QStyledItemDelegate):
             painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)
             painter.restore()
 
-    def create_document(self, html, available_width):
+    def create_document(self, index, html, available_width):
         document = QTextDocument()
         document.setDefaultFont(QFont(FONT, self.main_window.fontsize))
         textOption = QTextOption()
         textOption.setWrapMode(QTextOption.WordWrap)
         textOption.setTabStop(TAB_WIDTH)
         document.setDefaultTextOption(textOption)
-        # -2 because the editor is two pixels smaller, and if we don't subtract here,
+        if self.model.getItem(index).type != NOTE:
+            available_width -= GAP_FOR_CHECKBOX
+        # +3 because the createEditor is wider, and if we don't add here,
         # there may happen line wrap when the user starts editing
-        document.setTextWidth(available_width - GAP_FOR_CHECKBOX - 2)
+        document.setTextWidth(available_width + 3)
         document.setHtml(html)
         return document
 
     def sizeHint(self, option, index):
         html = escape(index.data())
         column_width = self.view_header.sectionSize(0)
-        indention = 1 if self.main_window.flatten else indention_level(index)
-        document = self.create_document(
-            html.replace('\n', '<br>'),
-            column_width - indention * 20)  # 20 = space left of all rows
+        level = 1 if self.main_window.flatten else indention_level(index)
+        document = self.create_document(index, html.replace('\n', '<br>'), column_width - level *
+                                        self.main_window.focused_column().view.indentation())
         return QSize(0, document.size().height() + self.main_window.padding * 2)
 
     def createEditor(self, parent, option, index):
@@ -1012,6 +1013,7 @@ class AutoCompleteEdit(QPlainTextEdit):
         self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
         self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
         self.setTabStopWidth(TAB_WIDTH)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
