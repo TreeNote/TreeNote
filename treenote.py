@@ -443,7 +443,6 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
         self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('My shortcuts'))
-        self.fill_bookmarkShortcutsMenu()
 
         self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
         self.helpMenu.addAction(self.updateAct)
@@ -630,6 +629,7 @@ class MainWindow(QMainWindow):
         self.old_search_text = 'dont save expanded states of last tree when switching to next tree'
         self.setup_tag_model()
         self.reset_view()
+        self.fill_bookmarkShortcutsMenu()
 
     def set_undo_actions(self):
         if hasattr(self, 'undoAction'):
