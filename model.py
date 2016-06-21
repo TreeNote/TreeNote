@@ -675,9 +675,11 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
             return True  # all tokens are in the row
 
         # return True if a child row is accepted
-        for row in range(self.sourceModel().rowCount(index)):
-            if self.filterAcceptsRow(row, index):
-                return True
+        # but not with the hide checkboxes
+        if not token.startswith(HIDE_FUTURE_START_DATE) and not token.startswith(HIDE_TAGS):
+            for row in range(self.sourceModel().rowCount(index)):
+                if self.filterAcceptsRow(row, index):
+                    return True
 
         return False
 
