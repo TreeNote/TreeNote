@@ -268,7 +268,6 @@ class TreeModel(QAbstractItemModel):
 
                 model.expand_saved_and_restore_selection(parent_index, restore_selection=False)
 
-            # uses delete markers, because without them undoing would be more difficult
             def remove_rows(self):
                 self.deleted_child_parent_index_position_list = []
                 for index in self.indexes:
@@ -293,6 +292,7 @@ class TreeModel(QAbstractItemModel):
                     self.model.main_window.set_selection(parent_index, parent_index)
 
                 self.model.main_window.fill_bookmarkShortcutsMenu()
+                self.model.main_window.setup_tag_model()
 
             def redo(self):  # is called when pushed to the stack
                 if self.position is not None:  # insert command
