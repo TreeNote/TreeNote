@@ -630,7 +630,7 @@ class MainWindow(QMainWindow):
         self.set_undo_actions()
         self.old_search_text = 'dont save expanded states of last tree when switching to next tree'
         self.setup_tag_model()
-        self.reset_view()
+        self.reset_view(restore_selection=True)
         self.fill_bookmarkShortcutsMenu()
 
     def set_undo_actions(self):
@@ -781,9 +781,9 @@ class MainWindow(QMainWindow):
                 search_bar_text += ' ' + key + value + ' '
         self.set_searchbar_text_and_search(search_bar_text)
 
-    def set_searchbar_text_and_search(self, search_bar_text):
+    def set_searchbar_text_and_search(self, search_bar_text, restore_selection=False):
         self.focused_column().search_bar.setText(search_bar_text)
-        self.search(search_bar_text)
+        self.search(search_bar_text, restore_selection)
 
     def filter_proxy_index_from_model_index(self, model_index):
         if self.focused_column().filter_proxy.sourceModel() == self.focused_column().flat_proxy:
@@ -811,7 +811,7 @@ class MainWindow(QMainWindow):
         self.set_selection(top_most_index, top_most_index)
         self.focused_column().view.setFocus()
 
-    def reset_view(self):
+    def reset_view(self, restore_selection=False):
         self.focused_item = None
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
@@ -823,7 +823,7 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
-        self.set_searchbar_text_and_search('')
+        self.set_searchbar_text_and_search('', restore_selection=restore_selection)
 
     def change_interface_font_size(self, step):
         self.new_if_size = self.interface_fontsize + step
@@ -861,7 +861,7 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setHeaderHidden(True)
 
     @pyqtSlot(str)
-    def search(self, search_text):
+    def search(self, search_text, restore_selection=False):
         self.old_search_text = search_text  # needed by the line above next time this method is called
 
         # sort
@@ -907,7 +907,7 @@ class MainWindow(QMainWindow):
 
         # restore expanded state when we are now in normal mode again after a text search
         if self.is_no_text_search(search_text):
-            self.item_model.expand_saved_and_restore_selection(QModelIndex())
+            self.item_model.expand_saved_and_restore_selection(QModelIndex(), restore_selection=restore_selection)
         # expand all items when doing a text search
         else:
             self.expand_or_collapse_children(QModelIndex(), True)
