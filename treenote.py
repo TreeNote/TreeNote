@@ -19,6 +19,7 @@ import textwrap
 from functools import partial
 #
 import json
+import plistlib
 import threading
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
@@ -45,6 +46,7 @@ APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
+logging.getLogger("requests").setLevel(logging.WARNING)
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
                     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -365,10 +367,14 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
         add_action('newFileAction',
                    QAction(self.tr('New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
+        add_action('importHitListAction', QAction(self.tr('from The Hit List (Mac)...'), self,
+                                                  triggered=lambda: ImportHitListDialog(self).exec()))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('File'))
         self.fileMenu.addAction(self.newFileAction)
         self.fileMenu.addAction(self.openFileAction)
+        self.importMenu = self.fileMenu.addMenu(self.tr('Import tree'))
+        self.importMenu.addAction(self.importHitListAction)
         self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.editShortcutAction)
@@ -512,7 +518,7 @@ class MainWindow(QMainWindow):
             thread.start()
 
     def backup_tree(self):
-        path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + self.path.split(os.sep)[
+        path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + self.save_path.split(os.sep)[
             -1].replace('.json', '') + '_' + QDate.currentDate().toString(
             'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
         self.save_json(path + '.json')
@@ -658,7 +664,7 @@ class MainWindow(QMainWindow):
         settings.setValue('splitter_sizes', self.mainSplitter.saveState())
         settings.setValue('indentation', self.focused_column().view.indentation())
         settings.setValue('backup_interval', self.backup_interval)
-        settings.setValue('last_opened_file_path', self.path)
+        settings.setValue('last_opened_file_path', self.save_path)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save theme
@@ -1390,15 +1396,16 @@ class MainWindow(QMainWindow):
     def new_file(self):
         path = QFileDialog.getSaveFileName(self, "Save", '.json', "*.json")[0]
         if len(path) > 0:
-            self.path = path
+            self.save_path = path
             self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
             self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
-            self.setWindowTitle(self.path + ' - TreeNote')
+            self.setWindowTitle(self.save_path + ' - TreeNote')
             self.change_active_tree()
             self.save_file()
 
     def save_file(self):
         def save():
+            print("saving")
             # this method is called everytime a change is done.
             # therefore it is the right place to set the model changed for backup purposes
             self.item_model.changed = True
@@ -1409,7 +1416,7 @@ class MainWindow(QMainWindow):
                 self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
                 self.item_model.getItem(index).selected = False
             self.selected_item.selected = True
-            self.save_json(self.path)
+            self.save_json(self.save_path)
 
         thread = threading.Thread(target=save)
         thread.start()
@@ -1424,25 +1431,47 @@ class MainWindow(QMainWindow):
                   default=json_encoder)
 
     def start_open_file(self):
-        path = self.open_file(QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0])
+        path = QFileDialog.getOpenFileName(self, "Open", filter="*.json")[0]
         if path and len(path) > 0:
             self.open_file(path)
 
-    def open_file(self, path):
-        self.path = path
-        self.setWindowTitle(path + ' - TreeNote')
+    def open_file(self, open_path, save_path=None):
         self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
         self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
+        if not save_path:
+            def json_decoder(obj):
+                if 'text' in obj:
+                    item = model.Tree_item()
+                    item.__dict__.update(obj)
+                    item.childItems = obj['childItems']
+                    return item
+                return obj
 
-        def json_decoder(obj):
-            if 'text' in obj:
+            self.item_model.rootItem, self.bookmark_model.rootItem = json.load(open(open_path, 'r'),
+                                                                               object_hook=json_decoder)
+            self.save_path = open_path
+        # import the hit list
+        else:
+            hit_list_dict = plistlib.load(open(open_path, 'rb'))
+            id_item_dict = {}
+            for task_dict in hit_list_dict['PFEntities']['Task'].values():
                 item = model.Tree_item()
-                item.__dict__.update(obj)
-                item.childItems = obj['childItems']
-                return item
-            return obj
+                item.text = task_dict['title']
+                date = task_dict.get('startDate')
+                if date:
+                    item.date = date.strftime('%d.%m.%y')
+                if item.text == 'ROOT':
+                    item.header_list = TREE_HEADER
+                    self.item_model.rootItem = item
+                item.child_id_list = task_dict.get('subtasks', [])
+                item.estimate = str(task_dict.get('priority', item.estimate))
+                id_item_dict[task_dict['uid']] = item
 
-        self.item_model.rootItem, self.bookmark_model.rootItem = json.load(open(path, 'r'), object_hook=json_decoder)
+            for item in id_item_dict.values():
+                for child_id in item.child_id_list:
+                    item.childItems.append(id_item_dict[child_id])
+                del item.child_id_list
+            self.save_path = save_path
 
         def set_parents(parent_item):
             for child_item in parent_item.childItems:
@@ -1451,8 +1480,52 @@ class MainWindow(QMainWindow):
 
         set_parents(self.item_model.rootItem)
         set_parents(self.bookmark_model.rootItem)
-
         self.change_active_tree()
+        self.setWindowTitle(self.save_path + ' - TreeNote')
+
+
+class ImportHitListDialog(QDialog):
+    def __init__(self, main_window):
+        super(ImportHitListDialog, self).__init__(main_window)
+        self.setWindowTitle("Import from The Hit List")
+        self.main_window = main_window
+        self.hit_list_file_edit = QLineEdit()
+        self.select_hit_list_file_button = QPushButton('Select file...')
+        self.select_hit_list_file_button.clicked.connect(
+            lambda: self.hit_list_file_edit.setText(QFileDialog.getOpenFileName(self, "Open", filter="*.thlbackup")[0]))
+        self.treenote_file_edit = QLineEdit()
+        self.select_treenote_file_button = QPushButton('Select file...')
+        self.select_treenote_file_button.clicked.connect(
+            lambda: self.treenote_file_edit.setText(
+                QFileDialog.getSaveFileName(self, 'Save', 'my_tree.json', '*.json')[0]))
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel(
+            """Preparation in The Hit List: Move all tasks in a single list and there below a single item called 'ROOT'.
+Task notes, creation date and modification date will get lost.
+Tags won't be converted. You may replace their '@' with ':' manually before exporting."""),
+            0, 0, 1, 3)  # fromRow, fromColumn, rowSpan, columnSpan.
+        grid.addWidget(QLabel('The Hit List backup file to import:'), 1, 0)  # row, column
+        grid.addWidget(self.hit_list_file_edit, 1, 1)
+        grid.addWidget(self.select_hit_list_file_button, 1, 2)
+        grid.addWidget(QLabel('Destination for the new TreeNote file:'), 2, 0)
+        grid.addWidget(self.treenote_file_edit, 2, 1)
+        grid.addWidget(self.select_treenote_file_button, 2, 2)
+        grid.addWidget(buttonBox, 3, 0, 1, 3, Qt.AlignRight)
+        self.setLayout(grid)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+
+    def apply(self):
+        try:
+            self.main_window.open_file(self.hit_list_file_edit.text(),
+                                       save_path=self.treenote_file_edit.text())
+        except Exception as e:
+            QMessageBox.information(self, '', 'Import went wrong:\n{}'.format(e), QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, '', 'Import successful!', QMessageBox.Ok)
+            super(ImportHitListDialog, self).accept()
 
 
 class AboutBox(QDialog):
