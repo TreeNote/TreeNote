@@ -187,6 +187,8 @@ class TreeModel(QAbstractItemModel):
                 if self.column == 0:  # used for setting color etc, too
                     self.old_value = getattr(item, self.field)
                     setattr(item, self.field, value)
+                    if self.field == TEXT and (DELIMITER in value or DELIMITER in self.old_value):
+                        self.model.main_window.setup_tag_model()
                 elif self.column == 1:
                     self.old_value = item.estimate
                     item.estimate = value
@@ -201,7 +203,6 @@ class TreeModel(QAbstractItemModel):
                     item.date = value
 
                 self.model.main_window.set_selection(self.index, self.index)
-                self.model.main_window.setup_tag_model()
                 self.model.dataChanged.emit(self.index, self.index)
 
                 # update next available task in a sequential project
@@ -466,9 +467,8 @@ class TreeModel(QAbstractItemModel):
 
     def get_tags_set(self, cut_delimiter=True):
         tags_set = set()
-        for index in self.match(self.index(0, 0), Qt.DisplayRole, DELIMITER, -1, Qt.MatchContains | Qt.MatchRecursive):
-            word_list = index.data().split()
-            for word in word_list:
+        for item in self.items():
+            for word in item.text.split():
                 if word[0] == DELIMITER:
                     delimiter = '' if cut_delimiter else DELIMITER
                     tags_set.add(delimiter + word.strip(DELIMITER))
