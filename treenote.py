@@ -20,6 +20,7 @@ import json
 import pickle
 import plistlib
 from functools import partial
+from traceback import format_exception
 #
 import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
@@ -50,6 +51,14 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
                     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+def exception_handler(type_, text, traceback):
+    print(''.join(format_exception(type_, text, traceback)))
+    logger.exception('Uncaught exception:', exc_info=(type_, text, traceback))
+
+
+sys.excepthook = exception_handler
 
 
 def git_tag_to_versionnr(git_tag):
