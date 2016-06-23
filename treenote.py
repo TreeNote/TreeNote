@@ -360,6 +360,8 @@ class MainWindow(QMainWindow):
                    list=self.item_view_actions)
         add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste),
                    list=self.item_view_actions)
+        add_action('exportJSONAction',
+                   QAction(self.tr('as a TreeNote JSON file...'), self, triggered=self.export_json))
         add_action('exportPlainTextAction',
                    QAction(self.tr('as a plain text file...'), self, triggered=self.export_plain_text))
         add_action('expandAction',
@@ -382,7 +384,7 @@ class MainWindow(QMainWindow):
                        "Task notes, creation date and modification date will get lost.\n"
                        "Tags won't be converted. You may replace their '@' with ':' manually before exporting.").exec()))
         add_action('importJSONAction',
-                   QAction(self.tr('from TreeNote backup...'), self, triggered=lambda: ImportDialog(
+                   QAction(self.tr('from TreeNote JSON export...'), self, triggered=lambda: ImportDialog(
                        self, "*.json", "Import from TreeNote Backup", None).exec()))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('File'))
@@ -392,13 +394,14 @@ class MainWindow(QMainWindow):
         self.importMenu.addAction(self.importJSONAction)
         self.importMenu.addAction(self.importHitListAction)
         self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
+        self.exportMenu.addAction(self.exportJSONAction)
+        self.exportMenu.addAction(self.exportPlainTextAction)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.editShortcutAction)
         self.fileMenu.addAction(self.editBookmarkAction)
         self.fileMenu.addAction(self.deleteBookmarkAction)
         self.fileMenu.addAction(self.renameTagAction)
         self.fileMenu.addSeparator()
-        self.exportMenu.addAction(self.exportPlainTextAction)
         self.fileMenu.addAction(self.settingsAct)
         if sys.platform != "darwin":
             self.fileMenu.addSeparator()
@@ -630,14 +633,6 @@ class MainWindow(QMainWindow):
                 expand_node(child_index, bool_expand)
 
         expand_node(self.tag_view.selectionModel().currentIndex(), True)
-
-    def filename_from_dialog(self, file_type):
-        return QFileDialog.getSaveFileName(self, "Save", QDate.currentDate().toString('yyyy-MM-dd') + file_type,
-                                           "*" + file_type)[0]
-
-    def export_plain_text(self):
-        with open(self.filename_from_dialog('.txt'), 'w', encoding='utf-8') as file:
-            file.write(self.tree_as_string(self.item_model))
 
     def change_active_tree(self):
         if not hasattr(self, 'item_views_splitter'):
@@ -1428,6 +1423,17 @@ class MainWindow(QMainWindow):
         self.selected_item.selected = True
         pickle.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.save_path, 'wb'),
                     protocol=pickle.HIGHEST_PROTOCOL)
+
+    def export_plain_text(self):
+        path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.txt', "*.txt")[0]
+        if len(path) > 0:
+            with open(path, 'w', encoding='utf-8') as file:
+                file.write(self.tree_as_string(self.item_model))
+
+    def export_json(self):
+        path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.json', "*.json")[0]
+        if len(path) > 0:
+            self.save_json(path)
 
     def save_json(self, path):
         def json_encoder(obj):
