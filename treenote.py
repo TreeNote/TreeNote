@@ -978,7 +978,6 @@ class MainWindow(QMainWindow):
                 # not when doing a text search and therefore having everything expanded
                 if self.is_no_text_search(self.focused_column().search_bar.text()):
                     self.focused_column().filter_proxy.getItem(index).expanded = True
-                    self.save_file()
 
     def collapse(self):
         for index in self.selected_indexes():
@@ -999,7 +998,6 @@ class MainWindow(QMainWindow):
                 self.focused_column().view.setExpanded(index, False)
                 if self.is_no_text_search(self.focused_column().search_bar.text()):
                     self.focused_column().filter_proxy.getItem(index).expanded = False
-                    self.save_file()
 
     def is_no_text_search(self, text):
         def is_filter_keyword(token):
