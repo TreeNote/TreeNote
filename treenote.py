@@ -653,7 +653,11 @@ class MainWindow(QMainWindow):
         self.set_undo_actions()
         self.old_search_text = 'dont save expanded states of last tree when switching to next tree'
         self.setup_tag_model()
-        self.reset_view(restore_selection=True)
+        self.reset_view()
+        for index in self.item_model.indexes():
+            if self.item_model.getItem(index) == self.item_model.rootItem.selected_item:
+                self.set_selection(index, index)
+                break
         self.fill_bookmarkShortcutsMenu()
         self.setWindowTitle(self.save_path + ' - TreeNote')
 
@@ -688,7 +692,7 @@ class MainWindow(QMainWindow):
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
-        self.save_file()
+        self.save_file(save_expanded_states=True)
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
@@ -805,9 +809,9 @@ class MainWindow(QMainWindow):
                 search_bar_text += ' ' + key + value + ' '
         self.set_searchbar_text_and_search(search_bar_text)
 
-    def set_searchbar_text_and_search(self, search_bar_text, restore_selection=False):
+    def set_searchbar_text_and_search(self, search_bar_text):
         self.focused_column().search_bar.setText(search_bar_text)
-        self.search(search_bar_text, restore_selection)
+        self.search(search_bar_text)
 
     def filter_proxy_index_from_model_index(self, model_index):
         if self.focused_column().filter_proxy.sourceModel() == self.focused_column().flat_proxy:
@@ -835,7 +839,7 @@ class MainWindow(QMainWindow):
         self.set_selection(top_most_index, top_most_index)
         self.focused_column().view.setFocus()
 
-    def reset_view(self, restore_selection=False):
+    def reset_view(self):
         self.focused_item = None
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
@@ -847,7 +851,7 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
-        self.set_searchbar_text_and_search('', restore_selection=restore_selection)
+        self.set_searchbar_text_and_search('')
 
     def change_interface_font_size(self, step):
         self.new_if_size = self.interface_fontsize + step
@@ -885,7 +889,7 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setHeaderHidden(True)
 
     @pyqtSlot(str)
-    def search(self, search_text, restore_selection=False):
+    def search(self, search_text):
         self.old_search_text = search_text  # needed by the line above next time this method is called
 
         # sort
@@ -931,7 +935,7 @@ class MainWindow(QMainWindow):
 
         # restore expanded state when we are now in normal mode again after a text search
         if self.is_no_text_search(search_text):
-            self.item_model.expand_saved_and_restore_selection(QModelIndex(), restore_selection=restore_selection)
+            self.item_model.expand_saved(QModelIndex())
         # expand all items when doing a text search
         else:
             self.expand_or_collapse_children(QModelIndex(), True)
@@ -1417,17 +1421,16 @@ class MainWindow(QMainWindow):
             self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
             self.change_active_tree()
 
-    def save_file(self):
+    def save_file(self, save_expanded_states=False):
         # this method is called everytime a change is done.
         # therefore it is the right place to set the model changed for backup purposes
         self.item_model.changed = True
-        self.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
-        for proxy_index in self.focused_column().filter_proxy.persistentIndexList():
-            index = self.focused_column().filter_proxy.mapToSource(proxy_index)
-            self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
-            self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
-            self.item_model.getItem(index).selected = False
-        self.selected_item.selected = True
+        self.item_model.rootItem.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
+        if save_expanded_states:
+            for index in self.item_model.indexes():
+                proxy_index  = self.filter_proxy_index_from_model_index(index)
+                self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
+                self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
         pickle.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.save_path, 'wb'),
                     protocol=pickle.HIGHEST_PROTOCOL)
 

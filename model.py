@@ -89,6 +89,7 @@ class TreeModel(QAbstractItemModel):
 
         self.rootItem = Tree_item(None)
         self.rootItem.header_list = header_list
+        self.rootItem.selected_item = self.rootItem
 
     # necessary, because persistentIndexList() seems not to include all indexes
     def indexes(self):
@@ -227,7 +228,7 @@ class TreeModel(QAbstractItemModel):
 
         self.undoStack.push(SetDataCommand(self, index, value, index.column(), field))
 
-    def expand_saved_and_restore_selection(self, idx, restore_selection=True):
+    def expand_saved(self, idx):
         def restore_children_expanded_state(index):
             for i, child_item in enumerate(self.getItem(index).childItems):
                 child_index = self.index(i, 0, index)
@@ -235,8 +236,6 @@ class TreeModel(QAbstractItemModel):
                 self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
                 self.main_window.quicklinks_view.setExpanded(child_index, child_item.quicklink_expanded)
                 restore_children_expanded_state(child_index)
-                if restore_selection and child_item.selected:
-                    self.main_window.set_selection(child_index, child_index)
 
         self.main_window.focused_column().view.setAnimated(False)
         restore_children_expanded_state(idx)
@@ -267,7 +266,7 @@ class TreeModel(QAbstractItemModel):
                 index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
                 model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
-                model.expand_saved_and_restore_selection(parent_index, restore_selection=False)
+                model.expand_saved(parent_index)
 
             def remove_rows(self):
                 self.deleted_child_parent_index_position_list = []
