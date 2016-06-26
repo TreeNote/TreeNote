@@ -1447,6 +1447,8 @@ class MainWindow(QMainWindow):
             self.open_file(path)
 
     def import_backup(self, open_path, save_path):
+        self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+        self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
         if 'json' in open_path:
             if 'json' in open_path:
                 def json_decoder(obj):
@@ -1460,8 +1462,6 @@ class MainWindow(QMainWindow):
                 self.item_model.rootItem, self.bookmark_model.rootItem = json.load(open(open_path, 'r'),
                                                                                    object_hook=json_decoder)
         else:
-            self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
-            self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
             hit_list_dict = plistlib.load(open(open_path, 'rb'))
             id_item_dict = {}
             for task_dict in hit_list_dict['PFEntities']['Task'].values():
