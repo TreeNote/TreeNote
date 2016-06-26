@@ -1803,24 +1803,17 @@ class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action
     def __init__(self, parent):
         super(DelayedExecutionTimer, self).__init__(parent)
         # The minimum delay is the time the class will wait after being triggered before emitting the triggered() signal
-        self.minimumDelay = 200
-        # The maximum delay is the maximum time that will pass before a call to
-        # the trigger() slot leads to a triggered() signal.
-        self.maximumDelay = 500
+        # (if there is no key press for this time: trigger)
+        self.minimumDelay = 700
         self.minimumTimer = QTimer(self)
-        self.maximumTimer = QTimer(self)
         self.minimumTimer.timeout.connect(self.timeout)
-        self.maximumTimer.timeout.connect(self.timeout)
 
     def timeout(self):
         self.minimumTimer.stop()
-        self.maximumTimer.stop()
         self.triggered.emit(self.string)
 
     def trigger(self, string):
         self.string = string
-        if not self.maximumTimer.isActive():
-            self.maximumTimer.start(self.maximumDelay)
         self.minimumTimer.stop()
         self.minimumTimer.start(self.minimumDelay)
 
