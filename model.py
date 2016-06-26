@@ -468,7 +468,7 @@ class TreeModel(QAbstractItemModel):
         tags_set = set()
         for item in self.items():
             for word in item.text.split():
-                if word[0] == DELIMITER:
+                if word[0] == DELIMITER and word not in NO_TAG_LIST:
                     delimiter = '' if cut_delimiter else DELIMITER
                     tags_set.add(delimiter + word.strip(DELIMITER))
         return tags_set
@@ -1003,6 +1003,7 @@ class AutoCompleteEdit(QPlainTextEdit):
         self._completer.popup().setCurrentIndex(self._completer.completionModel().index(0, 0))
 
 
+NO_TAG_LIST = [':', ':"', ':)', ':/', ':).']
 ONLY_START_DATE = 'only_date'
 HIDE_FUTURE_START_DATE = 'hide_future_date'
 HIDE_TAGS = 'has_tag'
