@@ -651,9 +651,10 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
             elif FLATTEN in self.filter:
-                focused_item = self.sourceModel().sourceModel().main_window.focused_item
-                if focused_item:
-                    # focus + flatten: show just children of focused, but flat
+                root_index = self.sourceModel().main_window.focused_column().view.rootIndex()
+                source_root_index = self.sourceModel().main_window.focused_column().filter_proxy.mapToSource(root_index)
+                # focus + flatten: show just children of focused
+                if source_root_index != QModelIndex():
                     # return if somehow_child_id is a child or grandchild etc of the focused item
                     def is_somehow_child_of(parent_item):
                         for child_item in parent_item.childItems:
@@ -661,7 +662,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                                 return True
                         return False
 
-                    if is_somehow_child_of(focused_item):
+                    if is_somehow_child_of(self.sourceModel().getItem(source_root_index)):
                         continue
                 else:
                     continue
@@ -694,88 +695,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
             new_right_data = QDateFromString(right_data)
 
         return new_left_data > new_right_data
-
-
-class FlatProxyModel(QAbstractProxyModel, ProxyTools):
-    def __init__(self, parent=None):
-        super(FlatProxyModel, self).__init__(parent)
-
-    @pyqtSlot(QModelIndex, QModelIndex)
-    def sourceDataChanged(self, topLeft, bottomRight):
-        self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
-
-    @pyqtSlot(QModelIndex, int, int)
-    def sourceRowsInserted(self, parent, start, end):
-        self.beginResetModel()
-        self.buildMap(self.sourceModel())
-        self.endResetModel()
-        # the buildMap() method is cpu hungry (really? maybe the usage of the mapping is as hungry)
-        # but in the below solution, child rows get moved when insetering, too
-        # self.columns_list[0].insert(start, self.sourceModel().index(start, 0, parent))
-        # self.columns_list[1].insert(start, self.sourceModel().index(start, 1, parent))
-        # self.columns_list[2].insert(start, self.sourceModel().index(start, 2, parent))
-
-    # source: http://stackoverflow.com/
-    # questions/21564976/how-to-create-a-proxy-model-that-would-flatten-nodes-of-a-qabstractitemmodel-int
-    # but we have more than one column and therefore need to build a matrix instead of a list
-    # and we need to listen to changes of the source model and edit our matrixes accordingly
-    def buildMap(self, model, parent=QModelIndex(), row=0):
-        if row == 0:
-            # self.m_rowMap = {}  # use: row, column = m_rowMap[index]
-            # self.m_indexMap = {}  # use: index = m_indexMap[row, col]
-            self.columns_list = [[], [], []]
-        rows = model.rowCount(parent)
-        for r in range(rows):
-            index_0 = model.index(r, 0, parent)
-            self.columns_list[0].append(index_0)
-            self.columns_list[1].append(model.index(r, 1, parent))
-            self.columns_list[2].append(model.index(r, 2, parent))
-            # self.m_rowMap[index_0] = row, 0
-            # self.m_rowMap[index_1] = row, 1
-            # self.m_rowMap[index_2] = row, 2
-            # self.m_indexMap[row, 0] = index_0
-            # self.m_indexMap[row, 1] = index_1
-            # self.m_indexMap[row, 2] = index_2
-            row = row + 1
-            if model.hasChildren(index_0):
-                # add rows of children
-                row = self.buildMap(model, index_0, row)
-        return row
-
-    def setSourceModel(self, model):
-        QAbstractProxyModel.setSourceModel(self, model)
-        self.buildMap(model)
-        model.dataChanged.connect(self.sourceDataChanged)
-        model.rowsInserted.connect(self.sourceRowsInserted)
-        model.rowsRemoved.connect(self.sourceRowsInserted)
-
-    def mapFromSource(self, index):
-        column = index.column()
-        if index not in self.columns_list[column]:
-            return QModelIndex()
-        row = self.columns_list[column].index(index)
-        return self.createIndex(row, column)
-
-    def mapToSource(self, index):
-        column = index.column()
-        row = index.row()
-        if not index.isValid() or row == -1 or row >= len(self.columns_list[column]):
-            return QModelIndex()
-        return self.columns_list[column][row]
-
-    def columnCount(self, parent):
-        return QAbstractProxyModel.sourceModel(self).columnCount(self.mapToSource(parent))
-
-    def rowCount(self, parent):
-        return len(self.columns_list[0]) if not parent.isValid() else 0
-
-    def index(self, row, column, parent):
-        if parent.isValid():
-            return QModelIndex()
-        return self.createIndex(row, column)
-
-    def parent(self, index):
-        return QModelIndex()
 
 
 class Delegate(QStyledItemDelegate):

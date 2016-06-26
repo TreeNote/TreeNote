@@ -646,7 +646,6 @@ class MainWindow(QMainWindow):
     def change_active_tree(self):
         if not hasattr(self, 'item_views_splitter'):
             return
-        self.focused_column().flat_proxy.setSourceModel(self.item_model)
         self.focused_column().filter_proxy.setSourceModel(self.item_model)
         self.quicklinks_view.setModel(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
@@ -814,8 +813,6 @@ class MainWindow(QMainWindow):
         self.search(search_bar_text)
 
     def filter_proxy_index_from_model_index(self, model_index):
-        if self.focused_column().filter_proxy.sourceModel() == self.focused_column().flat_proxy:
-            model_index = self.focused_column().flat_proxy.mapFromSource(model_index)
         return self.focused_column().filter_proxy.mapFromSource(model_index)
 
     def set_selection(self, index_from, index_to):
@@ -909,36 +906,28 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setSortingEnabled(False)  # prevent sorting by text
             self.focused_column().view.header().setSectionsClickable(True)
 
-        def apply_filter():
-            self.focused_column().filter_proxy.filter = search_text
-            self.focused_column().filter_proxy.invalidateFilter()
-            # deselect tag if user changes the search string
-            selected_tags = self.tag_view.selectionModel().selectedRows()
-            if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
-                self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
-                # changing dropdown index accordingly is not that easy,
-                # because changing it fires "color_clicked" which edits search bar
+        # apply filter
+        self.focused_column().filter_proxy.filter = search_text
+        self.focused_column().filter_proxy.invalidateFilter()
+        # deselect tag if user changes the search string
+        selected_tags = self.tag_view.selectionModel().selectedRows()
+        if len(selected_tags) > 0 and selected_tags[0].data() not in search_text:
+            self.tag_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.Clear)
+            # changing dropdown index accordingly is not that easy,
+            # because changing it fires "color_clicked" which edits search bar
 
-        def set_model(new_model):
-            if self.focused_column().filter_proxy.sourceModel() != new_model:
-                self.focused_column().filter_proxy.setSourceModel(new_model)
-
-        # flatten + filter
+        # flatten
         if model.FLATTEN in search_text:
-            set_model(self.focused_column().flat_proxy)
-            apply_filter()
+            self.focused_column().view.expandAll()
+            self.set_indentation(0)
         else:
-            # filter must be refreshed before changing the model,
-            # otherwise exc because use of wrong model
-            apply_filter()
-            set_model(self.item_model)
-
-        # restore expanded state when we are now in normal mode again after a text search
-        if self.is_no_text_search(search_text):
-            self.item_model.expand_saved(QModelIndex())
-        # expand all items when doing a text search
-        else:
-            self.expand_or_collapse_children(QModelIndex(), True)
+            self.set_indentation(40)  # todo: save indentation in variable
+            # restore expanded state when we are now in normal mode again after a text search
+            if self.is_no_text_search(search_text):
+                self.item_model.expand_saved(QModelIndex())
+            # expand all items when doing a text search
+            else:
+                self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
         # ( the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row() )
@@ -1352,9 +1341,6 @@ class MainWindow(QMainWindow):
         new_column.view.setAnimated(True)
         new_column.view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        new_column.flat_proxy = model.FlatProxyModel()
-        new_column.flat_proxy.setSourceModel(self.item_model)
-
         new_column.filter_proxy = model.FilterProxyModel()
         new_column.filter_proxy.setSourceModel(self.item_model)
         # re-sort and re-filter data whenever the original model changes
@@ -1428,7 +1414,7 @@ class MainWindow(QMainWindow):
         self.item_model.rootItem.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
         if save_expanded_states:
             for index in self.item_model.indexes():
-                proxy_index  = self.filter_proxy_index_from_model_index(index)
+                proxy_index = self.filter_proxy_index_from_model_index(index)
                 self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
                 self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
         pickle.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(self.save_path, 'wb'),
