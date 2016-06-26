@@ -1,6 +1,7 @@
 # TreeNote
 backups/*
 nohup.out
+*treenote
 
 # IDEs
 .idea/

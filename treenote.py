@@ -300,6 +300,9 @@ class MainWindow(QMainWindow):
         add_action('colorOrangeAction',
                    QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
                    list=self.item_view_actions)
+        add_action('colorGreyAction',
+                   QAction('Grey', self, shortcut='E', triggered=lambda: self.color_row('e')),
+                   list=self.item_view_actions)
         add_action('colorNoColorAction',
                    QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')),
                    list=self.item_view_actions)
@@ -441,6 +444,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorBlueAction)
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
+        self.colorMenu.addAction(self.colorGreyAction)
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)

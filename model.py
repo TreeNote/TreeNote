@@ -1012,7 +1012,7 @@ ESTIMATE = 'estimate'
 STARTDATE = 'startdate'
 ASC = '_ascending'
 DESC = '_descending'
-TEXT_GRAY = QColor(188, 195, 208)
+TEXT_GRAY = QColor('#bcc3d0')  # bright grey
 SELECTION_GRAY = QColor('#555B6E')
 SELECTION_LIGHT_BLUE = QColor(181, 213, 253)
 ALTERNATE_BACKGROUND_GRAY_LIGHT = QColor(246, 246, 246)
@@ -1029,6 +1029,7 @@ CHAR_QCOLOR_DICT = {
     'b': QColor('#8A9ADD').name(),  # blue
     'r': QColor('#CE3535').name(),  # red
     'o': QColor('#DFBC30').name(),  # orange
+    'e': QColor('#808080').name(),  # dark grey
     'n': NO_COLOR
 }
 DELIMITER = ':'
