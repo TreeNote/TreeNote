@@ -89,7 +89,7 @@ class TreeModel(QAbstractItemModel):
 
         self.rootItem = Tree_item(None)
         self.rootItem.header_list = header_list
-        self.rootItem.selected_item = self.rootItem
+        self.selected_item = self.rootItem
 
     # necessary, because persistentIndexList() seems not to include all indexes
     def indexes(self):
