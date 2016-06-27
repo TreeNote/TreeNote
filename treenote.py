@@ -138,32 +138,13 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.hideColumn(2)
         self.quicklinks_view.setUniformRowHeights(True)  # improves performance
         self.quicklinks_view.setAnimated(True)
+        self.quicklinks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        self.bookmarks_view = QTreeView()
-        self.bookmarks_view.setModel(self.bookmark_model)
-        self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
-        self.bookmarks_view.clicked.connect(self.filter_bookmark)
-        self.bookmarks_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
-        self.bookmarks_view.hideColumn(1)
-        self.bookmarks_view.hideColumn(2)
-        self.bookmarks_view.setUniformRowHeights(True)  # improves performance
-        filters_holder = QWidget()  # needed to add space
+        quicklinks_view_holder = QWidget()  # needed to add space
         layout = QVBoxLayout()
-        layout.setContentsMargins(0, 11, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.bookmarks_view)
-        filters_holder.setLayout(layout)
-
-        self.first_column_splitter = QSplitter(Qt.Vertical)
-        self.first_column_splitter.setHandleWidth(0)
-        self.first_column_splitter.setChildrenCollapsible(False)
-        self.first_column_splitter.addWidget(self.quicklinks_view)
-        self.first_column_splitter.addWidget(filters_holder)
-        self.first_column_splitter.setContentsMargins(0, 11, 6, 0)  # left, top, right, bottom
-        self.first_column_splitter.setStretchFactor(0, 6)  # when the window is resized, only quick links shall grow
-        self.first_column_splitter.setStretchFactor(1, 0)
-        self.first_column_splitter.setSizes([100, 200])
+        layout.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
+        layout.addWidget(self.quicklinks_view)
+        quicklinks_view_holder.setLayout(layout)
 
         # second column
 
@@ -172,7 +153,7 @@ class MainWindow(QMainWindow):
 
         # third column
 
-        filter_label = QLabel(self.tr('ADD FILTERS'))
+        filter_label = QLabel(self.tr('Add filters:'))
 
         def init_dropdown(key, *item_names):
             comboBox = QComboBox()
@@ -208,8 +189,21 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
         layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
+        layout.addItem(QSpacerItem(0, 11, QSizePolicy.Fixed, QSizePolicy.Fixed), 8, 0, 1, 1)
         layout.setColumnStretch(1, 10)
         filters_holder.setLayout(layout)
+
+        self.bookmarks_view = QTreeView()
+        self.bookmarks_view.setModel(self.bookmark_model)
+        self.bookmarks_view.setItemDelegate(model.BookmarkDelegate(self, self.bookmark_model))
+        self.bookmarks_view.clicked.connect(self.filter_bookmark)
+        self.bookmarks_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.bookmarks_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.bookmarks_view.customContextMenuRequested.connect(self.open_edit_bookmark_contextmenu)
+        self.bookmarks_view.hideColumn(1)
+        self.bookmarks_view.hideColumn(2)
+        self.bookmarks_view.setUniformRowHeights(True)  # improves performance
+        self.bookmarks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
         self.tag_view = QTreeView()
         self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -220,19 +214,25 @@ class MainWindow(QMainWindow):
         self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
             model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
         self.tag_view.setAnimated(True)
+        self.tag_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        third_column = QWidget()
-        layout = QVBoxLayout()
-        layout.setContentsMargins(6, 6, 0, 0)  # left, top, right, bottom
-        layout.addWidget(filters_holder)
-        layout.addWidget(self.tag_view)
-        third_column.setLayout(layout)
+        self.third_column_splitter = QSplitter(Qt.Vertical)
+        self.third_column_splitter.setHandleWidth(0)
+        self.third_column_splitter.setChildrenCollapsible(False)
+        self.third_column_splitter.addWidget(filters_holder)
+        self.third_column_splitter.addWidget(self.bookmarks_view)
+        self.third_column_splitter.addWidget(self.tag_view)
+        self.third_column_splitter.setContentsMargins(6, 0, 0, 0)  # left, top, right, bottom
+        self.third_column_splitter.setStretchFactor(0, 0)
+        self.third_column_splitter.setStretchFactor(1, 0)
+        self.third_column_splitter.setStretchFactor(2, 6)  # when the window is resized, only tags shall grow
+        self.third_column_splitter.setSizes([50, 120, 200])
 
         # add columns to main
 
-        self.mainSplitter.addWidget(self.first_column_splitter)
+        self.mainSplitter.addWidget(quicklinks_view_holder)
         self.mainSplitter.addWidget(self.item_views_splitter)
-        self.mainSplitter.addWidget(third_column)
+        self.mainSplitter.addWidget(self.third_column_splitter)
         self.mainSplitter.setStretchFactor(0, 0)  # first column has a share of 2
         self.mainSplitter.setStretchFactor(1, 6)
         self.mainSplitter.setStretchFactor(2, 0)
@@ -504,9 +504,9 @@ class MainWindow(QMainWindow):
         if mainSplitter_state is not None:
             self.mainSplitter.restoreState(mainSplitter_state)
 
-        first_column_splitter_state = settings.value('first_column_splitter')
-        if first_column_splitter_state is not None:
-            self.first_column_splitter.restoreState(first_column_splitter_state)
+        third_column_splitter_state = settings.value('third_column_splitter')
+        if third_column_splitter_state is not None:
+            self.third_column_splitter.restoreState(third_column_splitter_state)
 
         # first (do this before the label 'second')
         self.change_active_tree()
@@ -682,7 +682,7 @@ class MainWindow(QMainWindow):
         settings.setValue('pos', self.pos())
         settings.setValue('size', self.size())
         settings.setValue('mainSplitter', self.mainSplitter.saveState())
-        settings.setValue('first_column_splitter', self.first_column_splitter.saveState())
+        settings.setValue('first_column_splitter', self.third_column_splitter.saveState())
         settings.setValue('fontsize', self.fontsize)
         settings.setValue('interface_fontsize', self.interface_fontsize)
         settings.setValue('padding', self.padding)
@@ -1299,7 +1299,7 @@ class MainWindow(QMainWindow):
         new_column.toggle_sidebars_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
-            padding: 2px; }')
+            padding: 5px; }')
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
         new_column.toggle_columns_button = QPushButton()
@@ -1308,7 +1308,7 @@ class MainWindow(QMainWindow):
         new_column.toggle_columns_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
-            padding: 2px; }')
+            padding: 5px; }')
         new_column.toggle_columns_button.clicked.connect(self.toggle_columns)
 
         new_column.search_bar = SearchBarQLineEdit(self)
@@ -1326,7 +1326,7 @@ class MainWindow(QMainWindow):
         new_column.bookmark_button.setStyleSheet('QPushButton {\
             width: 22px;\
             height: 22px;\
-            padding: 2px; }')
+            padding: 5px; }')
         new_column.bookmark_button.clicked.connect(
             lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
@@ -1336,7 +1336,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(new_column.toggle_columns_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
-        layout.setContentsMargins(0, 11, 0, 0)
+        layout.setContentsMargins(0, 6, 0, 0)
         search_holder.setLayout(layout)
 
         new_column.view = ResizeTreeView()
