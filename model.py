@@ -852,6 +852,8 @@ class BookmarkDelegate(QStyledItemDelegate):
 class EscCalendarWidget(QCalendarWidget):
     def __init__(self, parent):
         super(EscCalendarWidget, self).__init__(parent)
+        self.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        self.setMinimumWidth(280)
         # sadly, capture of the tab key is different on Windows and Mac.
         # so we need it here for windows and at OpenPopupDateEdit for Mac
         if sys.platform != "darwin":
