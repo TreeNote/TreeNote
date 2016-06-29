@@ -153,8 +153,6 @@ class MainWindow(QMainWindow):
 
         # third column
 
-        filter_label = QLabel(self.tr('Add filters:'))
-
         def init_dropdown(key, *item_names):
             comboBox = QComboBox()
             comboBox.addItems(item_names)
@@ -175,10 +173,8 @@ class MainWindow(QMainWindow):
         self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
         self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
-        filters_holder = QWidget()  # needed to add space
         layout = QGridLayout()
-        layout.setContentsMargins(0, 4, 6, 0)  # left, top, right, bottom
-        layout.addWidget(filter_label, 0, 0, 1, 2)  # fromRow, fromColumn, rowSpan, columnSpan
+        layout.setContentsMargins(2 + 10, 0, 6, 0)  # left, top, right, bottom
         layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
         layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
         layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
@@ -189,9 +185,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
         layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
-        layout.addItem(QSpacerItem(0, 11, QSizePolicy.Fixed, QSizePolicy.Fixed), 8, 0, 1, 1)
         layout.setColumnStretch(1, 10)
-        filters_holder.setLayout(layout)
+        self.filter_spoiler = Spoiler(self, 'Available filters')
+        self.filter_spoiler.setContentLayout(layout)
 
         self.bookmarks_view = QTreeView()
         self.bookmarks_view.setModel(self.bookmark_model)
@@ -219,14 +215,13 @@ class MainWindow(QMainWindow):
         self.third_column_splitter = QSplitter(Qt.Vertical)
         self.third_column_splitter.setHandleWidth(0)
         self.third_column_splitter.setChildrenCollapsible(False)
-        self.third_column_splitter.addWidget(filters_holder)
+        self.third_column_splitter.addWidget(self.filter_spoiler)
         self.third_column_splitter.addWidget(self.bookmarks_view)
         self.third_column_splitter.addWidget(self.tag_view)
         self.third_column_splitter.setContentsMargins(6, 0, 0, 0)  # left, top, right, bottom
         self.third_column_splitter.setStretchFactor(0, 0)
         self.third_column_splitter.setStretchFactor(1, 0)
-        self.third_column_splitter.setStretchFactor(2, 6)  # when the window is resized, only tags shall grow
-        self.third_column_splitter.setSizes([50, 120, 200])
+        self.third_column_splitter.setStretchFactor(2, 1)  # when the window is resized, only tags shall grow
 
         # add columns to main
 
@@ -602,11 +597,15 @@ class MainWindow(QMainWindow):
                 self.focused_column().view.verticalScrollBar(),
                 self.focused_column().view.header(),
                 self.tag_view,
-                self.tag_view.header()]
+                self.tag_view.header(),
+                self.tag_view.verticalScrollBar(),
+                self.filter_spoiler.toggleButton,
+                self.filter_spoiler.contentArea]
 
     def set_palette(self, new_palette):
         for widget in self.get_widgets():
             widget.setPalette(new_palette)
+            self.filter_spoiler.contentArea.setStyleSheet("QScrollArea { border: none; }")
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -1843,6 +1842,67 @@ class CustomHeaderView(QHeaderView):
 class ResizeTreeView(QTreeView):
     def resizeEvent(self, event):
         self.itemDelegate().sizeHintChanged.emit(QModelIndex())
+
+
+class Spoiler(QWidget):
+    # http://stackoverflow.com/questions/32476006/how-to-make-an-expandable-collapsable-section-widget-in-qt
+    def __init__(self, parent, title):
+        super(Spoiler, self).__init__(parent)
+
+        self.animationDuration = 300
+        self.toggleAnimation = QParallelAnimationGroup()
+        self.contentArea = QScrollArea()
+        self.toggleButton = QToolButton()
+        mainLayout = QGridLayout()
+
+        self.toggleButton.setStyleSheet("QToolButton { border: none; }")
+        self.toggleButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.toggleButton.setArrowType(Qt.RightArrow)
+        self.toggleButton.setText(title)
+        self.toggleButton.setCheckable(True)
+        self.toggleButton.setChecked(False)
+
+        self.contentArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # start out collapsed
+        self.contentArea.setMaximumHeight(0)
+        self.contentArea.setMinimumHeight(0)
+        # let the entire widget grow and shrink with its content
+        toggleAnimation = self.toggleAnimation
+        toggleAnimation.addAnimation(QPropertyAnimation(self, b"minimumHeight"))
+        toggleAnimation.addAnimation(QPropertyAnimation(self, b"maximumHeight"))
+        toggleAnimation.addAnimation(QPropertyAnimation(self.contentArea, b"maximumHeight"))
+        mainLayout.setContentsMargins(0, 0, 0, 10)
+        mainLayout.addWidget(self.toggleButton, 0, 0, 1, 1, Qt.AlignLeft)
+        mainLayout.addWidget(self.contentArea, 1, 0, 1, 3)
+        self.setLayout(mainLayout)
+
+        def start_animation(checked):
+            arrow_type = Qt.DownArrow if checked else Qt.RightArrow
+            direction = QAbstractAnimation.Forward if checked else QAbstractAnimation.Backward
+            self.toggleButton.setArrowType(arrow_type)
+            self.toggleAnimation.setDirection(direction)
+            self.toggleAnimation.start()
+
+        self.toggleButton.clicked.connect(start_animation)
+
+    def minimumSizeHint(self):
+        return QSize(self.contentArea.layout().minimumSize().width(), 0)
+
+    def setContentLayout(self, contentLayout):
+        # Not sure if this is equivalent to self.contentArea.destroy()
+        self.contentArea.destroy()
+        self.contentArea.setLayout(contentLayout)
+        collapsedHeight = self.sizeHint().height() - self.contentArea.maximumHeight()
+        contentHeight = contentLayout.sizeHint().height()
+        for i in range(self.toggleAnimation.animationCount()):
+            spoilerAnimation = self.toggleAnimation.animationAt(i)
+            spoilerAnimation.setDuration(self.animationDuration)
+            spoilerAnimation.setStartValue(collapsedHeight)
+            spoilerAnimation.setEndValue(collapsedHeight + contentHeight)
+        contentAnimation = self.toggleAnimation.animationAt(self.toggleAnimation.animationCount() - 1)
+        contentAnimation.setDuration(self.animationDuration)
+        contentAnimation.setStartValue(0)
+        contentAnimation.setEndValue(contentHeight)
 
 
 if __name__ == '__main__':
