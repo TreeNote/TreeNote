@@ -72,8 +72,6 @@ class ExportThread(QThread):
                    -1].replace('.treenote', '') + '_' + QDate.currentDate().toString(
             'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
         self.main_window.save_json(path + '.json')
-        with open(path + '.txt', 'w', encoding='utf-8') as file:
-            file.write(self.main_window.tree_as_string(self.main_window.item_model))
 
 
 class MainWindow(QMainWindow):
@@ -1117,7 +1115,6 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
-        app.processEvents()
         indention_string = (model.indention_level(index, app=app) - 1) * '\t'
         if index.data() is not None:
             rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
@@ -1792,8 +1789,8 @@ class SettingsDialog(QDialog):
         layout = QFormLayout()
         layout.addRow('Theme:', theme_dropdown)
         layout.addRow('Indentation of children in the tree:', indentation_spinbox)
-        backup_label = QLabel("Create a plain text export of all databases which have changes to the folder 'backups' "
-                              "every ... minutes (0 minutes disables this feature):")
+        backup_label = QLabel("Create a JSON export of the tree to the folder 'backups' "
+                              "every ... minutes, if the tree has changed (0 minutes disables this feature):")
         backup_label.setWordWrap(True)
         backup_label.setAlignment(Qt.AlignRight)
         backup_label.setMinimumSize(550, 0)
