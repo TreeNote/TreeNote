@@ -26,10 +26,12 @@ def QDateFromString(string):
     return d
 
 
-def indention_level(index, level=1):
+def indention_level(index, level=1, app=None):
+    if app:
+        app.processEvents()
     if index.parent() == QModelIndex():
         return level
-    return indention_level(index.parent(), level=level + 1)
+    return indention_level(index.parent(), level=level + 1, app=app)
 
 
 class QUndoCommandStructure(QUndoCommand):

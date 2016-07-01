@@ -65,6 +65,17 @@ def git_tag_to_versionnr(git_tag):
     return int(re.sub(r'\.|v', '', git_tag))
 
 
+class ExportThread(QThread):
+    def run(self):
+        path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + \
+               self.main_window.save_path.split(os.sep)[
+                   -1].replace('.treenote', '') + '_' + QDate.currentDate().toString(
+            'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
+        self.main_window.save_json(path + '.json')
+        with open(path + '.txt', 'w', encoding='utf-8') as file:
+            file.write(self.main_window.tree_as_string(self.main_window.item_model))
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -541,13 +552,9 @@ class MainWindow(QMainWindow):
     def backup_tree_if_changed(self):
         if self.item_model.changed:
             self.item_model.changed = False
-            path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + \
-                   self.save_path.split(os.sep)[
-                       -1].replace('.treenote', '') + '_' + QDate.currentDate().toString(
-                'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
-            self.save_json(path + '.json')
-            with open(path + '.txt', 'w', encoding='utf-8') as file:
-                file.write(self.tree_as_string(self.item_model))
+            self.worker = ExportThread()
+            self.worker.main_window = self
+            self.worker.start()
 
     def start_backup_service(self, minutes):
         self.backup_interval = int(minutes)
@@ -1110,7 +1117,8 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
-        indention_string = (model.indention_level(index) - 1) * '\t'
+        app.processEvents()
+        indention_string = (model.indention_level(index, app=app) - 1) * '\t'
         if index.data() is not None:
             rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
         for child_nr in range(item_model.rowCount(index)):
@@ -1437,6 +1445,7 @@ class MainWindow(QMainWindow):
 
     def save_json(self, path):
         def json_encoder(obj):
+            app.processEvents()
             dic = obj.__dict__.copy()
             del dic['parentItem']
             return dic
