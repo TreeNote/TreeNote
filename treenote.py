@@ -867,8 +867,9 @@ class MainWindow(QMainWindow):
                 widget.setFont(QFont(model.FONT, self.interface_fontsize))
 
     def change_font_size(self, step):
-        self.fontsize += step
-        self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
+        if step > 0 or self.fontsize > 1:
+            self.fontsize += step
+            self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
     def change_padding(self, step):
         if not (step == -1 and self.padding == 2):
