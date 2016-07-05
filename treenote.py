@@ -857,6 +857,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focused_column().view.setRootIndex(QModelIndex())
         self.set_searchbar_text_and_search('')
+        self.setup_tag_model()
 
     def change_interface_font_size(self, step):
         self.new_if_size = self.interface_fontsize + step
@@ -1275,6 +1276,7 @@ class MainWindow(QMainWindow):
                                                      QItemSelectionModel.ClearAndSelect)
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
+        self.setup_tag_model()
 
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()

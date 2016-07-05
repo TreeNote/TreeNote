@@ -103,7 +103,9 @@ class TreeModel(QAbstractItemModel):
         add_indexes(QModelIndex())
         return indexes
 
-    def items(self):
+    def items(self, root_item=None):
+        if not root_item:
+            root_item = self.rootItem
         items = []
 
         def add_items(item):
@@ -111,7 +113,7 @@ class TreeModel(QAbstractItemModel):
             for child in item.childItems:
                 add_items(child)
 
-        add_items(self.rootItem)
+        add_items(root_item)
         return items
 
     def headerData(self, column, orientation, role=Qt.DisplayRole):
@@ -466,7 +468,8 @@ class TreeModel(QAbstractItemModel):
 
     def get_tags_set(self, cut_delimiter=True):
         tags_set = set()
-        for item in self.items():
+        current_root_index = self.main_window.focused_column().view.rootIndex()
+        for item in self.items(root_item=self.main_window.focused_column().filter_proxy.getItem(current_root_index)):
             for word in item.text.split():
                 if word[0] == DELIMITER and word not in NO_TAG_LIST:
                     delimiter = '' if cut_delimiter else DELIMITER
