@@ -37,6 +37,7 @@ from resources import qrc_resources  # get's removed with 'optimize imports'!
 BOOKMARKS_HEADER = ['Bookmarks']
 TREE_HEADER = ['Text', 'Estimate', 'Start date']
 HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
+HIDE_SHOW_COLUMNS = "Hide / show the columns 'Estimate' and 'Start date'"
 COLUMNS_HIDDEN = 'columns_hidden'
 EDIT_BOOKMARK = 'Edit selected bookmark'
 EDIT_QUICKLINK = 'Edit selected quick link shortcut'
@@ -344,7 +345,11 @@ class MainWindow(QMainWindow):
         add_action('resetViewAction',
                    QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleSideBarsAction',
-                   QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Ctrl+S', triggered=self.toggle_sidebars))
+                   QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Shift+S', triggered=self.toggle_sidebars))
+        add_action('toggleFullScreenAction',
+                   QAction('Toggle fullscreen mode', self, shortcut='Shift+F', triggered=self.toggle_fullscreen))
+        add_action('toggleColumnsAction',
+                   QAction(HIDE_SHOW_COLUMNS, self, shortcut='Shift+C', triggered=self.toggle_columns))
         add_action('toggleProjectAction',
                    QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
                            shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
@@ -477,6 +482,8 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.toggleSideBarsAction)
+        self.viewMenu.addAction(self.toggleColumnsAction)
+        self.viewMenu.addAction(self.toggleFullScreenAction)
         self.viewMenu.addSeparator()
         self.viewMenu.addAction(self.increaseFontAction)
         self.viewMenu.addAction(self.decreaseFontAction)
@@ -875,6 +882,16 @@ class MainWindow(QMainWindow):
         if not (step == -1 and self.padding == 2):
             self.padding += step
             self.focused_column().view.itemDelegate().sizeHintChanged.emit(QModelIndex())
+
+    def toggle_fullscreen(self):
+        if self.windowState() != Qt.WindowFullScreen:
+            self.showFullScreen()
+            self.search_holder.hide()
+            self.menuBar().setMaximumHeight(0)
+        else:
+            self.showMaximized()
+            self.search_holder.show()
+            self.menuBar().setMaximumHeight(99)
 
     def toggle_sidebars(self):
         sidebar_shown = self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
@@ -1310,7 +1327,7 @@ class MainWindow(QMainWindow):
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
         new_column.toggle_columns_button = QPushButton()
-        new_column.toggle_columns_button.setToolTip("Hide / show the columns 'Estimate' and 'Start date'")
+        new_column.toggle_columns_button.setToolTip(HIDE_SHOW_COLUMNS)
         new_column.toggle_columns_button.setIcon(QIcon(':/toggle_columns'))
         new_column.toggle_columns_button.setStyleSheet('QPushButton {\
             width: 22px;\
@@ -1337,14 +1354,14 @@ class MainWindow(QMainWindow):
         new_column.bookmark_button.clicked.connect(
             lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
-        search_holder = QWidget()
+        self.search_holder = QWidget()
         layout = QHBoxLayout()
         layout.addWidget(new_column.toggle_sidebars_button)
         layout.addWidget(new_column.toggle_columns_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.setContentsMargins(0, 6, 0, 0)
-        search_holder.setLayout(layout)
+        self.search_holder.setLayout(layout)
 
         new_column.view = ResizeTreeView()
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -1372,7 +1389,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
-        layout.addWidget(search_holder)
+        layout.addWidget(self.search_holder)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
 
