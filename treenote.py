@@ -66,12 +66,14 @@ def git_tag_to_versionnr(git_tag):
     return int(re.sub(r'\.|v', '', git_tag))
 
 
+def time_stamp():
+    return QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
+
+
 class ExportThread(QThread):
     def run(self):
         path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + \
-               self.main_window.save_path.split(os.sep)[
-                   -1].replace('.treenote', '') + '_' + QDate.currentDate().toString(
-            'yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
+               self.main_window.save_path.split(os.sep)[-1].replace('.treenote', '') + '_' + time_stamp()
         self.main_window.save_json(path + '.json')
 
 
@@ -118,7 +120,7 @@ class MainWindow(QMainWindow):
                                                   'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
                 self.new_file()
         else:
-            self.import_backup(RESOURCE_FOLDER + 'example_tree.json', 'example_tree.treenote')
+            self.import_backup(RESOURCE_FOLDER + 'example_tree.json', 'example_tree_{}.treenote'.format(time_stamp()))
 
         app.focusChanged.connect(self.update_actions)
 
