@@ -1581,7 +1581,7 @@ class AboutBox(QDialog):
                 'Version ' + version.version_nr.replace('v', '') +
                 '<br><br>'
                 'TreeNote is an easy outliner for personal knowledge and task management.'
-                'More info at <a href="http://www.treenote.de/">www.treenote.de</a>.<br>'
+                'More info at <a href="http://treenote.github.io">treenote.github.io</a>.<br>'
                 '<br>'
                 'Contact me at j.korte@me.com if you have an idea or issue!<br>'
                 '<br>'
@@ -1756,7 +1756,7 @@ class UpdateDialog(QDialog):
         ignoreButton.clicked.connect(self.close)
         downloadButton = QPushButton('Download')
         downloadButton.setDefault(True)
-        downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://www.treenote.de/download/')))
+        downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://treenote.github.io/download')))
 
         grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan
         grid.addWidget(QLabel(self.tr('Treenote ' + parent.new_version_data['tag_name'][1:] +
