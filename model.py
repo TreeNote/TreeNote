@@ -691,8 +691,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         if column == 0:
             return True
         elif column == 1:
-            new_left_data = int(left_data) if left_data != '' else 0
-            new_right_data = int(right_data) if right_data != '' else 0
+            new_left_data = int(left_data) if left_data != '' else sys.maxsize
+            new_right_data = int(right_data) if right_data != '' else sys.maxsize
         elif column == 2:
             new_left_data = QDateFromString(left_data)
             new_right_data = QDateFromString(right_data)
