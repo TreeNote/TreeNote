@@ -411,10 +411,10 @@ class MainWindow(QMainWindow):
         self.fileMenu = self.menuBar().addMenu(self.tr('File'))
         self.fileMenu.addAction(self.newFileAction)
         self.fileMenu.addAction(self.openFileAction)
-        self.importMenu = self.fileMenu.addMenu(self.tr('Import tree'))
+        self.importMenu = self.fileMenu.addMenu(self.tr('Import'))
         self.importMenu.addAction(self.importJSONAction)
         self.importMenu.addAction(self.importHitListAction)
-        self.exportMenu = self.fileMenu.addMenu(self.tr('Export tree'))
+        self.exportMenu = self.fileMenu.addMenu(self.tr('Export'))
         self.exportMenu.addAction(self.exportJSONAction)
         self.exportMenu.addAction(self.exportPlainTextAction)
         self.fileMenu.addSeparator()
@@ -1134,7 +1134,7 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
 
     def tree_as_string(self, item_model, index=QModelIndex(), rows_string=''):
-        indention_string = (model.indention_level(index, app=app) - 1) * '\t'
+        indention_string = (model.indention_level(index) - 1) * '\t'
         if index.data() is not None:
             rows_string += indention_string + '- ' + index.data().replace('\n', '\n' + indention_string + '\t') + '\n'
         for child_nr in range(item_model.rowCount(index)):
@@ -1454,11 +1454,13 @@ class MainWindow(QMainWindow):
         if len(path) > 0:
             with open(path, 'w', encoding='utf-8') as file:
                 file.write(self.tree_as_string(self.item_model))
+                QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
 
     def export_json(self):
         path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.json', "*.json")[0]
         if len(path) > 0:
             self.save_json(path)
+            QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
 
     def save_json(self, path):
         def json_encoder(obj):
