@@ -91,6 +91,12 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.header_list = header_list
         self.selected_item = self.rootItem
 
+    def child_indexes(self, parent_index):
+        indexes = []
+        for i in range(self.rowCount(parent_index)):
+            indexes.append(self.index(i, 0, parent_index))
+        return indexes
+
     # necessary, because persistentIndexList() seems not to include all indexes
     def indexes(self):
         indexes = []
@@ -174,6 +180,16 @@ class TreeModel(QAbstractItemModel):
 
         item = self.getItem(index)
         if index.column() == 0:
+            # hidden option to show number of children behind each row
+            if False:
+                def count_children(index):
+                    child_count = 0
+                    for child_index in self.child_indexes(index):
+                        child_count += 1
+                        child_count += count_children(child_index)
+                    return child_count
+
+                return '{} {}'.format(item.text, count_children(index))
             return item.text
         elif index.column() == 1:
             return item.estimate
