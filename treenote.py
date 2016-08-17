@@ -799,11 +799,20 @@ class MainWindow(QMainWindow):
             self.set_searchbar_text_and_search(new_text)
 
     # set the search bar text according to the selected bookmark
-    def filter_bookmark(self, index):
-        new_search_bar_text = self.bookmark_model.getItem(index).search_text
+    def filter_bookmark(self, bookmark_index):
+        bookmark_item = self.bookmark_model.getItem(bookmark_index)
+
+        if bookmark_item.saved_root_item_creation_date_time:
+            for index in self.item_model.indexes():
+                item_creation_date_time = self.item_model.getItem(index).creation_date_time
+                if item_creation_date_time == bookmark_item.saved_root_item_creation_date_time:
+                    self.focus_index(self.filter_proxy_index_from_model_index(index))
+                    break
+
+        new_search_bar_text = bookmark_item.search_text
         self.set_searchbar_text_and_search(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
-        self.set_selection(index, index)
+        self.set_selection(bookmark_index, bookmark_index)
 
     # just for one character filters
     def filter(self, key, value):
@@ -1646,8 +1655,19 @@ class BookmarkDialog(QDialog):
         self.main_window = main_window
         self.search_bar_text = search_bar_text
         self.index = index
+        rootIndex = self.main_window.focused_column().view.rootIndex()
+        self.root_item = self.main_window.focused_column().filter_proxy.getItem(rootIndex)
+        self.save_root_checkbox = QCheckBox()
+        self.save_root_checkbox.setChecked(True)
+
+        save_root_item_label_text = 'Save current root item "{}":'.format(self.root_item.text)
         if index is not None:
             item = main_window.bookmark_model.getItem(index)
+            self.save_root_checkbox = None
+            if item.saved_root_item_creation_date_time:
+                save_root_item_label_text = 'Saved root item: "{}"'.format(self.root_item.text)
+            else:
+                save_root_item_label_text = 'No saved root item.'
 
         name = '' if index is None else item.text
         self.name_edit = QLineEdit(name)
@@ -1668,11 +1688,14 @@ class BookmarkDialog(QDialog):
         grid.addWidget(QLabel('Bookmark name:'), 0, 0)  # row, column
         grid.addWidget(QLabel('Saved filters:'), 1, 0)
         grid.addWidget(QLabel('Shortcut (optional):'), 2, 0)
+        grid.addWidget(QLabel(save_root_item_label_text), 3, 0)
         grid.addWidget(self.name_edit, 0, 1)
         grid.addWidget(self.search_bar_text_edit, 1, 1)
         grid.addWidget(self.shortcut_edit, 2, 1)
         grid.addWidget(clearButton, 2, 2)
-        grid.addWidget(buttonBox, 3, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
+        if self.save_root_checkbox:
+            grid.addWidget(self.save_root_checkbox, 3, 1)
+        grid.addWidget(buttonBox, 4, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
@@ -1686,6 +1709,9 @@ class BookmarkDialog(QDialog):
             new_item_position = len(self.main_window.bookmark_model.rootItem.childItems)
             self.main_window.bookmark_model.insert_remove_rows(new_item_position, QModelIndex())
             self.index = self.main_window.bookmark_model.index(new_item_position, 0, QModelIndex())
+            if self.save_root_checkbox.isChecked():
+                self.main_window.bookmark_model.set_data(self.root_item.creation_date_time, index=self.index,
+                                                         field='saved_root_item_creation_date_time')
         self.main_window.bookmark_model.set_data(self.name_edit.text(), index=self.index, field='text')
         self.main_window.bookmark_model.set_data(self.search_bar_text_edit.text(), index=self.index,
                                                  field=model.SEARCH_TEXT)

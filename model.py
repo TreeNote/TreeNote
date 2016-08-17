@@ -11,6 +11,7 @@
 # the Free Software Foundation, version 3 of the License.
 #################################################################################
 
+import time
 import re
 import sys
 from xml.sax.saxutils import escape
@@ -67,6 +68,8 @@ class Tree_item():
         self.quicklink_expanded = False
         self.search_text = ''  # for bookmarks
         self.shortcut = None  # for bookmarks
+        self.saved_root_item_creation_date_time = None  # for bookmarks
+        self.creation_date_time = time.time()
         self.selected = False
 
     def child_number(self):
@@ -88,6 +91,7 @@ class TreeModel(QAbstractItemModel):
         self.undoStack = QUndoStack(self)
 
         self.rootItem = Tree_item(None)
+        self.rootItem.text = 'Root'
         self.rootItem.header_list = header_list
         self.selected_item = self.rootItem
 
@@ -137,7 +141,7 @@ class TreeModel(QAbstractItemModel):
 
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def getItem(self, index):
+    def getItem(self, index) -> Tree_item:
         if index.isValid():
             item = index.internalPointer()
             if item:
