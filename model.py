@@ -673,22 +673,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
-            elif FLATTEN in self.filter:
-                root_index = self.sourceModel().main_window.focused_column().view.rootIndex()
-                source_root_index = self.sourceModel().main_window.focused_column().filter_proxy.mapToSource(root_index)
-                # focus + flatten: show just children of focused
-                if source_root_index != QModelIndex():
-                    # return if somehow_child_id is a child or grandchild etc of the focused item
-                    def is_somehow_child_of(parent_item):
-                        for child_item in parent_item.childItems:
-                            if item == child_item or is_somehow_child_of(child_item):
-                                return True
-                        return False
-
-                    if is_somehow_child_of(self.sourceModel().getItem(source_root_index)):
-                        continue
-                else:
-                    continue
             elif token.casefold() in index.data().casefold():
                 continue
             break  # user type stuff that's not found
@@ -797,8 +781,7 @@ class Delegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
         html = escape(index.data())
         column_width = self.view_header.sectionSize(0)
-        level = 1 if self.main_window.flatten else indention_level(index)
-        document = self.create_document(index, html.replace('\n', '<br>'), column_width - level *
+        document = self.create_document(index, html.replace('\n', '<br>'), column_width - indention_level(index) *
                                         self.main_window.focused_column().view.indentation())
         return QSize(0, document.size().height() + self.main_window.padding * 2)
 
@@ -1032,7 +1015,6 @@ NO_TAG_LIST = [':', ':"', ':)', ':/', ':).']
 ONLY_START_DATE = 'only_date'
 HIDE_FUTURE_START_DATE = 'hide_future_date'
 HIDE_TAGS = 'has_tag'
-FLATTEN = 'flatten'
 SORT = 'sort'
 ESTIMATE = 'estimate'
 STARTDATE = 'startdate'

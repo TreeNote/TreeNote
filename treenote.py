@@ -105,7 +105,6 @@ class MainWindow(QMainWindow):
         # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
         self.old_search_text = ''
 
-        self.flatten = False
         self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
         self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
 
@@ -176,8 +175,6 @@ class MainWindow(QMainWindow):
         self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'),
                                             self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
 
-        self.flattenViewCheckBox = QCheckBox('Flatten view')
-        self.flattenViewCheckBox.clicked.connect(self.filter_flatten_view)
         self.hideTagsCheckBox = QCheckBox('Hide rows with a tag')
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
         self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
@@ -193,7 +190,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
         layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
         layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
-        layout.addWidget(self.flattenViewCheckBox, 4, 0, 1, 2)
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
         layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
@@ -780,14 +776,6 @@ class MainWindow(QMainWindow):
         else:
             self.filter(model.HIDE_FUTURE_START_DATE, 'all')
 
-    @pyqtSlot(bool)
-    def filter_flatten_view(self, flatten):
-        self.flatten = flatten
-        if flatten:
-            self.append_replace_to_searchbar(model.FLATTEN, 'yes')
-        else:
-            self.filter(model.FLATTEN, 'all')
-
     def filter_tag(self):
         current_index = self.tag_view.selectionModel().currentIndex()
         current_tag = self.tag_view.model().data(current_index, tag_model.FULL_PATH)
@@ -866,7 +854,6 @@ class MainWindow(QMainWindow):
         self.focused_item = None
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
-        self.flattenViewCheckBox.setChecked(False)
         self.showOnlyStartdateCheckBox.setChecked(False)
         self.task_dropdown.setCurrentIndex(0)
         self.estimate_dropdown.setCurrentIndex(0)
@@ -954,18 +941,13 @@ class MainWindow(QMainWindow):
             # changing dropdown index accordingly is not that easy,
             # because changing it fires "color_clicked" which edits search bar
 
-        # flatten
-        if model.FLATTEN in search_text:
-            self.focused_column().view.expandAll()
-            self.set_indentation(0)
+
+        # restore expanded state when we are now in normal mode again after a text search
+        if self.is_no_text_search(search_text):
+            self.item_model.expand_saved(QModelIndex())
+        # expand all items when doing a text search
         else:
-            self.set_indentation(40)  # todo: save indentation in variable
-            # restore expanded state when we are now in normal mode again after a text search
-            if self.is_no_text_search(search_text):
-                self.item_model.expand_saved(QModelIndex())
-            # expand all items when doing a text search
-            else:
-                self.expand_or_collapse_children(QModelIndex(), True)
+            self.expand_or_collapse_children(QModelIndex(), True)
 
         # set selection
         # ( the selection is also set after pressing Enter, in SearchBarQLineEdit and insert_row() )
@@ -1043,8 +1025,7 @@ class MainWindow(QMainWindow):
         def is_filter_keyword(token):
             return token.startswith(model.SORT) or token.startswith('c=') or token.startswith('t=') or \
                    re.match(r'e(<|>|=)', token) or token.startswith(model.ONLY_START_DATE) or \
-                   token.startswith(model.HIDE_TAGS) or token.startswith(model.HIDE_FUTURE_START_DATE) \
-                   or model.FLATTEN in token
+                   token.startswith(model.HIDE_TAGS) or token.startswith(model.HIDE_FUTURE_START_DATE)
 
         # it is no text search, if it is empty or all tokens are a filter keyword
         return text == '' or all(is_filter_keyword(token) for token in text.split())
@@ -1167,9 +1148,6 @@ class MainWindow(QMainWindow):
     def copy(self):
         if len(self.selected_indexes()) == 1:
             rows_string = self.selected_indexes()[0].data()
-        elif self.flatten:
-            rows_string = '\r\n'.join(['- ' + index.data().replace('\n', '\r\n\t')
-                                       for index in self.selected_indexes()])
         else:
             selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index)
                                        for index in self.selected_indexes()]
