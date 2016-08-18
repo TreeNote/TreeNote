@@ -451,7 +451,7 @@ class MainWindow(QMainWindow):
         self.editRowMenu.addAction(self.toggleTaskAction)
         self.editRowMenu.addAction(self.toggleProjectAction)
         self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start date of selected rows'))
-        for i in range(1, 9):
+        for i in range(1, 10):
             self.remindInMenu.addAction(
                 add_action('remindIn{}Action'.format(i), QAction('Remind in {} days'.format(i), self,
                                                                  shortcut='Shift+{}'.format(i),
@@ -468,11 +468,15 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
-        for i in range(1, 10):
-            self.estimateMenu.addAction(
-                add_action('estimate{}Action'.format(i), QAction('Estimate ' + str(i), self, shortcut=str(i),
-                                                                 triggered=partial(self.estimate, i)),
-                           list=self.item_view_actions))
+        for i in range(1, 181):
+            shortcut = i if i < 10 else ','.join(number for number in str(i))
+            if i > 10:  # todo: remove
+                action = add_action('estimate{}Action'.format(i),
+                                    QAction('Estimate {}'.format(i), self, shortcut=str(shortcut),
+                                            triggered=partial(self.estimate, i)),
+                                    list=self.item_view_actions)
+                if i < 10 or i >= 179:
+                    self.estimateMenu.addAction(action)
         self.estimateMenu.addAction(self.increaseEstimateAction)
         self.estimateMenu.addAction(self.decreaseEstimateAction)
 
