@@ -486,9 +486,9 @@ class TreeModel(QAbstractItemModel):
             MoveHorizontalCommand(self, direction, parent_parent_index, parent_index, indexes, position,
                                   original_position, sibling_index, last_childnr_of_sibling))
 
-    def get_tags_set(self, cut_delimiter=True):
+    def get_tags_set(self, cut_delimiter=True, all_tags=False):
         tags_set = set()
-        current_root_index = self.main_window.focused_column().view.rootIndex()
+        current_root_index = QModelIndex() if all_tags else self.main_window.focused_column().view.rootIndex()
         for item in self.items(root_item=self.main_window.focused_column().filter_proxy.getItem(current_root_index)):
             for word in item.text.split():
                 if word[0] == DELIMITER and word not in NO_TAG_LIST:
@@ -787,7 +787,7 @@ class Delegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
-            suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False)
+            suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False, all_tags=True)
             edit = AutoCompleteEdit(parent, list(suggestions_model), self)
             padding_left = -5
             if self.model.getItem(index).type != NOTE:
