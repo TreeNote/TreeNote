@@ -255,6 +255,7 @@ class MainWindow(QMainWindow):
             self.all_actions.append(qaction)
             if list is not None:
                 list.append(qaction)
+            return qaction
 
         add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,',
                                           triggered=lambda: SettingsDialog(self).exec_()))
@@ -311,14 +312,10 @@ class MainWindow(QMainWindow):
                    list=self.item_view_actions)
         add_action('noEstimateAction', QAction('No estimate', self, shortcut='0', triggered=partial(self.estimate, '')),
                    list=self.item_view_actions)
-        for i in range(1, 10):
-            add_action('estimate{}Action'.format(i),
-                       QAction('Estimate ' + str(i), self, shortcut=str(i), triggered=partial(self.estimate, i)),
-                       list=self.item_view_actions)
-        add_action('increaseEstimateAction'.format(i),
+        add_action('increaseEstimateAction',
                    QAction('Increase estimate', self, shortcut='+', triggered=partial(self.adjust_estimate, 10)),
                    list=self.item_view_actions)
-        add_action('decreaseEstimateAction'.format(i),
+        add_action('decreaseEstimateAction',
                    QAction('Decrease estimate', self, shortcut='-', triggered=partial(self.adjust_estimate, -10)),
                    list=self.item_view_actions)
         add_action('toggleTaskAction',
@@ -358,7 +355,10 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
                            shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
         add_action('appendRepeatAction',
-                   QAction(self.tr('Repeat'), self, shortcut='Ctrl+R', triggered=self.append_repeat),
+                   QAction(self.tr("Append 'repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
+                   list=self.item_view_actions)
+        add_action('appendRepeatAction',
+                   QAction(self.tr("Append 'repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
                    list=self.item_view_actions)
         add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down',
                                            triggered=lambda: self.focus_index(self.current_index())),
@@ -450,6 +450,13 @@ class MainWindow(QMainWindow):
         self.editRowMenu.addAction(self.editRowAction)
         self.editRowMenu.addAction(self.toggleTaskAction)
         self.editRowMenu.addAction(self.toggleProjectAction)
+        self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start date of selected rows'))
+        for i in range(1, 9):
+            self.remindInMenu.addAction(
+                add_action('remindIn{}Action'.format(i), QAction('Remind in {} days'.format(i), self,
+                                                                 shortcut='Shift+{}'.format(i),
+                                                                 triggered=partial(self.remindIn, i)),
+                           list=self.item_view_actions))
         self.editRowMenu.addAction(self.appendRepeatAction)
         self.colorMenu = self.editRowMenu.addMenu(self.tr('Color selected rows'))
         self.colorMenu.addAction(self.colorGreenAction)
@@ -461,15 +468,11 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
-        self.estimateMenu.addAction(self.estimate1Action)
-        self.estimateMenu.addAction(self.estimate2Action)
-        self.estimateMenu.addAction(self.estimate3Action)
-        self.estimateMenu.addAction(self.estimate4Action)
-        self.estimateMenu.addAction(self.estimate5Action)
-        self.estimateMenu.addAction(self.estimate6Action)
-        self.estimateMenu.addAction(self.estimate7Action)
-        self.estimateMenu.addAction(self.estimate8Action)
-        self.estimateMenu.addAction(self.estimate9Action)
+        for i in range(1, 10):
+            self.estimateMenu.addAction(
+                add_action('estimate{}Action'.format(i), QAction('Estimate ' + str(i), self, shortcut=str(i),
+                                                                 triggered=partial(self.estimate, i)),
+                           list=self.item_view_actions))
         self.estimateMenu.addAction(self.increaseEstimateAction)
         self.estimateMenu.addAction(self.decreaseEstimateAction)
 
@@ -1261,6 +1264,10 @@ class MainWindow(QMainWindow):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
             self.focused_column().filter_proxy.toggle_project(row_index)
 
+    def remindIn(self, days):
+        self.focused_column().filter_proxy.set_data(QDate.currentDate().addDays(days).toString('dd.MM.yy'),
+                                                    index=self.current_index(), field='date')
+
     def append_repeat(self):
         index = self.current_index()
         self.focused_column().filter_proxy.set_data(model.TASK, index=index, field='type')
@@ -1655,12 +1662,12 @@ class BookmarkDialog(QDialog):
         self.save_root_checkbox = QCheckBox()
         self.save_root_checkbox.setChecked(True)
 
-        save_root_item_label_text = 'Save current root item "{}":'.format(self.root_item.text)
+        save_root_item_label_text = "Save current root item '{}':".format(self.root_item.text)
         if index is not None:
             item = main_window.bookmark_model.getItem(index)
             self.save_root_checkbox = None
             if item.saved_root_item_creation_date_time:
-                save_root_item_label_text = 'Saved root item: "{}"'.format(self.root_item.text)
+                save_root_item_label_text = "Saved root item: '{}''".format(self.root_item.text)
             else:
                 save_root_item_label_text = 'No saved root item.'
 
