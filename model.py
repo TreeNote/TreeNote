@@ -210,7 +210,7 @@ class TreeModel(QAbstractItemModel):
                 if self.column == 0:  # used for setting color etc, too
                     self.old_value = getattr(item, self.field)
                     setattr(item, self.field, value)
-                    if self.field == TEXT and (DELIMITER in value or DELIMITER in self.old_value):
+                    if self.field == TEXT and (TAG_DELIMITER in value or TAG_DELIMITER in self.old_value):
                         self.model.main_window.setup_tag_model()
                 elif self.column == 1:
                     self.old_value = item.estimate
@@ -491,9 +491,9 @@ class TreeModel(QAbstractItemModel):
         current_root_index = QModelIndex() if all_tags else self.main_window.focused_column().view.rootIndex()
         for item in self.items(root_item=self.main_window.focused_column().filter_proxy.getItem(current_root_index)):
             for word in item.text.split():
-                if word[0] == DELIMITER and word not in NO_TAG_LIST:
-                    delimiter = '' if cut_delimiter else DELIMITER
-                    tags_set.add(delimiter + word.strip(DELIMITER))
+                if word[0] == TAG_DELIMITER and word not in NO_TAG_LIST:
+                    delimiter = '' if cut_delimiter else TAG_DELIMITER
+                    tags_set.add(delimiter + word.strip(TAG_DELIMITER))
         return tags_set
 
     def is_task_available(self, index):
@@ -667,7 +667,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                     continue
             elif token.startswith(HIDE_TAGS):
                 # accept (continue) when row has no tag
-                if not re.search(' ' + DELIMITER, index.data()):
+                if not re.search(' ' + TAG_DELIMITER, index.data()):
                     continue
             elif token.startswith(HIDE_FUTURE_START_DATE):
                 # accept (continue) when no date or date is not in future
@@ -716,7 +716,7 @@ class Delegate(QStyledItemDelegate):
 
         html = escape(index.data())
         # color tags by surrounding them with coloring html brackets
-        html = re.sub(r'((\n|^| )(' + DELIMITER + r'\w+)+($| |\n))',
+        html = re.sub(r'((\n|^| )(' + TAG_DELIMITER + r'\w+)+($| |\n))',
                       r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
@@ -787,8 +787,9 @@ class Delegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         if index.column() == 0:
-            suggestions_model = self.main_window.item_model.get_tags_set(cut_delimiter=False, all_tags=True)
-            edit = AutoCompleteEdit(parent, list(suggestions_model), self)
+            suggestions_list = list(self.main_window.item_model.get_tags_set(cut_delimiter=False, all_tags=True))
+            tree_item_list = [item.text for item in self.main_window.item_model.items()]
+            edit = AutoCompleteEdit(parent, suggestions_list, tree_item_list, self)
             padding_left = -5
             if self.model.getItem(index).type != NOTE:
                 padding_left += GAP_FOR_CHECKBOX - 1
@@ -928,14 +929,16 @@ class OpenPopupDateEdit(QDateEdit):
 class AutoCompleteEdit(QPlainTextEdit):
     # source: http://blog.elentok.com/2011/08/autocomplete-textbox-for-multiple.html
 
-    def __init__(self, parent, model, delegate):
+    def __init__(self, parent, tag_list, tree_item_list, delegate):
         super(AutoCompleteEdit, self).__init__(parent)
         self.delegate = delegate
         self._separator = ' '
-        self._completer = QCompleter(model)
-        self._completer.setFilterMode(Qt.MatchContains)
-        self._completer.setWidget(self)
-        self._completer.activated[str].connect(self._insertCompletion)
+        self.tag_completer = QCompleter(tag_list)
+        self.internal_link_completer = QCompleter(tree_item_list)
+        for completer in self.tag_completer, self.internal_link_completer:
+            completer.setFilterMode(Qt.MatchContains)
+            completer.setWidget(self)
+            completer.activated[str].connect(self._insertCompletion)
         self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
         self.setFont(QFont(FONT, self.delegate.main_window.fontsize))
         self.setTabStopWidth(TAB_WIDTH)
@@ -952,13 +955,20 @@ class AutoCompleteEdit(QPlainTextEdit):
         This is the event handler for the QCompleter.activated(QString) signal,
         it is called when the user selects an item in the completer popup.
         """
-        before_tag = self.toPlainText()[:self.textCursor().position() - len(self._completer.completionPrefix())]
+        if self.tag_completer.completionPrefix():
+            typed_letters_to_replace = self.tag_completer.completionPrefix()
+        else:
+            typed_letters_to_replace = self.internal_link_completer.completionPrefix()
+        before_tag = self.toPlainText()[
+                     :self.textCursor().position() - len(typed_letters_to_replace)]
         after_tag = self.toPlainText()[self.textCursor().position():]
         until_cursor = before_tag + completion + ' '
         self.setPlainText(until_cursor + after_tag)
         cursor = self.textCursor()
         cursor.setPosition(len(until_cursor))
         self.setTextCursor(cursor)
+        self.tag_completer.setCompletionPrefix('')
+        self.internal_link_completer.setCompletionPrefix('')
 
     def textUnderCursor(self):
         text = self.toPlainText()
@@ -982,33 +992,40 @@ class AutoCompleteEdit(QPlainTextEdit):
                 if event.modifiers() & Qt.AltModifier:  # fix alt + enter in Qt
                     event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
             else:  # complete edit on enter
-                if not self._completer.popup().isVisible():
+                if not self.tag_completer.popup().isVisible() and not self.internal_link_completer.popup().isVisible():
                     self.delegate.commitData.emit(self)
                     self.delegate.closeEditor.emit(self, QAbstractItemDelegate.NoHint)
 
         # completer stuff
-        if self._completer.popup().isVisible():
-            if event.key() in self._keysToIgnore:
-                event.ignore()
-                return
+        if event.key() in self._keysToIgnore and \
+                (self.tag_completer.popup().isVisible() or self.internal_link_completer.popup().isVisible()):
+            event.ignore()
+            return
         super(AutoCompleteEdit, self).keyPressEvent(event)
         completionPrefix = self.textUnderCursor()
+        if completionPrefix and completionPrefix[0] == INTERNAL_LINK_DELIMITER:
+            completionPrefix = completionPrefix[1:]
         if len(completionPrefix) == 0:
-            self._completer.popup().hide()
+            self.tag_completer.popup().hide()
+            self.internal_link_completer.popup().hide()
             return
-        if completionPrefix[0] == DELIMITER:
-            if completionPrefix != self._completer.completionPrefix():
-                self._updateCompleterPopupItems(completionPrefix)
-            if len(event.text()) > 0 and len(completionPrefix) > 0:
-                self._completer.complete()
 
-    def _updateCompleterPopupItems(self, completionPrefix):
-        """
-        Filters the completer's popup items to only show items
-        with the given prefix.
-        """
-        self._completer.setCompletionPrefix(completionPrefix)
-        self._completer.popup().setCurrentIndex(self._completer.completionModel().index(0, 0))
+        def upate_completions(completer):
+            if completionPrefix != completer.completionPrefix():
+                self._updateCompleterPopupItems(completer, completionPrefix)
+            # if something was just typed
+            if len(event.text()) > 0:
+                completer.complete()
+
+        if self.textUnderCursor()[0] == TAG_DELIMITER:
+            upate_completions(self.tag_completer)
+        elif self.textUnderCursor()[0] == INTERNAL_LINK_DELIMITER:
+            upate_completions(self.internal_link_completer)
+
+    # Filters the completer's popup items to only show items with the given prefix.
+    def _updateCompleterPopupItems(self, completer, completionPrefix):
+        completer.setCompletionPrefix(completionPrefix)
+        completer.popup().setCurrentIndex(completer.completionModel().index(0, 0))
 
 
 NO_TAG_LIST = [':', ':"', ':)', ':/', ':).']
@@ -1040,7 +1057,8 @@ CHAR_QCOLOR_DICT = {
     'e': QColor('#808080').name(),  # dark grey
     'n': NO_COLOR
 }
-DELIMITER = ':'
+TAG_DELIMITER = ':'
+INTERNAL_LINK_DELIMITER = '>'
 DONE_TASK = 'done'  # same as icon file names
 TASK = 'todo'
 NOTE = 'note'

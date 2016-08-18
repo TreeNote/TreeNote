@@ -129,10 +129,10 @@ class TagModel(QAbstractItemModel):
         self.beginResetModel()
         self.rootItem.childItems = []
         for whole_tag in sorted(tags_set, key=str.lower):
-            splitted_tag = whole_tag.split(model.DELIMITER)
+            splitted_tag = whole_tag.split(model.TAG_DELIMITER)
 
             def add_below(parent, remaining_tags):
-                new_item = parent.add_and_return_child(TagTreeItem(model.DELIMITER + remaining_tags[0], parent))
+                new_item = parent.add_and_return_child(TagTreeItem(model.TAG_DELIMITER + remaining_tags[0], parent))
                 del remaining_tags[0]
                 if len(remaining_tags) > 0:
                     add_below(new_item, remaining_tags)
