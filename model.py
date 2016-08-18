@@ -718,6 +718,8 @@ class Delegate(QStyledItemDelegate):
         # color tags by surrounding them with coloring html brackets
         html = re.sub(r'((\n|^| )(' + TAG_DELIMITER + r'\w+)+($| |\n))',
                       r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
+        html = re.sub(r'((\n|^| )(' + INTERNAL_LINK_DELIMITER + r'\w+)+($| |\n))',
+                      r'<font color=' + INTERNAL_LINK_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
@@ -1046,6 +1048,7 @@ ALTERNATE_BACKGROUND_GRAY = QColor(59, 59, 59)  # slightly brighter
 FOREGROUND_GRAY = QColor(78, 80, 82)  # brighter
 HIGHLIGHT_ORANGE = QColor(195, 144, 72)
 TAG_COLOR = QColor('#71CD58')  # green
+INTERNAL_LINK_COLOR = QColor('#00b797')
 REPEAT_COLOR = QColor('#CF4573')  # red
 NO_COLOR = 'NO_COLOR'
 CHAR_QCOLOR_DICT = {
@@ -1057,8 +1060,8 @@ CHAR_QCOLOR_DICT = {
     'e': QColor('#808080').name(),  # dark grey
     'n': NO_COLOR
 }
-TAG_DELIMITER = ':'
-INTERNAL_LINK_DELIMITER = '>'
+TAG_DELIMITER = r':'
+INTERNAL_LINK_DELIMITER = r'-'
 DONE_TASK = 'done'  # same as icon file names
 TASK = 'todo'
 NOTE = 'note'
