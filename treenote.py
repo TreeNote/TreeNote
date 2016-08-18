@@ -1313,6 +1313,24 @@ class MainWindow(QMainWindow):
             self.set_top_row_selected()
         self.setup_tag_model()
 
+        # refresh path bar
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        def add_parent(current_index):
+            item = self.focused_column().filter_proxy.getItem(current_index)
+            text = item.text if item.text else '/'
+            button = QPushButton(text)
+            button.clicked.connect(lambda: self.focus_index(current_index))
+            layout.addWidget(button)  # todo: add from right to left
+            if item.parentItem:
+                add_parent(self.focused_column().filter_proxy.parent(current_index))
+
+        add_parent(self.focused_column().view.rootIndex())
+        # todo: nicht ganze breite füllen sondern nur so breit wie nötig
+        if not self.path_bar.layout():
+            self.path_bar.setLayout(layout)
+
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()
         root_index = self.focused_column().view.rootIndex()
@@ -1380,6 +1398,8 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 6, 0, 0)
         self.search_holder.setLayout(layout)
 
+        self.path_bar = QWidget()
+
         new_column.view = ResizeTreeView()
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -1407,6 +1427,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.search_holder)
+        layout.addWidget(self.path_bar)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
 
