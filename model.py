@@ -629,8 +629,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
     # indexes or vice versa, use mapToSource(), mapFromSource(),
     # mapSelectionToSource(), and mapSelectionFromSource().
 
-    def filterAcceptsRow(self, row, parent):
-        index = self.sourceModel().index(row, 0, parent)
+    def filterAcceptsRow(self, row, parent_index):
+        index = self.sourceModel().index(row, 0, parent_index)
         if not index.isValid():
             return False
 

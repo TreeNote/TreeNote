@@ -173,13 +173,13 @@ class MainWindow(QMainWindow):
         self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'),
-                                            self.tr('blue'), self.tr('red'), self.tr('orange'), self.tr('no color'))
+                                            self.tr('blue'), self.tr('red'), self.tr('no color'))
 
-        self.hideTagsCheckBox = QCheckBox('Hide rows with a tag')
+        self.hideTagsCheckBox = QCheckBox('Hide rows\nwith a tag')
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
-        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with future start date')
+        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with\nfuture start date')
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
-        self.showOnlyStartdateCheckBox = QCheckBox('Show only rows with a start date')
+        self.showOnlyStartdateCheckBox = QCheckBox('Show only rows\nwith a start date')
         self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
         layout = QGridLayout()
@@ -300,9 +300,9 @@ class MainWindow(QMainWindow):
                    list=self.item_view_actions)
         add_action('colorRedAction', QAction('Red', self, shortcut='R', triggered=lambda: self.color_row('r')),
                    list=self.item_view_actions)
-        add_action('colorOrangeAction',
-                   QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
-                   list=self.item_view_actions)
+        # add_action('colorOrangeAction',
+        #            QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
+        #            list=self.item_view_actions)
         add_action('colorGreyAction',
                    QAction('Grey', self, shortcut='E', triggered=lambda: self.color_row('e')),
                    list=self.item_view_actions)
@@ -315,6 +315,12 @@ class MainWindow(QMainWindow):
             add_action('estimate{}Action'.format(i),
                        QAction('Estimate ' + str(i), self, shortcut=str(i), triggered=partial(self.estimate, i)),
                        list=self.item_view_actions)
+        add_action('increaseEstimateAction'.format(i),
+                   QAction('Increase estimate', self, shortcut='+', triggered=partial(self.adjust_estimate, 10)),
+                   list=self.item_view_actions)
+        add_action('decreaseEstimateAction'.format(i),
+                   QAction('Decrease estimate', self, shortcut='-', triggered=partial(self.adjust_estimate, -10)),
+                   list=self.item_view_actions)
         add_action('toggleTaskAction',
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
@@ -450,7 +456,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorYellowAction)
         self.colorMenu.addAction(self.colorBlueAction)
         self.colorMenu.addAction(self.colorRedAction)
-        self.colorMenu.addAction(self.colorOrangeAction)
+        # self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorGreyAction)
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
@@ -464,6 +470,8 @@ class MainWindow(QMainWindow):
         self.estimateMenu.addAction(self.estimate7Action)
         self.estimateMenu.addAction(self.estimate8Action)
         self.estimateMenu.addAction(self.estimate9Action)
+        self.estimateMenu.addAction(self.increaseEstimateAction)
+        self.estimateMenu.addAction(self.decreaseEstimateAction)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('View'))
         self.viewMenu.addAction(self.goDownAction)
@@ -941,7 +949,6 @@ class MainWindow(QMainWindow):
             # changing dropdown index accordingly is not that easy,
             # because changing it fires "color_clicked" which edits search bar
 
-
         # restore expanded state when we are now in normal mode again after a text search
         if self.is_no_text_search(search_text):
             self.item_model.expand_saved(QModelIndex())
@@ -1264,6 +1271,16 @@ class MainWindow(QMainWindow):
     def estimate(self, number):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
             self.focused_column().filter_proxy.set_data(str(number), index=row_index, field=model.ESTIMATE)
+
+    def adjust_estimate(self, adjustment):
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            old_estimate = self.focused_column().filter_proxy.getItem(row_index).estimate
+            if old_estimate == '':
+                old_estimate = 0
+            new_estimate = int(old_estimate) + adjustment
+            if new_estimate < 1:
+                new_estimate = ''
+            self.focused_column().filter_proxy.set_data(str(new_estimate), index=row_index, field=model.ESTIMATE)
 
     @pyqtSlot(str)
     def color_row(self, color_character):
