@@ -225,8 +225,9 @@ class TreeModel(QAbstractItemModel):
                         value = ''
                     item.date = value
 
-                self.model.main_window.set_selection(self.index, self.index)
-                self.model.dataChanged.emit(self.index, self.index)
+                self.model.dataChanged.emit(self.index,
+                                            self.model.index(self.index.row(), len(self.model.rootItem.header_list) - 1,
+                                                             self.index.parent()))
 
                 # update next available task in a sequential project
                 project_index = self.model.parent(index)
