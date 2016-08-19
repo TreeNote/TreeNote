@@ -472,15 +472,18 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
-        for i in range(1, 181):
-            shortcut = i if i < 10 else ','.join(number for number in str(i))
-            if i > 10:  # todo: remove
-                action = add_action('estimate{}Action'.format(i),
-                                    QAction('Estimate {}'.format(i), self, shortcut=str(shortcut),
-                                            triggered=partial(self.estimate, i)),
-                                    list=self.item_view_actions)
-                if i < 10 or i >= 179:
-                    self.estimateMenu.addAction(action)
+        for i in [10, 15, 30, 45, 60, 90, 120, 180]:
+            action = add_action('',
+                                QAction('{} minutes'.format(i), self, shortcut=','.join(number for number in str(i)),
+                                        triggered=partial(self.estimate, i)), list=self.item_view_actions)
+            self.estimateMenu.addAction(action)
+
+            shortcut_numpad = ''
+            for number in str(i):
+                shortcut_numpad += 'Num+' + number + ','
+            shortcut = QShortcut(QKeySequence(shortcut_numpad[:-1]), self)
+            shortcut.setContext(Qt.ApplicationShortcut)
+            shortcut.activated.connect(partial(self.estimate, i))
         self.estimateMenu.addAction(self.increaseEstimateAction)
         self.estimateMenu.addAction(self.decreaseEstimateAction)
 
