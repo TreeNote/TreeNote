@@ -454,14 +454,6 @@ class MainWindow(QMainWindow):
         self.editRowMenu.addAction(self.editRowAction)
         self.editRowMenu.addAction(self.toggleTaskAction)
         self.editRowMenu.addAction(self.toggleProjectAction)
-        self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start date of selected rows'))
-        for i in range(1, 10):
-            self.remindInMenu.addAction(
-                add_action('remindIn{}Action'.format(i), QAction('Remind in {} days'.format(i), self,
-                                                                 shortcut='Shift+{}'.format(i),
-                                                                 triggered=partial(self.remindIn, i)),
-                           list=self.item_view_actions))
-        self.editRowMenu.addAction(self.appendRepeatAction)
         self.colorMenu = self.editRowMenu.addMenu(self.tr('Color selected rows'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
@@ -486,6 +478,20 @@ class MainWindow(QMainWindow):
             shortcut.activated.connect(partial(self.estimate, i))
         self.estimateMenu.addAction(self.increaseEstimateAction)
         self.estimateMenu.addAction(self.decreaseEstimateAction)
+        self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start date of selected rows'))
+        self.remindInMenu.addAction(
+            add_action('', QAction('No start date', self, shortcut='.,D',
+                                   triggered=partial(self.remindIn, 0)), list=self.item_view_actions))
+        for time_unit, value, max in [('days', 1, 7), ('weeks', 7, 4), ('months', 30, 10), ('years', 365, 4)]:
+            for i in range(1, max):
+                self.remindInMenu.addAction(
+                    add_action('', QAction('Remind in {} {}'.format(i, time_unit), self,
+                                           shortcut='{},{}'.format(i, time_unit[0]),
+                                           triggered=partial(self.remindIn, i * value)), list=self.item_view_actions))
+                shortcut = QShortcut(QKeySequence('Num+{},{}'.format(i, time_unit[0])), self)
+                shortcut.setContext(Qt.ApplicationShortcut)
+                shortcut.activated.connect(partial(self.remindIn, i * value))
+        self.editRowMenu.addAction(self.appendRepeatAction)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('View'))
         self.viewMenu.addAction(self.goDownAction)
@@ -1277,8 +1283,8 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.toggle_project(row_index)
 
     def remindIn(self, days):
-        self.focused_column().filter_proxy.set_data(QDate.currentDate().addDays(days).toString('dd.MM.yy'),
-                                                    index=self.current_index(), field='date')
+        date = '' if days == 0 else QDate.currentDate().addDays(days).toString('dd.MM.yy')
+        self.focused_column().filter_proxy.set_data(date, index=self.current_index(), field='date')
 
     def append_repeat(self):
         index = self.current_index()
