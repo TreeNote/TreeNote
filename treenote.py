@@ -566,6 +566,7 @@ class MainWindow(QMainWindow):
         splitter_sizes = settings.value('splitter_sizes')
         if splitter_sizes is not None:
             self.mainSplitter.restoreState(splitter_sizes)
+            self.set_toolbar_margins(0)
         else:
             self.toggle_sidebars()
 
@@ -889,7 +890,7 @@ class MainWindow(QMainWindow):
         self.color_dropdown.setCurrentIndex(0)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
-        self.focused_column().view.setRootIndex(QModelIndex())
+        self.focus_index(QModelIndex())
         self.set_searchbar_text_and_search('')
         self.setup_tag_model()
 
@@ -925,9 +926,16 @@ class MainWindow(QMainWindow):
         if sidebar_shown:  # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
+            margin = 6
         else:
             self.mainSplitter.moveSplitter(INITIAL_SIDEBAR_WIDTH, 1)
             self.mainSplitter.moveSplitter(self.width() - INITIAL_SIDEBAR_WIDTH, 2)
+            margin = 0
+        self.set_toolbar_margins(margin)
+
+    def set_toolbar_margins(self, margin):
+        self.search_holder.layout().setContentsMargins(margin, 6, margin, 0)
+        self.path_bar.layout().setContentsMargins(margin, 0, margin, 0)
 
     def toggle_columns(self):
         if self.focused_column().view.isHeaderHidden():
@@ -1328,22 +1336,26 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         # refresh path bar
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        while self.path_bar.layout().itemAt(0):
+            self.path_bar.layout().itemAt(0).widget().setParent(None)
 
-        def add_parent(current_index):
+        widgets_to_add = []
+
+        def add_parents(current_index):
             item = self.focused_column().filter_proxy.getItem(current_index)
             text = item.text if item.text else '/'
+            text = text.replace('\n', '')
             button = QPushButton(text)
             button.clicked.connect(lambda: self.focus_index(current_index))
-            layout.addWidget(button)  # todo: add from right to left
+            button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 7)
+            widgets_to_add.append(button)
             if item.parentItem:
-                add_parent(self.focused_column().filter_proxy.parent(current_index))
+                add_parents(self.focused_column().filter_proxy.parent(current_index))
 
-        add_parent(self.focused_column().view.rootIndex())
-        # todo: nicht ganze breite füllen sondern nur so breit wie nötig
-        if not self.path_bar.layout():
-            self.path_bar.setLayout(layout)
+        add_parents(self.focused_column().view.rootIndex())
+        self.path_bar.setMaximumWidth(self.item_views_splitter.width())
+        for widget in reversed(widgets_to_add):
+            self.path_bar.layout().addWidget(widget)
 
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()
@@ -1419,10 +1431,15 @@ class MainWindow(QMainWindow):
         layout.addWidget(new_column.toggle_columns_button)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
-        layout.setContentsMargins(0, 6, 0, 0)
         self.search_holder.setLayout(layout)
 
         self.path_bar = QWidget()
+        layout = QHBoxLayout()
+        layout.setAlignment(Qt.AlignLeft)
+        layout.setSpacing(1)
+        self.path_bar.setLayout(layout)
+
+        self.set_toolbar_margins(6)
 
         new_column.view = ResizeTreeView()
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
