@@ -935,7 +935,6 @@ class MainWindow(QMainWindow):
 
     def set_toolbar_margins(self, margin):
         self.search_holder.layout().setContentsMargins(margin, 6, margin, 0)
-        self.path_bar.layout().setContentsMargins(margin, 0, margin, 0)
 
     def toggle_columns(self):
         if self.focused_column().view.isHeaderHidden():
@@ -1353,7 +1352,7 @@ class MainWindow(QMainWindow):
                 add_parents(self.focused_column().filter_proxy.parent(current_index))
 
         add_parents(self.focused_column().view.rootIndex())
-        self.path_bar.setMaximumWidth(self.item_views_splitter.width())
+        self.path_bar.setMaximumWidth(self.item_views_splitter.width() - 200)
         for widget in reversed(widgets_to_add):
             self.path_bar.layout().addWidget(widget)
 
@@ -1408,6 +1407,8 @@ class MainWindow(QMainWindow):
 
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
+        new_column.search_bar.setMaximumWidth(300)
+        new_column.search_bar.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
 
         # search shall start not before the user completed typing
         filter_delay = DelayedExecutionTimer(self)
@@ -1425,20 +1426,23 @@ class MainWindow(QMainWindow):
         new_column.bookmark_button.clicked.connect(
             lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
-        self.search_holder = QWidget()
-        layout = QHBoxLayout()
-        layout.addWidget(new_column.toggle_sidebars_button)
-        layout.addWidget(new_column.toggle_columns_button)
-        layout.addWidget(new_column.search_bar)
-        layout.addWidget(new_column.bookmark_button)
-        self.search_holder.setLayout(layout)
-
         self.path_bar = QWidget()
         layout = QHBoxLayout()
         layout.setAlignment(Qt.AlignLeft)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(1)
         self.path_bar.setLayout(layout)
 
+        self.search_holder = QWidget()
+        layout = QHBoxLayout()
+        layout.addWidget(self.path_bar)
+        layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding))
+        layout.addWidget(new_column.search_bar)
+        layout.addWidget(new_column.bookmark_button)
+        layout.addWidget(new_column.toggle_columns_button)
+        layout.addWidget(new_column.toggle_sidebars_button)
+        layout.setStretchFactor(new_column.search_bar, 1)
+        self.search_holder.setLayout(layout)
         self.set_toolbar_margins(6)
 
         new_column.view = ResizeTreeView()
@@ -1468,7 +1472,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.search_holder)
-        layout.addWidget(self.path_bar)
         layout.addWidget(new_column.view)
         new_column.setLayout(layout)
 
