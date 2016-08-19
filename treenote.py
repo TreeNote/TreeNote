@@ -321,8 +321,12 @@ class MainWindow(QMainWindow):
         add_action('toggleTaskAction',
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
-        add_action('openLinkAction', QAction(self.tr('Open selected rows containing URLs'), self, shortcut='L',
-                                             triggered=self.open_links), list=self.item_view_actions)
+        add_action('openLinkAction',
+                   QAction(self.tr('Open URLs of selected rows in the web browser'), self, shortcut='L',
+                           triggered=self.open_links), list=self.item_view_actions)
+        add_action('openInternalLinkAction',
+                   QAction(self.tr('Set internal link of selected row as root'), self, shortcut='I',
+                           triggered=self.open_internal_link), list=self.item_view_actions)
         add_action('renameTagAction',
                    QAction(self.tr('Rename selected tag'), self, triggered=lambda: RenameTagDialog(
                        self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
@@ -493,6 +497,7 @@ class MainWindow(QMainWindow):
         # self.viewMenu.addAction(self.splitWindowAct)
         # self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.openLinkAction)
+        self.viewMenu.addAction(self.openInternalLinkAction)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.toggleSideBarsAction)
         self.viewMenu.addAction(self.toggleColumnsAction)
@@ -1348,6 +1353,16 @@ class MainWindow(QMainWindow):
             else:  # no urls found: search the web for the selected entry
                 text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                 QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
+
+    def open_internal_link(self):
+        match = re.search(r'(' + model.INTERNAL_LINK_DELIMITER + r'\w+)+($| |\n)',
+                          self.focused_column().view.selectionModel().selectedRows()[0].data())
+        if match:
+            for index in self.item_model.indexes():
+                text = self.item_model.getItem(index).text
+                if match.group(0)[1:] in text and model.INTERNAL_LINK_DELIMITER not in text:
+                    self.focus_index(self.filter_proxy_index_from_model_index(index))
+                    break
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
