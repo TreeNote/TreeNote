@@ -11,14 +11,15 @@
 # the Free Software Foundation, version 3 of the License.
 #################################################################################
 
+import copy
+import json
 import logging
 import os
+import pickle
+import plistlib
 import re
 import sys
 import textwrap
-import json
-import pickle
-import plistlib
 from functools import partial
 from traceback import format_exception
 #
@@ -1230,37 +1231,59 @@ class MainWindow(QMainWindow):
             rows_string = rows_string.strip()  # strip the line break at the end
         QApplication.clipboard().setText(rows_string)
 
+        # remove children of items in the selection, otherwise there will be paste errors
+        indexes = self.selected_indexes()
+
+        def remove_if_parent(idx):
+            if idx.parent() != QModelIndex():
+                if idx.parent() in indexes:
+                    indexes.remove(idx)
+                else:
+                    remove_if_parent(idx.parent())
+
+        for index in self.selected_indexes():
+            remove_if_parent(index)
+        QApplication.clipboard().setMimeData(IndexMimeData(indexes))
+
     def paste(self):
-        # builds a tree structure out of indented rows
-        # idea: insert new rows from top to bottom.
-        # depending on the indention, the parent will be the last inserted row with one lower indention
-        # we count the row position to know where to insert the next row
-        start_index = self.current_index()
-        # \r ist for windows compatibility. strip is to remove the last linebreak
-        text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
-        # which format style has the text?
-        if re.search(r'(\n|^)(\t*-)', text):  # each item starts with a dash
-            text = re.sub(r'\n(\t*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
-        else:  # each row is an item
-            text = re.sub(r'\n(\t*)', r'\r\1', text)  # replaces \n which produce a new item with \r
-        lines = re.split(r'\r', text)
-        source_index = self.focused_column().filter_proxy.mapToSource(start_index)
-        indention_insert_position_dict = {0: source_index.row() + 1}
-        indention_parent_index_dict = {-1: source_index.parent()}
-        for line in lines:
-            stripped_line = line.lstrip('\t')
-            indention = len(line) - len(stripped_line)
-            # remove -, *, spaces and tabs from the beginning of the line
-            cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)
-            if indention not in indention_insert_position_dict:
-                indention_insert_position_dict[indention] = 0
-            child_index = self.paste_row(indention_insert_position_dict[indention],
-                                         indention_parent_index_dict[indention - 1], cleaned_line)
-            indention_insert_position_dict[indention] += 1
-            for key in indention_insert_position_dict.keys():
-                if key > indention:
-                    indention_insert_position_dict[key] = 0
-            indention_parent_index_dict[indention] = child_index
+        if isinstance(QApplication.clipboard().mimeData(), IndexMimeData):
+            items = [self.focused_column().filter_proxy.getItem(index) for index in
+                     QApplication.clipboard().mimeData().indexes]
+            self.item_model.insert_remove_rows(position=self.current_index().row() + 1,
+                                               parent_index=self.focused_column().filter_proxy.mapToSource(
+                                                   self.current_index().parent()), items=copy.deepcopy(items))
+        else:
+            # paste from plain text
+            # builds a tree structure out of indented rows
+            # idea: insert new rows from top to bottom.
+            # depending on the indention, the parent will be the last inserted row with one lower indention
+            # we count the row position to know where to insert the next row
+            start_index = self.current_index()
+            # \r ist for windows compatibility. strip is to remove the last linebreak
+            text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
+            # which format style has the text?
+            if re.search(r'(\n|^)(\t*-)', text):  # each item starts with a dash
+                text = re.sub(r'\n(\t*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
+            else:  # each row is an item
+                text = re.sub(r'\n(\t*)', r'\r\1', text)  # replaces \n which produce a new item with \r
+            lines = re.split(r'\r', text)
+            source_index = self.focused_column().filter_proxy.mapToSource(start_index)
+            indention_insert_position_dict = {0: source_index.row() + 1}
+            indention_parent_index_dict = {-1: source_index.parent()}
+            for line in lines:
+                stripped_line = line.lstrip('\t')
+                indention = len(line) - len(stripped_line)
+                # remove -, *, spaces and tabs from the beginning of the line
+                cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)
+                if indention not in indention_insert_position_dict:
+                    indention_insert_position_dict[indention] = 0
+                child_index = self.paste_row(indention_insert_position_dict[indention],
+                                             indention_parent_index_dict[indention - 1], cleaned_line)
+                indention_insert_position_dict[indention] += 1
+                for key in indention_insert_position_dict.keys():
+                    if key > indention:
+                        indention_insert_position_dict[key] = 0
+                indention_parent_index_dict[indention] = child_index
 
     def paste_row(self, new_position, parent_index, text):
         self.item_model.insert_remove_rows(new_position, parent_index, set_edit_focus=False)
@@ -1623,6 +1646,12 @@ class MainWindow(QMainWindow):
             open(open_path, 'rb'))
         self.save_path = open_path
         self.change_active_tree()
+
+
+class IndexMimeData(QMimeData):
+    def __init__(self, indexes):
+        super(IndexMimeData, self).__init__()
+        self.indexes = indexes
 
 
 class FileLineEdit(QPlainTextEdit):
