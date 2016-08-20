@@ -703,6 +703,8 @@ class MainWindow(QMainWindow):
         for index in self.item_model.indexes():
             if self.item_model.getItem(index) == self.item_model.selected_item:
                 self.set_selection(index, index)
+                QTimer().singleShot(100, lambda: self.focused_column().view.scrollTo(
+                    self.filter_proxy_index_from_model_index(index)))
                 break
         self.fill_bookmarkShortcutsMenu()
         self.setWindowTitle(self.save_path + ' - TreeNote')
@@ -885,7 +887,6 @@ class MainWindow(QMainWindow):
         self.focused_column().view.setFocus()
 
     def reset_view(self):
-        self.focused_item = None
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
         self.showOnlyStartdateCheckBox.setChecked(False)
@@ -1338,7 +1339,6 @@ class MainWindow(QMainWindow):
     def focus_index(self, index):
         self.focused_column().view.setRootIndex(index)
         real_index = self.focused_column().filter_proxy.mapToSource(index)
-        self.focused_item = self.item_model.getItem(real_index)
         self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
                                                      QItemSelectionModel.ClearAndSelect)
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
@@ -1654,7 +1654,8 @@ class FileLineEdit(QPlainTextEdit):
         self.popup.hide()
         for index in self.main_window.item_model.indexes():
             if self.main_window.item_model.getItem(index).text == completion:
-                lowest_index = self.main_window.focused_column().filter_proxy.mapToSource(self.main_window.selected_indexes()[-1])
+                lowest_index = self.main_window.focused_column().filter_proxy.mapToSource(
+                    self.main_window.selected_indexes()[-1])
                 old_row = lowest_index.row()
                 old_parent = lowest_index.parent()
                 self.main_window.focused_column().filter_proxy.file(self.main_window.selected_indexes(), index)
