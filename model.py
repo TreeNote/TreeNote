@@ -1107,8 +1107,9 @@ CHAR_QCOLOR_DICT = {
     'g': QColor('#85E326').name(),  # green
     'y': QColor('#EEEF22').name(),  # yellow
     'b': QColor('#8A9ADD').name(),  # blue
-    'r': QColor('#CE3535').name(),  # red
-    'o': QColor('#DFBC30').name(),  # orange
+    'r': QColor('#FF2F00').name(),  # red
+    'o': QColor('#FF9500').name(),  # orange
+    'v': QColor('#FF40FF').name(),  # violet
     'e': QColor('#808080').name(),  # dark grey
     'n': NO_COLOR
 }

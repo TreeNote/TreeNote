@@ -173,9 +173,8 @@ class MainWindow(QMainWindow):
 
         self.task_dropdown = init_dropdown('t=', self.tr('all'), model.NOTE, model.TASK, model.DONE_TASK)
         self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
-        self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'),
-                                            self.tr('blue'), self.tr('red'), self.tr('no color'))
-
+        self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('red'),
+                                            self.tr('orange'), self.tr('blue'), self.tr('violet'), self.tr('no color'))
         self.hideTagsCheckBox = QCheckBox('Hide rows\nwith a tag')
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
         self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with\nfuture start date')
@@ -307,6 +306,9 @@ class MainWindow(QMainWindow):
                    list=self.item_view_actions)
         add_action('colorOrangeAction',
                    QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
+                   list=self.item_view_actions)
+        add_action('colorVioletAction',
+                   QAction('Violet', self, shortcut='V', triggered=lambda: self.color_row('v')),
                    list=self.item_view_actions)
         add_action('colorGreyAction',
                    QAction('Grey', self, shortcut='E', triggered=lambda: self.color_row('e')),
@@ -465,6 +467,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorBlueAction)
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
+        self.colorMenu.addAction(self.colorVioletAction)
         self.colorMenu.addAction(self.colorGreyAction)
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
