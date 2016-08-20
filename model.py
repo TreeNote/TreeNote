@@ -378,6 +378,35 @@ class TreeModel(QAbstractItemModel):
         else:  # remove command
             self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, False, indexes))
 
+    def file(self, indexes, new_parent):
+        class FileCommand(QUndoCommandStructure):
+            _fields = ['model', 'indexes_and_old_positions_dict', 'new_parent']
+            title = 'File'
+
+            def move(self, index, new_parent, old_position=None):
+                item = self.model.getItem(index)
+                parent_item = self.model.getItem(index.parent())
+                self.model.beginRemoveRows(index.parent(), item.child_number(), item.child_number())
+                del parent_item.childItems[item.child_number()]
+                self.model.endRemoveRows()
+                as_last = self.model.rowCount(self.new_parent)
+                new_position = old_position if old_position else as_last
+                self.model.insert_remove_rows(position=new_position, parent_index=new_parent, items=[item])
+
+            def redo(self):
+                for index in self.indexes_and_old_positions_dict.keys():
+                    self.move(index, self.new_parent)
+
+            def undo(self):
+                for index, value in self.indexes_and_old_positions_dict.items():
+                    self.move(index, value[0], value[1])
+
+        indexes_old_parents_positions_dict = {}
+        for index in indexes:
+            item = self.getItem(index)
+            indexes_old_parents_positions_dict[index] = index.parent(), item.child_number()
+        self.undoStack.push(FileCommand(self, indexes_old_parents_positions_dict, new_parent))
+
     def move_vertical(self, indexes, up_or_down):
         # up_or_down is -1 for up and +1 for down
 
@@ -623,6 +652,10 @@ class ProxyTools():
         if len(indexes) > 0:
             self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
             self.sourceModel().main_window.save_file()
+
+    def file(self, indexes, new_parent):
+        self.sourceModel().file([self.mapToSource(index) for index in indexes], self.mapToSource(new_parent))
+        self.sourceModel().main_window.save_file()
 
     def getItem(self, index):
         return self.sourceModel().getItem(self.mapToSource(index))

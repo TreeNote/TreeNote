@@ -284,6 +284,9 @@ class MainWindow(QMainWindow):
                    list=self.item_view_actions)
         add_action('moveRightAction', QAction(self.tr('Right'), self, shortcut='D', triggered=self.move_right),
                    list=self.item_view_actions)
+        add_action('fileSelectedRows',
+                   QAction(self.tr('File selected rows...'), self, shortcut='F', triggered=self.file),
+                   list=self.item_view_actions)
         add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right',
                                                       triggered=lambda: self.expand_or_collapse_children_selected(
                                                           True)), list=self.item_view_not_editing_actions)
@@ -445,6 +448,7 @@ class MainWindow(QMainWindow):
         self.moveMenu.addAction(self.moveDownAction)
         self.moveMenu.addAction(self.moveLeftAction)
         self.moveMenu.addAction(self.moveRightAction)
+        self.structureMenu.addAction(self.fileSelectedRows)
         self.structureMenu.addSeparator()
         self.structureMenu.addAction(self.cutAction)
         self.structureMenu.addAction(self.copyAction)
@@ -1128,6 +1132,10 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setExpanded(selected_indexes[0].sibling(selected_indexes[0].row() - 1, 0), True)
             self.focused_column().view.setAnimated(True)
             self.focused_column().filter_proxy.move_horizontal(selected_indexes, +1)
+
+    def file(self):
+        # todo: popup to select new parent
+        self.focused_column().filter_proxy.file(self.selected_indexes(), self.selected_indexes()[0].parent().parent())
 
     def insert_child(self):
         index = self.current_index()
