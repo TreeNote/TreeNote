@@ -1004,6 +1004,11 @@ class AutoCompleteEdit(QPlainTextEdit):
                 self.setFixedHeight(rows * row_height + row_height)  # one row_height more, because we just added a line
                 if event.modifiers() & Qt.AltModifier:  # fix alt + enter in Qt
                     event = QKeyEvent(QEvent.KeyPress, event.key(), Qt.NoModifier)
+
+                # scroll up until the editor is completely visible
+                while self.visibleRegion().boundingRect().height() + 1 < self.height():
+                    bar = self.delegate.main_window.focused_column().view.verticalScrollBar()
+                    bar.setValue(bar.value() + 1)
             else:  # complete edit on enter
                 if not self.tag_completer.popup().isVisible() and not self.internal_link_completer.popup().isVisible():
                     self.delegate.commitData.emit(self)
