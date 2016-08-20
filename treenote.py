@@ -1654,8 +1654,18 @@ class FileLineEdit(QPlainTextEdit):
         self.popup.hide()
         for index in self.main_window.item_model.indexes():
             if self.main_window.item_model.getItem(index).text == completion:
+                lowest_index = self.main_window.focused_column().filter_proxy.mapToSource(self.main_window.selected_indexes()[-1])
+                old_row = lowest_index.row()
+                old_parent = lowest_index.parent()
                 self.main_window.focused_column().filter_proxy.file(self.main_window.selected_indexes(), index)
-                return
+                # after moving / filing: select below item, or above item if no below item exists
+                next_index = self.main_window.item_model.index(old_row, 0, old_parent)
+                if not next_index.isValid():
+                    next_index = self.main_window.item_model.index(old_row - 1, 0, old_parent)
+                if not next_index.isValid():
+                    next_index = old_parent
+                self.main_window.set_selection(next_index, next_index)
+                break
 
     def textUnderCursor(self):
         text = self.toPlainText()

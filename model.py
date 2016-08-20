@@ -272,7 +272,8 @@ class TreeModel(QAbstractItemModel):
         self.main_window.focused_column().view.setAnimated(True)
 
     # used for moving and inserting new rows. When inserting new rows, 'id_list' and 'indexes' are not used.
-    def insert_remove_rows(self, position=None, parent_index=None, items=None, indexes=None, set_edit_focus=None):
+    def insert_remove_rows(self, position=None, parent_index=None, items=None, indexes=None, set_edit_focus=None,
+                           select=True):
 
         # Delete design decision: We could delete items permanently.
         # But if then the user renames, deletes and then undoes both actions,
@@ -284,7 +285,7 @@ class TreeModel(QAbstractItemModel):
             title = 'Add or remove row'
 
             @staticmethod  # static because it is called from the outside for moving
-            def insert_existing_entry(model, position, parent_index, child_item_list):
+            def insert_existing_entry(model, position, parent_index, child_item_list, select=True):
                 parent_item = model.getItem(parent_index)
                 parent_item.expanded = True
                 model.beginInsertRows(parent_index, position, position + len(child_item_list) - 1)
@@ -292,9 +293,10 @@ class TreeModel(QAbstractItemModel):
                     child_item.parentItem = parent_item
                     parent_item.childItems.insert(position + i, child_item)
                 model.endInsertRows()
-                index_first_moved_item = model.index(position, 0, parent_index)
-                index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
-                model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
+                if select:
+                    index_first_moved_item = model.index(position, 0, parent_index)
+                    index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
+                    model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
 
                 model.expand_saved(parent_index)
 
@@ -371,7 +373,7 @@ class TreeModel(QAbstractItemModel):
             # used from move methods, add existing items to the parent.
             # Don't add to stack, because already part of an UndoCommand
             elif items:
-                InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, items)
+                InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, items, select)
             elif indexes is None:  # used from view, create a single new row / item
                 set_edit_focus = True
                 self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
@@ -391,7 +393,8 @@ class TreeModel(QAbstractItemModel):
                 self.model.endRemoveRows()
                 as_last = self.model.rowCount(self.new_parent)
                 new_position = old_position if old_position else as_last
-                self.model.insert_remove_rows(position=new_position, parent_index=new_parent, items=[item])
+                self.model.insert_remove_rows(position=new_position, parent_index=new_parent, items=[item],
+                                              select=False)
 
             def redo(self):
                 for index in self.indexes_and_old_positions_dict.keys():
