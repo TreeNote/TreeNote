@@ -1078,6 +1078,7 @@ class MainWindow(QMainWindow):
         for item in self.item_model.items():
             if tag in item.text:
                 item.text = item.text.replace(tag, new_name)
+        self.setup_tag_model()
 
     @pyqtSlot(QPoint)
     def open_rename_tag_contextmenu(self, point):
@@ -1952,6 +1953,7 @@ class RenameTagDialog(QDialog):
         grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Apply).setDefault(True)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.setWindowTitle(self.tr('Rename tag'))
 
