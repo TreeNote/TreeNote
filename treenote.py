@@ -1374,12 +1374,12 @@ class MainWindow(QMainWindow):
                 QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
 
     def open_internal_link(self):
-        match = re.search(r'(' + model.INTERNAL_LINK_DELIMITER + r'\w+)+($| |\n)',
+        match = re.search(model.FIND_INTERNAL_LINK,
                           self.focused_column().view.selectionModel().selectedRows()[0].data())
         if match:
+            text_to_find = match.group(1)[1:].strip(model.INTERNAL_LINK_DELIMITER)
             for index in self.item_model.indexes():
-                text = self.item_model.getItem(index).text
-                if match.group(0)[1:] in text and model.INTERNAL_LINK_DELIMITER not in text:
+                if self.item_model.getItem(index).text == text_to_find:
                     self.focus_index(self.filter_proxy_index_from_model_index(index))
                     break
 

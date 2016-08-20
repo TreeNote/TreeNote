@@ -719,8 +719,7 @@ class Delegate(QStyledItemDelegate):
         # color tags by surrounding them with coloring html brackets
         html = re.sub(r'((\n|^| )(' + TAG_DELIMITER + r'\w+)+($| |\n))',
                       r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
-        html = re.sub(r'((\n|^| )(' + INTERNAL_LINK_DELIMITER + r'\w+)+($| |\n))',
-                      r'<font color=' + INTERNAL_LINK_COLOR.name() + r'>\1</font>', html)
+        html = re.sub(FIND_INTERNAL_LINK, r'<font color=' + INTERNAL_LINK_COLOR.name() + r'>\1</font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
@@ -965,6 +964,8 @@ class AutoCompleteEdit(QPlainTextEdit):
         before_tag = self.toPlainText()[
                      :self.textCursor().position() - len(typed_letters_to_replace)]
         after_tag = self.toPlainText()[self.textCursor().position():]
+        if self.internal_link_completer.completionPrefix():
+            completion += INTERNAL_LINK_DELIMITER
         until_cursor = before_tag + completion + ' '
         self.setPlainText(until_cursor + after_tag)
         cursor = self.textCursor()
@@ -1063,6 +1064,7 @@ CHAR_QCOLOR_DICT = {
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'-'
+FIND_INTERNAL_LINK = r'((\n|^| )(' + INTERNAL_LINK_DELIMITER + r'(\w| )+' + INTERNAL_LINK_DELIMITER + '))'
 DONE_TASK = 'done'  # same as icon file names
 TASK = 'todo'
 NOTE = 'note'
