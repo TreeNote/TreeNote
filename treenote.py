@@ -1325,7 +1325,6 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
         self.focused_column().view.setRootIndex(index)
-        self.set_searchbar_text_and_search('')
         real_index = self.focused_column().filter_proxy.mapToSource(index)
         self.focused_item = self.item_model.getItem(real_index)
         self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
