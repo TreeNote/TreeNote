@@ -1634,7 +1634,17 @@ class FileLineEdit(QPlainTextEdit):
         self.setPlaceholderText(self.tr('File to:'))
 
         self._separator = ' '
-        self.completer = QCompleter([item.text for item in self.main_window.item_model.items()])
+        # moving an item to its own child is not possible, so don't propose it
+        below_selection_set = set(self.main_window.focused_column().filter_proxy.mapToSource(index) for index in
+                                  self.main_window.selected_indexes())
+        other_indexes = set()
+        for index in self.main_window.item_model.indexes():
+            # works only, because indexes are in the right order
+            if index in below_selection_set or index.parent() in below_selection_set:
+                below_selection_set.add(index)
+            else:
+                other_indexes.add(index)
+        self.completer = QCompleter([index.data() for index in other_indexes])
         self.completer.setFilterMode(Qt.MatchContains)
         self.completer.setWidget(self)
         self.completer.activated[str].connect(self._insertCompletion)
