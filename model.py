@@ -654,7 +654,7 @@ class ProxyTools():
             self.sourceModel().main_window.save_file()
 
     def file(self, indexes, new_parent):
-        self.sourceModel().file([self.mapToSource(index) for index in indexes], self.mapToSource(new_parent))
+        self.sourceModel().file([self.mapToSource(index) for index in indexes], new_parent)
         self.sourceModel().main_window.save_file()
 
     def getItem(self, index):

@@ -1134,8 +1134,12 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.move_horizontal(selected_indexes, +1)
 
     def file(self):
-        # todo: popup to select new parent
-        self.focused_column().filter_proxy.file(self.selected_indexes(), self.selected_indexes()[0].parent().parent())
+        popup = QFrame(self, Qt.Window | Qt.FramelessWindowHint)
+        edit = FileLineEdit(self, popup)
+        rect = self.focused_column().view.visualRect(self.selected_indexes()[-1])
+        rect = self.mapToGlobal(rect.bottomLeft())
+        popup.move(rect.x() + 100, rect.y() + 40)
+        popup.show()
 
     def insert_child(self):
         index = self.current_index()
@@ -1619,6 +1623,56 @@ class MainWindow(QMainWindow):
             open(open_path, 'rb'))
         self.save_path = open_path
         self.change_active_tree()
+
+
+class FileLineEdit(QPlainTextEdit):
+    def __init__(self, main_window, popup):
+        super(FileLineEdit, self).__init__(popup)
+        self.popup = popup
+        self.main_window = main_window
+        self.setMinimumWidth(400)
+        self.setPlaceholderText(self.tr('File to:'))
+
+        self._separator = ' '
+        self.completer = QCompleter([item.text for item in self.main_window.item_model.items()])
+        self.completer.setFilterMode(Qt.MatchContains)
+        self.completer.setWidget(self)
+        self.completer.activated[str].connect(self._insertCompletion)
+        self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
+
+    def _insertCompletion(self, completion):
+        self.popup.hide()
+        for index in self.main_window.item_model.indexes():
+            if self.main_window.item_model.getItem(index).text == completion:
+                self.main_window.focused_column().filter_proxy.file(self.main_window.selected_indexes(), index)
+                return
+
+    def textUnderCursor(self):
+        text = self.toPlainText()
+        textUnderCursor = ''
+        i = self.textCursor().position() - 1
+        while i >= 0 and text[i] != self._separator:
+            textUnderCursor = text[i] + textUnderCursor
+            i -= 1
+        return textUnderCursor
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.popup.hide()
+        if event.key() in self._keysToIgnore and self.completer.popup().isVisible():
+            event.ignore()
+            return
+        super(FileLineEdit, self).keyPressEvent(event)
+
+        completionPrefix = self.textUnderCursor()
+        if len(completionPrefix) > 0:
+            if completionPrefix != self.completer.completionPrefix():
+                self.completer.setCompletionPrefix(completionPrefix)
+                self.completer.popup().setCurrentIndex(self.completer.completionModel().index(0, 0))
+            # if something was just typed
+            if len(event.text()) > 0:
+                self.completer.complete()
+                self.completer.popup().move(self.popup.x(), self.popup.y() + self.popup.height())
 
 
 class ImportDialog(QDialog):
