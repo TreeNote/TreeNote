@@ -91,7 +91,7 @@ class TreeModel(QAbstractItemModel):
         self.undoStack = QUndoStack(self)
 
         self.rootItem = Tree_item(None)
-        self.rootItem.text = 'Root'
+        self.rootItem.text = '/'
         self.rootItem.header_list = header_list
         self.selected_item = self.rootItem
 
