@@ -210,8 +210,15 @@ class TreeModel(QAbstractItemModel):
                 if self.column == 0:  # used for setting color etc, too
                     self.old_value = getattr(item, self.field)
                     setattr(item, self.field, value)
-                    if self.field == TEXT and (TAG_DELIMITER in value or TAG_DELIMITER in self.old_value):
-                        self.model.main_window.setup_tag_model()
+                    if self.field == TEXT:
+                        if TAG_DELIMITER in value or TAG_DELIMITER in self.old_value:
+                            self.model.main_window.setup_tag_model()
+                        # rename internal links
+                        for item in self.model.items():
+                            old_link = INTERNAL_LINK_DELIMITER + self.old_value + INTERNAL_LINK_DELIMITER
+                            new_link = INTERNAL_LINK_DELIMITER + value + INTERNAL_LINK_DELIMITER
+                            if old_link in item.text:
+                                item.text = item.text.replace(old_link, new_link)
                 elif self.column == 1:
                     self.old_value = item.estimate
                     item.estimate = value
