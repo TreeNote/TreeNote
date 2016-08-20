@@ -1192,7 +1192,8 @@ class MainWindow(QMainWindow):
             self.bookmark_model.insert_remove_rows(indexes=self.selected_indexes())
 
     def cut(self):
-        print("cut")
+        self.copy()
+        self.remove_selection()
 
     def copy(self):
         if len(self.selected_indexes()) == 1:
@@ -1243,15 +1244,15 @@ class MainWindow(QMainWindow):
 
         for index in self.selected_indexes():
             remove_if_parent(index)
-        QApplication.clipboard().setMimeData(IndexMimeData(indexes))
+        mime_data = ItemMimeData([self.focused_column().filter_proxy.getItem(index) for index in indexes])
+        QApplication.clipboard().setMimeData(mime_data)
 
     def paste(self):
-        if isinstance(QApplication.clipboard().mimeData(), IndexMimeData):
-            items = [self.focused_column().filter_proxy.getItem(index) for index in
-                     QApplication.clipboard().mimeData().indexes]
+        if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
             self.item_model.insert_remove_rows(position=self.current_index().row() + 1,
                                                parent_index=self.focused_column().filter_proxy.mapToSource(
-                                                   self.current_index().parent()), items=copy.deepcopy(items))
+                                                   self.current_index().parent()),
+                                               items=copy.deepcopy(QApplication.clipboard().mimeData().items))
         else:
             # paste from plain text
             # builds a tree structure out of indented rows
@@ -1648,10 +1649,10 @@ class MainWindow(QMainWindow):
         self.change_active_tree()
 
 
-class IndexMimeData(QMimeData):
-    def __init__(self, indexes):
-        super(IndexMimeData, self).__init__()
-        self.indexes = indexes
+class ItemMimeData(QMimeData):
+    def __init__(self, items):
+        super(ItemMimeData, self).__init__()
+        self.items = items
 
 
 class FileLineEdit(QPlainTextEdit):
