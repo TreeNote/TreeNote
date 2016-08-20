@@ -422,6 +422,8 @@ class TreeModel(QAbstractItemModel):
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
 
                 self.model.main_window.set_selection(index_first_moved_item_new, index_last_moved_item_new)
+                for row_index in self.model.main_window.focused_column().view.selectionModel().selectedRows():
+                    self.model.main_window.focused_column().view.scrollTo(row_index)
 
                 for child_number in range(self.model.rowCount(parent_index)):
                     child_index = self.model.index(child_number, 0, parent_index)
