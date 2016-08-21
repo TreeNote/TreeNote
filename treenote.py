@@ -1659,6 +1659,8 @@ class MainWindow(QMainWindow):
 
     def print(self):
         printer = QPrinter(QPrinter.HighResolution)
+        if printer.resolution() > 300:
+            printer.setResolution(300)
         dialog = QPrintPreviewDialog(printer)
         view = PrintTreeView(self, dialog.findChildren(QPrintPreviewWidget)[0])
         toolbar = dialog.findChildren(QToolBar)[0]

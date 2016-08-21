@@ -798,17 +798,17 @@ class Delegate(QStyledItemDelegate):
         painter.save()
         if option.state & QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
-        padding_x = GAP_FOR_CHECKBOX if paint_task_icon else 1
+        checkbox_size = QFontMetrics(QFont(FONT, self.main_window.fontsize)).height() - CHECKBOX_SMALLER
+        padding_x = checkbox_size if paint_task_icon else 1
         painter.translate(option.rect.left() - 5 + padding_x, option.rect.top() + self.main_window.padding)
         document.drawContents(painter)
         painter.restore()
 
         if paint_task_icon:
             painter.save()
-            iconsize = option.decorationSize
             type = NOT_AVAILABLE_TASK if is_not_available else item.type
             icon = QImage(':/' + type)
-            qImage = icon.scaledToHeight(iconsize.height())
+            qImage = icon.scaledToHeight(checkbox_size)
             # place in the middle of the row
             painter.drawImage(option.rect.x(), option.rect.center().y() - qImage.height() / 2, qImage)
             painter.restore()
@@ -821,7 +821,7 @@ class Delegate(QStyledItemDelegate):
         textOption.setTabStop(TAB_WIDTH)
         document.setDefaultTextOption(textOption)
         if self.model.getItem(index).type != NOTE:
-            available_width -= GAP_FOR_CHECKBOX
+            available_width -= QFontMetrics(QFont(FONT, self.main_window.fontsize)).height() - CHECKBOX_SMALLER
         # +3 because the createEditor is wider, and if we don't add here,
         # there may happen line wrap when the user starts editing
         document.setTextWidth(available_width + 3)
@@ -842,7 +842,7 @@ class Delegate(QStyledItemDelegate):
             edit = AutoCompleteEdit(parent, suggestions_list, tree_item_list, self)
             padding_left = -5
             if self.model.getItem(index).type != NOTE:
-                padding_left += GAP_FOR_CHECKBOX - 1
+                padding_left += QFontMetrics(QFont(FONT, self.main_window.fontsize)).height() - CHECKBOX_SMALLER
             edit.setStyleSheet(
                 'AutoCompleteEdit {padding-left: ' + str(padding_left) + 'px; padding-top: ' +
                 str(self.main_window.padding - 1) + 'px;}')
@@ -1137,7 +1137,7 @@ SEARCH_TEXT = 'search_text'  # for bookmarks
 SHORTCUT = 'shortcut'
 TEXT = 'text'
 FOCUS_TEXT = 'Focus on current row'
-GAP_FOR_CHECKBOX = 22
+CHECKBOX_SMALLER = 7
 FONT = 'Source Sans Pro'
 SIDEBARS_PADDING = -1 if sys.platform == "darwin" else 2
 SIDEBARS_PADDING_EXTRA_SPACE = 3 if sys.platform == "darwin" else 0
