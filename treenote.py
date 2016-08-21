@@ -1522,6 +1522,7 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         self.focused_column().view.setFocus()
+        self.set_indentation_and_style_tree(self.focused_column().view.indentation())
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
