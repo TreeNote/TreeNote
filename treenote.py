@@ -1597,8 +1597,8 @@ class MainWindow(QMainWindow):
                   default=json_encoder)
 
     def print(self):
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setResolution(200)
+        printer = QPrinter()
+        printer.setResolution(500)
         dialog = QPrintPreviewDialog(printer)
         view = PrintTreeView(self)
         view.setModel(self.item_model)
@@ -1672,6 +1672,8 @@ class PrintTreeView(QTreeView):
         self.main_window = main_window
 
     def print(self, printer):
+        old_fontsize = self.main_window.fontsize
+        self.main_window.fontsize = 60
         painter = QPainter()
         painter.begin(printer)
         painter.setFont(QFont(model.FONT, 9))
@@ -1681,10 +1683,12 @@ class PrintTreeView(QTreeView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setPalette(self.main_window.light_palette)
+        self.header().setFont(QFont(model.FONT, self.main_window.fontsize))
         self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
-        self.setColumnWidth(0, tree_width - ESTIMATE_COLUMN_WIDTH)
-        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation(), self)
+        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 3.8
+        self.setColumnWidth(0, tree_width - width_of_estimate_column)
+        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation() * 5, self)
         delegate = model.Delegate(self.main_window, self.model(), self.header())
         self.setItemDelegate(delegate)
 
@@ -1708,6 +1712,7 @@ class PrintTreeView(QTreeView):
             if i != pieces - 1:
                 printer.newPage()
         painter.end()
+        self.main_window.fontsize = old_fontsize
 
 
 class ItemMimeData(QMimeData):
