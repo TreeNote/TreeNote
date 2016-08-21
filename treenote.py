@@ -28,7 +28,7 @@ import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from PyQt5.QtPrintSupport import *
 #
 import model
 import tag_model
@@ -1597,12 +1597,13 @@ class MainWindow(QMainWindow):
                   default=json_encoder)
 
     def print(self):
-        printer = QPrinter(QPrinter.ScreenResolution)
+        printer = QPrinter(QPrinter.HighResolution)
         printer.setResolution(200)
         dialog = QPrintPreviewDialog(printer)
         view = PrintTreeView(self)
         view.setModel(self.item_model)
         dialog.paintRequested.connect(view.print)
+        dialog.showMaximized()
         dialog.exec_()
 
     def start_open_file(self):
@@ -1671,17 +1672,37 @@ class PrintTreeView(QTreeView):
         self.main_window = main_window
 
     def print(self, printer):
+        painter = QPainter()
+        painter.begin(printer)
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        tree_width = printer.pageRect().width() - printer.pageLayout().marginsPixels(printer.resolution()).right() * 2
         self.model().expand_saved(print_view=self)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setPalette(self.main_window.light_palette)
         self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
-        self.setColumnWidth(0, printer.width() - ESTIMATE_COLUMN_WIDTH)
-        self.resize(printer.width(), printer.height())
+        self.setColumnWidth(0, tree_width - ESTIMATE_COLUMN_WIDTH)
         self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation(), self)
-        self.setItemDelegate(model.Delegate(self.main_window, self.model(), self.header()))
-        self.render(printer)
+        delegate = model.Delegate(self.main_window, self.model(), self.header())
+        self.setItemDelegate(delegate)
+
+        tree_height = self.header().height()
+        index = self.indexAt(self.rect().topLeft())
+        while index.isValid():
+            tree_height += delegate.sizeHint(None, index).height()
+            index = self.indexBelow(index);
+        self.resize(tree_width, tree_height)
+        pixmap = self.grab()
+        one_page_print_space = printer.pageRect().height() - printer.pageLayout().marginsPixels(
+            printer.resolution()).bottom()
+        pieces = tree_height // one_page_print_space + 1
+        for i in range(pieces):
+            rect = QRectF(0, i * one_page_print_space, printer.width(), one_page_print_space)
+            painter.drawPixmap(printer.pageRect().topLeft(), pixmap, rect)
+            if i != pieces - 1:
+                printer.newPage()
+        painter.end()
 
 
 class ItemMimeData(QMimeData):
