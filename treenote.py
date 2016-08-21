@@ -1664,6 +1664,7 @@ class MainWindow(QMainWindow):
         toolbar = dialog.findChildren(QToolBar)[0]
         toolbar.addAction(QIcon(':/plus'), self.tr('Increase print size'), lambda: view.change_print_size(0.1))
         toolbar.addAction(QIcon(':/minus'), self.tr('Decrease print size'), lambda: view.change_print_size(-0.1))
+        toolbar.addWidget(QLabel('Change the print size with the red buttons.'))
         view.setModel(self.item_model)
         dialog.paintRequested.connect(view.print)
         dialog.showMaximized()
@@ -1710,9 +1711,8 @@ class PrintTreeView(QTreeView):
             index = self.indexBelow(index)
         self.resize(tree_width, tree_height)
         pixmap = self.grab()
-        space_for_page_number = 50
-        one_page_print_space = printer.pageRect().height() - printer.pageLayout().marginsPixels(
-            printer.resolution()).bottom() - space_for_page_number
+        space_for_page_number = printer.pageLayout().marginsPixels(printer.resolution()).bottom()
+        one_page_print_space = printer.pageRect().height() - space_for_page_number * 2
         pieces = tree_height // one_page_print_space + 1
         for i in range(pieces):
             rect = QRectF(0, i * one_page_print_space, printer.width(), one_page_print_space)
