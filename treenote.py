@@ -591,8 +591,8 @@ class MainWindow(QMainWindow):
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 10))
 
-        self.set_indentation_and_style_tree(settings.value('indentation', 40))
         self.print_size = float(settings.value('print_size', 1))
+        self.set_indentation_and_style_tree(settings.value('indentation', 40))
         self.check_for_software_update()
 
     def backup_tree_if_changed(self):
@@ -1536,22 +1536,24 @@ class MainWindow(QMainWindow):
             self.unsplitWindowAct.setEnabled(False)
 
     def set_indentation_and_style_tree(self, i, view=None):
+        space_left_of_arrow = str(int(i) - 30 * 2)
         if not view:
+            space_left_of_arrow = str(int(i) - 30)
             view = self.focused_column().view
         view.setIndentation(int(i))
-        padding = str(int(i) - 30)
+        padding_vertical = '8'
         view.setStyleSheet(
             'QTreeView:focus { border: 1px solid #006080; }'  # blue glow around the view
             'QTreeView:branch:open:has-children  {'
             'image: url(:/open);'
-            'padding-top: 10px;'
-            'padding-bottom: 10px;'
-            'padding-left: ' + padding + 'px;}'
-                                         'QTreeView:branch:closed:has-children {'
-                                         'image: url(:/closed);'
-                                         'padding-top: 10px;'
-                                         'padding-bottom: 10px;'
-                                         'padding-left: ' + padding + 'px;}')
+            'padding-top: ' + padding_vertical + 'px;\
+            padding-bottom: ' + padding_vertical + 'px;\
+            padding-left: ' + space_left_of_arrow + 'px;}\
+            QTreeView:branch:closed:has-children {\
+            image: url(:/closed);\
+            padding-top: ' + padding_vertical + 'px;\
+            padding-bottom: ' + padding_vertical + 'px;\
+            padding-left: ' + space_left_of_arrow + 'px;}')
 
     def new_file(self):
         path = QFileDialog.getSaveFileName(self, "Save", 'my_tree.treenote', "*.treenote")[0]
