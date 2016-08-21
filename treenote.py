@@ -1674,6 +1674,7 @@ class PrintTreeView(QTreeView):
     def print(self, printer):
         painter = QPainter()
         painter.begin(printer)
+        painter.setFont(QFont(model.FONT, 9))
         painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         tree_width = printer.pageRect().width() - printer.pageLayout().marginsPixels(printer.resolution()).right() * 2
         self.model().expand_saved(print_view=self)
@@ -1687,6 +1688,7 @@ class PrintTreeView(QTreeView):
         delegate = model.Delegate(self.main_window, self.model(), self.header())
         self.setItemDelegate(delegate)
 
+        # source: http://blog.qt.io/blog/2012/08/24/qt-commercial-support-weekly-25-printing-large-tables-2/
         tree_height = self.header().height()
         index = self.indexAt(self.rect().topLeft())
         while index.isValid():
@@ -1694,12 +1696,15 @@ class PrintTreeView(QTreeView):
             index = self.indexBelow(index);
         self.resize(tree_width, tree_height)
         pixmap = self.grab()
+        space_for_page_number = 50
         one_page_print_space = printer.pageRect().height() - printer.pageLayout().marginsPixels(
-            printer.resolution()).bottom()
+            printer.resolution()).bottom() - space_for_page_number
         pieces = tree_height // one_page_print_space + 1
         for i in range(pieces):
             rect = QRectF(0, i * one_page_print_space, printer.width(), one_page_print_space)
             painter.drawPixmap(printer.pageRect().topLeft(), pixmap, rect)
+            painter.drawText(0, printer.pageRect().height() - space_for_page_number, printer.width(),
+                             space_for_page_number, Qt.AlignCenter, '{} / {}'.format(i + 1, pieces))
             if i != pieces - 1:
                 printer.newPage()
         painter.end()
