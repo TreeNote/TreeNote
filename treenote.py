@@ -1670,7 +1670,8 @@ class PrintView(QTreeView):
         super(PrintView, self).__init__()
         self.main_window = main_window
 
-    def print_(self, printer):
+    def print(self, printer):
+        self.setItemDelegate(model.Delegate(self.main_window, self.model(), self.header()))
         self.model().expand_saved(print_view=self)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)

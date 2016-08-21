@@ -754,10 +754,10 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
 
 class Delegate(QStyledItemDelegate):
-    def __init__(self, parent, model, view_header):
-        super(Delegate, self).__init__(parent)
+    def __init__(self, main_window, model, view_header):
+        super(Delegate, self).__init__(main_window)
         self.model = model
-        self.main_window = parent
+        self.main_window = main_window
         self.view_header = view_header
 
     def paint(self, painter, option, index):
