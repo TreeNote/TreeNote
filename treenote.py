@@ -28,6 +28,7 @@ import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 #
 import model
 import tag_model
@@ -47,6 +48,7 @@ EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
 SELECTED_INDEX = 'SELECTED_ID'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
+ESTIMATE_COLUMN_WIDTH = 85
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -399,6 +401,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('as a TreeNote JSON file...'), self, triggered=self.export_json))
         add_action('exportPlainTextAction',
                    QAction(self.tr('as a plain text file...'), self, triggered=self.export_plain_text))
+        add_action('printAction', QAction(self.tr('&Print'), self, shortcut=QKeySequence.Print, triggered=self.print))
         add_action('expandAction',
                    QAction('Expand selected rows / add children to selection', self, shortcut='Right',
                            triggered=self.expand), list=self.item_view_not_editing_actions)
@@ -431,6 +434,7 @@ class MainWindow(QMainWindow):
         self.exportMenu = self.fileMenu.addMenu(self.tr('Export'))
         self.exportMenu.addAction(self.exportJSONAction)
         self.exportMenu.addAction(self.exportPlainTextAction)
+        self.fileMenu.addAction(self.printAction)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.editShortcutAction)
         self.fileMenu.addAction(self.editBookmarkAction)
@@ -988,7 +992,7 @@ class MainWindow(QMainWindow):
 
         # restore expanded state when we are now in normal mode again after a text search
         if self.is_no_text_search(search_text):
-            self.item_model.expand_saved(QModelIndex())
+            self.item_model.expand_saved()
         # expand all items when doing a text search
         else:
             self.expand_or_collapse_children(QModelIndex(), True)
@@ -1501,7 +1505,7 @@ class MainWindow(QMainWindow):
         new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setStretchLastSection(False)
-        new_column.view.setColumnWidth(1, 85)
+        new_column.view.setColumnWidth(1, ESTIMATE_COLUMN_WIDTH)
         new_column.view.setColumnWidth(2, 90)
         new_column.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
         new_column.view.header().setSectionResizeMode(1, QHeaderView.Fixed)
@@ -1593,6 +1597,14 @@ class MainWindow(QMainWindow):
         json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(path, 'w'),
                   default=json_encoder)
 
+    def print(self):
+        printer = QPrinter(QPrinter.ScreenResolution)
+        dialog = QPrintPreviewDialog(printer)
+        view = PrintView(self)
+        view.setModel(self.item_model)
+        dialog.paintRequested.connect(view.print_)
+        dialog.exec_()
+
     def start_open_file(self):
         path = QFileDialog.getOpenFileName(self, "Open", filter="*.treenote")[0]
         if path and len(path) > 0:
@@ -1651,6 +1663,22 @@ class MainWindow(QMainWindow):
             open(open_path, 'rb'))
         self.save_path = open_path
         self.change_active_tree()
+
+
+class PrintView(QTreeView):
+    def __init__(self, main_window):
+        super(PrintView, self).__init__()
+        self.main_window = main_window
+
+    def print_(self, printer):
+        self.model().expand_saved(print_view=self)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setPalette(self.main_window.light_palette)
+        self.hideColumn(2)
+        self.setColumnWidth(0, printer.width() - ESTIMATE_COLUMN_WIDTH)
+        self.resize(printer.width(), printer.height())
+        self.render(printer)
 
 
 class ItemMimeData(QMimeData):

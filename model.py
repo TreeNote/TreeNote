@@ -258,13 +258,16 @@ class TreeModel(QAbstractItemModel):
 
         self.undoStack.push(SetDataCommand(self, index, value, index.column(), field))
 
-    def expand_saved(self, idx):
+    def expand_saved(self, idx=QModelIndex(), print_view=None):
         def restore_children_expanded_state(index):
             for i, child_item in enumerate(self.getItem(index).childItems):
                 child_index = self.index(i, 0, index)
-                proxy_index = self.main_window.filter_proxy_index_from_model_index(child_index)
-                self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
-                self.main_window.quicklinks_view.setExpanded(child_index, child_item.quicklink_expanded)
+                if print_view:
+                    print_view.setExpanded(child_index, child_item.expanded)
+                else:
+                    proxy_index = self.main_window.filter_proxy_index_from_model_index(child_index)
+                    self.main_window.focused_column().view.setExpanded(proxy_index, child_item.expanded)
+                    self.main_window.quicklinks_view.setExpanded(child_index, child_item.quicklink_expanded)
                 restore_children_expanded_state(child_index)
 
         self.main_window.focused_column().view.setAnimated(False)
