@@ -776,7 +776,7 @@ class Delegate(QStyledItemDelegate):
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
 
         if item.color == NO_COLOR:
-            text_color = QApplication.palette().text().color().name()
+            text_color = self.view_header.palette().text().color().name()
         else:
             text_color = QColor(item.color).name()
         html = "<font color={}>{}</font>".format(text_color, html)
