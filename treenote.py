@@ -1240,7 +1240,6 @@ class MainWindow(QMainWindow):
 
             rows_string = textwrap.dedent(rows_string)  # strip spaces in front of all rows until equal
             rows_string = rows_string.strip()  # strip the line break at the end
-        QApplication.clipboard().setText(rows_string)
 
         # remove children of items in the selection, otherwise there will be paste errors
         indexes = self.selected_indexes()
@@ -1255,6 +1254,7 @@ class MainWindow(QMainWindow):
         for index in self.selected_indexes():
             remove_if_parent(index)
         mime_data = ItemMimeData([self.focused_column().filter_proxy.getItem(index) for index in indexes])
+        mime_data.setText(rows_string)
         QApplication.clipboard().setMimeData(mime_data)
 
     def paste(self):
