@@ -592,6 +592,7 @@ class MainWindow(QMainWindow):
         self.start_backup_service(settings.value('backup_interval', 10))
 
         self.set_indentation_and_style_tree(settings.value('indentation', 40))
+        self.print_size = float(settings.value('print_size', 1))
         self.check_for_software_update()
 
     def backup_tree_if_changed(self):
@@ -743,6 +744,7 @@ class MainWindow(QMainWindow):
         settings.setValue('indentation', self.focused_column().view.indentation())
         settings.setValue('backup_interval', self.backup_interval)
         settings.setValue('last_opened_file_path', self.save_path)
+        settings.setValue('print_size', self.print_size)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save theme
@@ -1660,8 +1662,8 @@ class MainWindow(QMainWindow):
         dialog = QPrintPreviewDialog(printer)
         view = PrintTreeView(self, dialog.findChildren(QPrintPreviewWidget)[0])
         toolbar = dialog.findChildren(QToolBar)[0]
-        toolbar.addAction(QIcon(':/plus'), self.tr('Increase size'), lambda: view.change_base_size(0.1))
-        toolbar.addAction(QIcon(':/minus'), self.tr('Decrease size'), lambda: view.change_base_size(-0.1))
+        toolbar.addAction(QIcon(':/plus'), self.tr('Increase print size'), lambda: view.change_print_size(0.1))
+        toolbar.addAction(QIcon(':/minus'), self.tr('Decrease print size'), lambda: view.change_print_size(-0.1))
         view.setModel(self.item_model)
         dialog.paintRequested.connect(view.print)
         dialog.showMaximized()
@@ -1673,15 +1675,14 @@ class PrintTreeView(QTreeView):
         super(PrintTreeView, self).__init__()
         self.main_window = main_window
         self.print_preview_widget = print_preview_widget
-        self.base_size = 1
 
-    def change_base_size(self, change):
-        self.base_size += change
+    def change_print_size(self, change):
+        self.main_window.print_size += change
         self.print_preview_widget.updatePreview()
 
     def print(self, printer):
         old_fontsize = self.main_window.fontsize
-        self.main_window.fontsize = 30 * self.base_size
+        self.main_window.fontsize = int(30 * self.main_window.print_size)
         painter = QPainter()
         painter.begin(printer)
         painter.setFont(QFont(model.FONT, 9))
@@ -1694,10 +1695,10 @@ class PrintTreeView(QTreeView):
         self.header().setFont(QFont(model.FONT, self.main_window.fontsize))
         self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
-        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 2 * self.base_size
+        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 2 * self.main_window.print_size
         self.setColumnWidth(0, tree_width - width_of_estimate_column)
         self.main_window.set_indentation_and_style_tree(
-            self.main_window.focused_column().view.indentation() * 2 * self.base_size, self)
+            self.main_window.focused_column().view.indentation() * 2 * self.main_window.print_size, self)
         delegate = model.Delegate(self.main_window, self.model(), self.header())
         self.setItemDelegate(delegate)
 
