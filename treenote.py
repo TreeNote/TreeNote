@@ -591,7 +591,7 @@ class MainWindow(QMainWindow):
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 10))
 
-        self.set_indentation(settings.value('indentation', 40))
+        self.set_indentation_and_style_tree(settings.value('indentation', 40))
         self.check_for_software_update()
 
     def backup_tree_if_changed(self):
@@ -1522,7 +1522,6 @@ class MainWindow(QMainWindow):
         self.setup_tag_model()
 
         self.focused_column().view.setFocus()
-        self.style_tree()
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
         self.set_selection(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
@@ -1533,13 +1532,12 @@ class MainWindow(QMainWindow):
         if self.item_views_splitter.count() == 1:
             self.unsplitWindowAct.setEnabled(False)
 
-    def set_indentation(self, i):
-        self.focused_column().view.setIndentation(int(i))
-        self.style_tree()
-
-    def style_tree(self):
-        padding = str(self.focused_column().view.indentation() - 30)
-        self.focused_column().view.setStyleSheet(
+    def set_indentation_and_style_tree(self, i, view=None):
+        if not view:
+            view = self.focused_column().view
+        view.setIndentation(int(i))
+        padding = str(int(i) - 30)
+        view.setStyleSheet(
             'QTreeView:focus { border: 1px solid #006080; }'  # blue glow around the view
             'QTreeView:branch:open:has-children  {'
             'image: url(:/open);'
@@ -1599,10 +1597,11 @@ class MainWindow(QMainWindow):
 
     def print(self):
         printer = QPrinter(QPrinter.ScreenResolution)
+        printer.setResolution(200)
         dialog = QPrintPreviewDialog(printer)
-        view = PrintView(self)
+        view = PrintTreeView(self)
         view.setModel(self.item_model)
-        dialog.paintRequested.connect(view.print_)
+        dialog.paintRequested.connect(view.print)
         dialog.exec_()
 
     def start_open_file(self):
@@ -1665,20 +1664,22 @@ class MainWindow(QMainWindow):
         self.change_active_tree()
 
 
-class PrintView(QTreeView):
+class PrintTreeView(QTreeView):
     def __init__(self, main_window):
-        super(PrintView, self).__init__()
+        super(PrintTreeView, self).__init__()
         self.main_window = main_window
 
     def print(self, printer):
-        self.setItemDelegate(model.Delegate(self.main_window, self.model(), self.header()))
         self.model().expand_saved(print_view=self)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setPalette(self.main_window.light_palette)
+        self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
         self.setColumnWidth(0, printer.width() - ESTIMATE_COLUMN_WIDTH)
         self.resize(printer.width(), printer.height())
+        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation(), self)
+        self.setItemDelegate(model.Delegate(self.main_window, self.model(), self.header()))
         self.render(printer)
 
 
@@ -2052,7 +2053,8 @@ class SettingsDialog(QDialog):
         indentation_spinbox = QSpinBox()
         indentation_spinbox.setValue(parent.focused_column().view.indentation())
         indentation_spinbox.setRange(30, 100)
-        indentation_spinbox.valueChanged[int].connect(lambda: parent.set_indentation(indentation_spinbox.value()))
+        indentation_spinbox.valueChanged[int].connect(
+            lambda: parent.set_indentation_and_style_tree(indentation_spinbox.value()))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         backup_interval_spinbox = QSpinBox()
