@@ -1658,7 +1658,10 @@ class MainWindow(QMainWindow):
     def print(self):
         printer = QPrinter(QPrinter.HighResolution)
         dialog = QPrintPreviewDialog(printer)
-        view = PrintTreeView(self)
+        view = PrintTreeView(self, dialog.findChildren(QPrintPreviewWidget)[0])
+        toolbar = dialog.findChildren(QToolBar)[0]
+        toolbar.addAction(QIcon(':/plus'), self.tr('Increase size'), lambda: view.change_base_size(0.1))
+        toolbar.addAction(QIcon(':/minus'), self.tr('Decrease size'), lambda: view.change_base_size(-0.1))
         view.setModel(self.item_model)
         dialog.paintRequested.connect(view.print)
         dialog.showMaximized()
@@ -1666,13 +1669,19 @@ class MainWindow(QMainWindow):
 
 
 class PrintTreeView(QTreeView):
-    def __init__(self, main_window):
+    def __init__(self, main_window, print_preview_widget):
         super(PrintTreeView, self).__init__()
         self.main_window = main_window
+        self.print_preview_widget = print_preview_widget
+        self.base_size = 1
+
+    def change_base_size(self, change):
+        self.base_size += change
+        self.print_preview_widget.updatePreview()
 
     def print(self, printer):
         old_fontsize = self.main_window.fontsize
-        self.main_window.fontsize = 30
+        self.main_window.fontsize = 30 * self.base_size
         painter = QPainter()
         painter.begin(printer)
         painter.setFont(QFont(model.FONT, 9))
@@ -1685,9 +1694,10 @@ class PrintTreeView(QTreeView):
         self.header().setFont(QFont(model.FONT, self.main_window.fontsize))
         self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
-        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 2
+        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 2 * self.base_size
         self.setColumnWidth(0, tree_width - width_of_estimate_column)
-        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation() * 2, self)
+        self.main_window.set_indentation_and_style_tree(
+            self.main_window.focused_column().view.indentation() * 2 * self.base_size, self)
         delegate = model.Delegate(self.main_window, self.model(), self.header())
         self.setItemDelegate(delegate)
 
@@ -1696,7 +1706,7 @@ class PrintTreeView(QTreeView):
         index = self.indexAt(self.rect().topLeft())
         while index.isValid():
             tree_height += delegate.sizeHint(None, index).height()
-            index = self.indexBelow(index);
+            index = self.indexBelow(index)
         self.resize(tree_width, tree_height)
         pixmap = self.grab()
         space_for_page_number = 50

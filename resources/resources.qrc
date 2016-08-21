@@ -13,5 +13,7 @@
         <file alias="toggle_columns">images/dark_skin/toggle_columns.png</file>
         <file alias="open">images/dark_skin/open.png</file>
         <file alias="closed">images/dark_skin/closed.png</file>
+        <file alias="plus">images/dark_skin/plus.png</file>
+        <file alias="minus">images/dark_skin/minus.png</file>
     </qresource>
 </RCC>
