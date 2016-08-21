@@ -1596,16 +1596,6 @@ class MainWindow(QMainWindow):
         json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(path, 'w'),
                   default=json_encoder)
 
-    def print(self):
-        printer = QPrinter()
-        printer.setResolution(500)
-        dialog = QPrintPreviewDialog(printer)
-        view = PrintTreeView(self)
-        view.setModel(self.item_model)
-        dialog.paintRequested.connect(view.print)
-        dialog.showMaximized()
-        dialog.exec_()
-
     def start_open_file(self):
         path = QFileDialog.getOpenFileName(self, "Open", filter="*.treenote")[0]
         if path and len(path) > 0:
@@ -1665,6 +1655,15 @@ class MainWindow(QMainWindow):
         self.save_path = open_path
         self.change_active_tree()
 
+    def print(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        dialog = QPrintPreviewDialog(printer)
+        view = PrintTreeView(self)
+        view.setModel(self.item_model)
+        dialog.paintRequested.connect(view.print)
+        dialog.showMaximized()
+        dialog.exec_()
+
 
 class PrintTreeView(QTreeView):
     def __init__(self, main_window):
@@ -1673,7 +1672,7 @@ class PrintTreeView(QTreeView):
 
     def print(self, printer):
         old_fontsize = self.main_window.fontsize
-        self.main_window.fontsize = 60
+        self.main_window.fontsize = 30
         painter = QPainter()
         painter.begin(printer)
         painter.setFont(QFont(model.FONT, 9))
@@ -1686,9 +1685,9 @@ class PrintTreeView(QTreeView):
         self.header().setFont(QFont(model.FONT, self.main_window.fontsize))
         self.header().setPalette(self.main_window.light_palette)
         self.hideColumn(2)
-        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 3.8
+        width_of_estimate_column = ESTIMATE_COLUMN_WIDTH * 2
         self.setColumnWidth(0, tree_width - width_of_estimate_column)
-        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation() * 5, self)
+        self.main_window.set_indentation_and_style_tree(self.main_window.focused_column().view.indentation() * 2, self)
         delegate = model.Delegate(self.main_window, self.model(), self.header())
         self.setItemDelegate(delegate)
 
