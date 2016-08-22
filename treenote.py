@@ -1755,7 +1755,7 @@ class FileLineEdit(QPlainTextEdit):
             else:
                 other_indexes.add(index)
         self.completer = QCompleter([index.data() for index in other_indexes])
-        self.completer.setFilterMode(Qt.MatchContains)
+        self.completer.setFilterMode(Qt.MatchStartsWith)
         self.completer.setWidget(self)
         self.completer.activated[str].connect(self._insertCompletion)
         self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
