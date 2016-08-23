@@ -1660,10 +1660,7 @@ class MainWindow(QMainWindow):
         self.change_active_tree()
 
     def print(self):
-        printer = QPrinter(QPrinter.HighResolution)
-        if printer.resolution() > 300:
-            printer.setResolution(300)
-        dialog = QPrintPreviewDialog(printer)
+        dialog = QPrintPreviewDialog()
         view = PrintTreeView(self, dialog.findChildren(QPrintPreviewWidget)[0])
         toolbar = dialog.findChildren(QToolBar)[0]
         toolbar.addAction(QIcon(':/plus'), self.tr('Increase print size'), lambda: view.change_print_size(0.1))
@@ -1686,6 +1683,7 @@ class PrintTreeView(QTreeView):
         self.print_preview_widget.updatePreview()
 
     def print(self, printer):
+        printer.setResolution(300)
         old_fontsize = self.main_window.fontsize
         self.main_window.fontsize = int(30 * self.main_window.print_size)
         painter = QPainter()
@@ -1856,7 +1854,7 @@ class AboutBox(QDialog):
             self.tr(
                 'Version ' + version.version_nr.replace('v', '') +
                 '<br><br>'
-                'TreeNote is an easy outliner for personal knowledge and task management.'
+                'TreeNote is an easy outliner for personal knowledge and task management. '
                 'More info at <a href="http://treenote.github.io">treenote.github.io</a>.<br>'
                 '<br>'
                 'Contact me at j.korte@me.com if you have an idea or issue!<br>'
