@@ -286,7 +286,7 @@ class TreeModel(QAbstractItemModel):
         # So we just set a delete marker. On startup, all items with a delete marker are removed permanently.
         class InsertRemoveRowCommand(QUndoCommandStructure):
             _fields = ['model', 'position', 'parent_index', 'deleted_child_parent_index_position_list',
-                       'set_edit_focus', 'indexes']
+                       'set_edit_focus', 'indexes', 'items']
             title = 'Add or remove row'
 
             @staticmethod  # static because it is called from the outside for moving
@@ -298,12 +298,15 @@ class TreeModel(QAbstractItemModel):
                     child_item.parentItem = parent_item
                     parent_item.childItems.insert(position + i, child_item)
                 model.endInsertRows()
+
+                indexes = []
+                for i in range(len(child_item_list)):
+                    indexes.append(model.index(position + i, 0, parent_index))
                 if select:
-                    index_first_moved_item = model.index(position, 0, parent_index)
-                    index_last_moved_item = model.index(position + len(child_item_list) - 1, 0, parent_index)
-                    model.main_window.set_selection(index_first_moved_item, index_last_moved_item)
+                    model.main_window.set_selection(indexes[0], indexes[-1])
 
                 model.expand_saved(parent_index)
+                return indexes
 
             def remove_rows(self):
                 self.deleted_child_parent_index_position_list = []
@@ -332,7 +335,10 @@ class TreeModel(QAbstractItemModel):
                 self.model.main_window.setup_tag_model()
 
             def redo(self):  # is called when pushed to the stack
-                if self.position is not None:  # insert command
+                if self.items:  # pasting real items
+                    self.indexes = InsertRemoveRowCommand.insert_existing_entry(self.model, self.position,
+                                                                                self.parent_index, self.items, True)
+                elif self.position is not None:  # insert command
                     # if redoing an insert, insert the deleted item instead of creating a new one
                     if self.deleted_child_parent_index_position_list:
                         for child_item, parent_index, position in self.deleted_child_parent_index_position_list:
@@ -373,17 +379,24 @@ class TreeModel(QAbstractItemModel):
                         self.insert_existing_entry(self.model, position, parent_index, [child_item])
 
         if position is not None:  # insert command
-            if set_edit_focus is not None:  # used when adding rows programmatically e.g. pasting
-                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
-            # used from move methods, add existing items to the parent.
+            # used when pasting real items
+            if set_edit_focus is not None and items:
+                self.undoStack.push(
+                    InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None, items))
+            # used when adding rows programmatically by pasting plain text. Then set_edit_focus is False.
+            elif set_edit_focus is not None:
+                self.undoStack.push(
+                    InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None, None))
+                # used from move methods, adds existing items to the parent
             # Don't add to stack, because already part of an UndoCommand
             elif items:
                 InsertRemoveRowCommand.insert_existing_entry(self, position, parent_index, items, select)
             elif indexes is None:  # used from view, create a single new row / item
                 set_edit_focus = True
-                self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None))
+                self.undoStack.push(
+                    InsertRemoveRowCommand(self, position, parent_index, None, set_edit_focus, None, None))
         else:  # remove command
-            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, False, indexes))
+            self.undoStack.push(InsertRemoveRowCommand(self, position, parent_index, None, False, indexes, None))
 
     def file(self, indexes, new_parent):
         class FileCommand(QUndoCommandStructure):

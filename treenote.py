@@ -1261,7 +1261,7 @@ class MainWindow(QMainWindow):
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
             self.item_model.insert_remove_rows(position=self.current_index().row() + 1,
                                                parent_index=self.focused_column().filter_proxy.mapToSource(
-                                                   self.current_index().parent()),
+                                                   self.current_index().parent()), set_edit_focus=False,
                                                items=copy.deepcopy(QApplication.clipboard().mimeData().items))
         else:
             # paste from plain text
