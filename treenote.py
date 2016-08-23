@@ -1388,8 +1388,7 @@ class MainWindow(QMainWindow):
 
         def add_parents(current_index):
             item = self.focused_column().filter_proxy.getItem(current_index)
-            text = item.text if item.text else '/'
-            text = text.replace('\n', '')
+            text = item.text.replace('\n', '')
             button = QPushButton(text)
             button.clicked.connect(lambda: self.focus_index(current_index))
             button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 7)
