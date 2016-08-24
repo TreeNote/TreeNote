@@ -1393,7 +1393,8 @@ class MainWindow(QMainWindow):
             item = self.focused_column().filter_proxy.getItem(current_index)
             text = item.text.replace('\n', '')
             button = QPushButton(text)
-            button.setStyleSheet('Text-align: left')
+            button.setStyleSheet('Text-align: left; padding-left: 2px; padding-right: 2px;'
+                                 'padding-top: 3px; padding-bottom: 3px;')
             button.clicked.connect(lambda: self.focus_index(current_index))
             button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 7)
             widgets_to_add.append(button)
@@ -1452,6 +1453,7 @@ class MainWindow(QMainWindow):
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
         new_column.search_bar.setMaximumWidth(300)
+        new_column.search_bar.setMaximumHeight(32)
         new_column.search_bar.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
 
         # search shall start not before the user completed typing
@@ -1476,6 +1478,11 @@ class MainWindow(QMainWindow):
         self.tab_bar.addTab('Tree')
         self.tab_bar.addTab('Calendar')
         self.tab_bar.addTab('Plan')
+        for i in range(3):
+            self.tab_bar.setTabToolTip(i, 'Press Ctrl+{} to select this tab'.format(i + 1))
+            shortcut = QShortcut(QKeySequence('Ctrl+{}'.format(i + 1)), self)
+            shortcut.setContext(Qt.ApplicationShortcut)
+            shortcut.activated.connect(partial(self.tab_bar.setCurrentIndex, i))
 
         self.path_bar = QWidget()
         layout = QHBoxLayout()
