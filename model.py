@@ -20,6 +20,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import planned_model
+
 
 def QDateFromString(string):
     d = QDate.fromString(string, 'dd.MM.yy')
@@ -795,6 +797,10 @@ class Delegate(QStyledItemDelegate):
         if index.column() == 0 and item.planned != 0:
             html += r' <font color=' + PLANNED_COLOR.name() + r'>' + NUMBER_PLAN_DICT[item.planned] + r'</font>'
 
+        if isinstance(self.model, planned_model.PlannedModel) and \
+                        index.column() == 0 and item.parentItem != self.main_window.item_model.rootItem:
+            html = r'<font color={}>{}</font> {}'.format(DARK_GREY, item.parentItem.text, html)
+
         is_not_available = item.type == TASK and not self.model.is_task_available(index)
         if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
@@ -1130,6 +1136,7 @@ TAG_COLOR = QColor('#71CD58')  # green
 INTERNAL_LINK_COLOR = QColor('#00b797')
 REPEAT_COLOR = QColor('#CF4573')  # red
 NO_COLOR = 'NO_COLOR'
+DARK_GREY = QColor('#808080').name()
 CHAR_QCOLOR_DICT = {
     'g': QColor('#85E326').name(),  # green
     'y': QColor('#EEEF22').name(),  # yellow
@@ -1137,7 +1144,7 @@ CHAR_QCOLOR_DICT = {
     'r': QColor('#FF2F00').name(),  # red
     'o': QColor('#FF9500').name(),  # orange
     'v': QColor('#FF40FF').name(),  # violet
-    'e': QColor('#808080').name(),  # dark grey
+    'e': DARK_GREY,
     'n': NO_COLOR
 }
 PLANNED_COLOR = QColor('#44A6C7')

@@ -1538,7 +1538,7 @@ class MainWindow(QMainWindow):
 
         stacked_widget = QStackedWidget()
         stacked_widget.addWidget(new_column.view)
-        stacked_widget.addWidget(QLabel('Calendar'))
+        stacked_widget.addWidget(QLabel('Coming soon :)'))
         stacked_widget.addWidget(self.planned_view)
 
         def change_tab(i):
