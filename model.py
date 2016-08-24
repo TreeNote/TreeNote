@@ -83,6 +83,9 @@ class Tree_item():
         self.childItems.insert(position, item)
         return item
 
+    def __str__(self):
+        return 'Tree_item({}, {})'.format(self.text, self.planned)
+
 
 class TreeModel(QAbstractItemModel):
     def __init__(self, main_window, header_list):
@@ -185,7 +188,9 @@ class TreeModel(QAbstractItemModel):
         if role != Qt.DisplayRole and role != Qt.EditRole:
             return None
 
-        item = self.getItem(index)
+        return self.get_data(self.getItem(index), index)
+
+    def get_data(self, item, index):
         if index.column() == 0:
             # hidden option to show number of children behind each row
             if False:

@@ -32,6 +32,7 @@ from PyQt5.QtPrintSupport import *
 #
 import model
 import tag_model
+import planned_model
 import util
 import version
 from resources import qrc_resources  # get's removed with 'optimize imports'!
@@ -1519,34 +1520,26 @@ class MainWindow(QMainWindow):
         self.search_holder.setLayout(layout)
         self.set_toolbar_margins(TOOLBAR_MARGIN)
 
-        new_column.view = ResizeTreeView()
-        new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        new_column.view.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        new_column.view.setAnimated(True)
-        new_column.view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-
         new_column.filter_proxy = model.FilterProxyModel()
         new_column.filter_proxy.setSourceModel(self.item_model)
         # re-sort and re-filter data whenever the original model changes
         new_column.filter_proxy.setDynamicSortFilter(True)
         new_column.filter_proxy.filter = ''
 
-        new_column.view.setModel(new_column.filter_proxy)
+        new_column.view = ResizeTreeView(new_column.filter_proxy)
         new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy, new_column.view.header()))
         new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
-        new_column.view.header().setStretchLastSection(False)
-        new_column.view.setColumnWidth(1, ESTIMATE_COLUMN_WIDTH)
-        new_column.view.setColumnWidth(2, 90)
-        new_column.view.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        new_column.view.header().setSectionResizeMode(1, QHeaderView.Fixed)
-        new_column.view.header().setSectionResizeMode(2, QHeaderView.Fixed)
         new_column.view.header().setSectionsClickable(True)
+
+        plan_model = planned_model.PlannedModel(self.item_model)
+        self.planned_view = ResizeTreeView(plan_model)
+        self.planned_view.setItemDelegate(model.Delegate(self, plan_model, self.planned_view.header()))
 
         stacked_widget = QStackedWidget()
         stacked_widget.addWidget(new_column.view)
         stacked_widget.addWidget(QLabel('Calendar'))
-        stacked_widget.addWidget(QLabel('Plan'))
+        stacked_widget.addWidget(self.planned_view)
 
         def change_tab(i):
             self.path_bar.setVisible(i == 0)
@@ -1606,6 +1599,7 @@ class MainWindow(QMainWindow):
     def save_file(self, save_expanded_states=False):
         # this method is called everytime a change is done.
         # therefore it is the right place to set the model changed for backup purposes
+        self.planned_view.model().refresh_model()
         self.item_model.changed = True
         self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
         if save_expanded_states:
@@ -2207,6 +2201,20 @@ class CustomHeaderView(QHeaderView):
 
 
 class ResizeTreeView(QTreeView):
+    def __init__(self, model):
+        super(ResizeTreeView, self).__init__()
+        self.setModel(model)
+        self.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.setAnimated(True)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.header().setStretchLastSection(False)
+        self.setColumnWidth(1, ESTIMATE_COLUMN_WIDTH)
+        self.setColumnWidth(2, 90)
+        self.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.header().setSectionResizeMode(2, QHeaderView.Fixed)
+
     def resizeEvent(self, event):
         self.itemDelegate().sizeHintChanged.emit(QModelIndex())
 
