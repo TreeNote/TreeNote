@@ -9,7 +9,8 @@ class PlannedModel(QAbstractItemModel):
 
     def refresh_model(self):
         self.beginResetModel()
-        self.indexes = [index for index in self.item_model.indexes() if self.item_model.getItem(index).planned != 0]
+        self.items = [item for item in self.item_model.items() if item.planned != 0]
+        self.items.sort(key=lambda item: item.planned)
         self.endResetModel()
 
     def columnCount(self, parent):
@@ -19,22 +20,26 @@ class PlannedModel(QAbstractItemModel):
         return self.item_model.headerData(column, orientation, role)
 
     def getItem(self, index):
-        return self.item_model.getItem(index)
+        return index.internalPointer()
 
     def flags(self, index):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def index(self, row, column, parent):
-        return self.createIndex(row, column, self.getItem(self.indexes[row]))
+        return self.createIndex(row, column, self.items[row])
 
     def parent(self, index):
         return QModelIndex()
 
     def rowCount(self, parent):
-        return len(self.indexes) if parent == QModelIndex() else 0
+        return len(self.items) if parent == QModelIndex() else 0
 
     def is_task_available(self, index):
         return self.item_model.is_task_available(index)
+
+    def setData(self, index, value, role=None):
+        self.item_model.set_data(value, index=index, field='text')
+        return True
 
     def data(self, index, role):
         if not index.isValid():
