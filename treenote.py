@@ -49,6 +49,7 @@ SELECTED_INDEX = 'SELECTED_ID'
 APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
 ESTIMATE_COLUMN_WIDTH = 85
+TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -578,7 +579,7 @@ class MainWindow(QMainWindow):
         splitter_sizes = settings.value('splitter_sizes')
         if splitter_sizes is not None:
             self.mainSplitter.restoreState(splitter_sizes)
-            margin = 0 if self.is_sidebar_shown() else 6
+            margin = 0 if self.is_sidebar_shown() else TOOLBAR_MARGIN
             self.set_toolbar_margins(margin)
         else:
             self.toggle_sidebars()
@@ -943,7 +944,7 @@ class MainWindow(QMainWindow):
         if self.is_sidebar_shown():  # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
-            margin = 6
+            margin = TOOLBAR_MARGIN
         else:
             self.mainSplitter.moveSplitter(INITIAL_SIDEBAR_WIDTH, 1)
             self.mainSplitter.moveSplitter(self.width() - INITIAL_SIDEBAR_WIDTH, 2)
@@ -951,7 +952,7 @@ class MainWindow(QMainWindow):
         self.set_toolbar_margins(margin)
 
     def set_toolbar_margins(self, margin):
-        self.search_holder.layout().setContentsMargins(margin, 6, margin, 0)
+        self.search_holder.layout().setContentsMargins(margin, TOOLBAR_MARGIN, margin, 0)
 
     def toggle_columns(self):
         if self.focused_column().view.isHeaderHidden():
@@ -1392,6 +1393,7 @@ class MainWindow(QMainWindow):
             item = self.focused_column().filter_proxy.getItem(current_index)
             text = item.text.replace('\n', '')
             button = QPushButton(text)
+            button.setStyleSheet('Text-align: left')
             button.clicked.connect(lambda: self.focus_index(current_index))
             button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 7)
             widgets_to_add.append(button)
@@ -1399,7 +1401,11 @@ class MainWindow(QMainWindow):
                 add_parents(self.focused_column().filter_proxy.parent(current_index))
 
         add_parents(self.focused_column().view.rootIndex())
-        self.path_bar.setMaximumWidth(self.item_views_splitter.width() - 200)
+        margin_count_between_toolbar_widgets = 6
+        self.path_bar.setMaximumWidth(self.item_views_splitter.width() - self.tab_bar.sizeHint().width()
+                                      - self.focused_column().search_bar.width()
+                                      - 2 * self.focused_column().bookmark_button.sizeHint().width()
+                                      - margin_count_between_toolbar_widgets * TOOLBAR_MARGIN)
         for widget in reversed(widgets_to_add):
             self.path_bar.layout().addWidget(widget)
 
@@ -1488,7 +1494,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(new_column.toggle_sidebars_button)
         layout.setStretchFactor(new_column.search_bar, 1)
         self.search_holder.setLayout(layout)
-        self.set_toolbar_margins(6)
+        self.set_toolbar_margins(TOOLBAR_MARGIN)
 
         new_column.view = ResizeTreeView()
         new_column.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
