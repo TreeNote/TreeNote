@@ -578,7 +578,8 @@ class MainWindow(QMainWindow):
         splitter_sizes = settings.value('splitter_sizes')
         if splitter_sizes is not None:
             self.mainSplitter.restoreState(splitter_sizes)
-            self.set_toolbar_margins(0)
+            margin = 0 if self.is_sidebar_shown() else 6
+            self.set_toolbar_margins(margin)
         else:
             self.toggle_sidebars()
 
@@ -643,7 +644,6 @@ class MainWindow(QMainWindow):
     def get_widgets(self):
         return [QApplication,
                 self.focused_column().toggle_sidebars_button,
-                self.focused_column().toggle_columns_button,
                 self.focused_column().bookmark_button,
                 self.focused_column().search_bar,
                 self.focused_column().view,
@@ -936,9 +936,11 @@ class MainWindow(QMainWindow):
             self.search_holder.show()
             self.menuBar().setMaximumHeight(99)
 
+    def is_sidebar_shown(self):
+        return self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
+
     def toggle_sidebars(self):
-        sidebar_shown = self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
-        if sidebar_shown:  # hide
+        if self.is_sidebar_shown():  # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
             margin = 6
@@ -1441,15 +1443,6 @@ class MainWindow(QMainWindow):
             padding: 5px; }')
         new_column.toggle_sidebars_button.clicked.connect(self.toggle_sidebars)
 
-        new_column.toggle_columns_button = QPushButton()
-        new_column.toggle_columns_button.setToolTip(HIDE_SHOW_COLUMNS)
-        new_column.toggle_columns_button.setIcon(QIcon(':/toggle_columns'))
-        new_column.toggle_columns_button.setStyleSheet('QPushButton {\
-            width: 22px;\
-            height: 22px;\
-            padding: 5px; }')
-        new_column.toggle_columns_button.clicked.connect(self.toggle_columns)
-
         new_column.search_bar = SearchBarQLineEdit(self)
         new_column.search_bar.setPlaceholderText(self.tr('Search'))
         new_column.search_bar.setMaximumWidth(300)
@@ -1471,6 +1464,13 @@ class MainWindow(QMainWindow):
         new_column.bookmark_button.clicked.connect(
             lambda: BookmarkDialog(self, search_bar_text=self.focused_column().search_bar.text()).exec_())
 
+        self.tab_bar = QTabBar()
+        self.tab_bar.setUsesScrollButtons(False)
+        self.tab_bar.setDrawBase(False)
+        self.tab_bar.addTab('Tree')
+        self.tab_bar.addTab('Calendar')
+        self.tab_bar.addTab('Plan')
+
         self.path_bar = QWidget()
         layout = QHBoxLayout()
         layout.setAlignment(Qt.AlignLeft)
@@ -1480,11 +1480,11 @@ class MainWindow(QMainWindow):
 
         self.search_holder = QWidget()
         layout = QHBoxLayout()
+        layout.addWidget(self.tab_bar)
         layout.addWidget(self.path_bar)
         layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding))
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
-        layout.addWidget(new_column.toggle_columns_button)
         layout.addWidget(new_column.toggle_sidebars_button)
         layout.setStretchFactor(new_column.search_bar, 1)
         self.search_holder.setLayout(layout)
@@ -1514,10 +1514,21 @@ class MainWindow(QMainWindow):
         new_column.view.header().setSectionResizeMode(2, QHeaderView.Fixed)
         new_column.view.header().setSectionsClickable(True)
 
+        stacked_widget = QStackedWidget()
+        stacked_widget.addWidget(new_column.view)
+        stacked_widget.addWidget(QLabel('Calendar'))
+        stacked_widget.addWidget(QLabel('Plan'))
+
+        def change_tab(i):
+            self.path_bar.setVisible(i == 0)
+            stacked_widget.setCurrentIndex(i)
+
+        self.tab_bar.currentChanged.connect(change_tab)
+
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.search_holder)
-        layout.addWidget(new_column.view)
+        layout.addWidget(stacked_widget)
         new_column.setLayout(layout)
 
         self.item_views_splitter.addWidget(new_column)
