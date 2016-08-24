@@ -1141,8 +1141,8 @@ NUMBER_PLAN_DICT = {
     1: '1 Now',
     2: '2 Later today',
     3: '3 Tomorrow',
-    4: '4 Soon - Important',
-    5: '5 Soon - Nice to have',
+    4: '4 Urgent and important',
+    5: '5 Urgent and unimportant / nice to have',
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'-'

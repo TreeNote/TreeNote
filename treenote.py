@@ -589,6 +589,8 @@ class MainWindow(QMainWindow):
         else:
             self.toggle_sidebars()
 
+        QTimer().singleShot(200, self.reset_view)
+
         # restore columns
         columns_hidden = settings.value(COLUMNS_HIDDEN, 'true')
         if columns_hidden == 'true':
@@ -946,6 +948,7 @@ class MainWindow(QMainWindow):
         return self.mainSplitter.widget(0).size().width() > 0 or self.mainSplitter.widget(2).size().width() > 0
 
     def toggle_sidebars(self):
+        self.path_bar.setMaximumWidth(0)
         if self.is_sidebar_shown():  # hide
             self.mainSplitter.moveSplitter(0, 1)
             self.mainSplitter.moveSplitter(self.width(), 2)
@@ -955,6 +958,7 @@ class MainWindow(QMainWindow):
             self.mainSplitter.moveSplitter(self.width() - INITIAL_SIDEBAR_WIDTH, 2)
             margin = 0
         self.set_toolbar_margins(margin)
+        self.set_path_bar_width()
 
     def set_toolbar_margins(self, margin):
         self.search_holder.layout().setContentsMargins(margin, TOOLBAR_MARGIN, margin, 0)
@@ -1405,19 +1409,22 @@ class MainWindow(QMainWindow):
             button.setStyleSheet('Text-align: left; padding-left: 2px; padding-right: 2px;'
                                  'padding-top: 3px; padding-bottom: 3px;')
             button.clicked.connect(lambda: self.focus_index(current_index))
-            button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 7)
+            button.setMaximumWidth(button.fontMetrics().boundingRect(text).width() + 8)
             widgets_to_add.append(button)
             if item.parentItem:
                 add_parents(self.focused_column().filter_proxy.parent(current_index))
 
         add_parents(self.focused_column().view.rootIndex())
-        margin_count_between_toolbar_widgets = 6
+        self.set_path_bar_width()
+        for widget in reversed(widgets_to_add):
+            self.path_bar.layout().addWidget(widget)
+
+    def set_path_bar_width(self):
+        margin_count_between_toolbar_widgets = 4 if self.is_sidebar_shown() else 6
         self.path_bar.setMaximumWidth(self.item_views_splitter.width() - self.tab_bar.sizeHint().width()
                                       - self.focused_column().search_bar.width()
                                       - 2 * self.focused_column().bookmark_button.sizeHint().width()
                                       - margin_count_between_toolbar_widgets * TOOLBAR_MARGIN)
-        for widget in reversed(widgets_to_add):
-            self.path_bar.layout().addWidget(widget)
 
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()
