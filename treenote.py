@@ -505,6 +505,11 @@ class MainWindow(QMainWindow):
                 shortcut.setContext(Qt.ApplicationShortcut)
                 shortcut.activated.connect(partial(self.remindIn, i * value))
         self.editRowMenu.addAction(self.appendRepeatAction)
+        self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set plan of selected rows'))
+        for i in range(6):
+            self.setPlanMenu.addAction(
+                add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
+                                       triggered=partial(self.set_plan, i)), list=self.item_view_actions))
 
         self.viewMenu = self.menuBar().addMenu(self.tr('View'))
         self.viewMenu.addAction(self.goDownAction)
@@ -1363,6 +1368,10 @@ class MainWindow(QMainWindow):
             if new_estimate < 1:
                 new_estimate = ''
             self.focused_column().filter_proxy.set_data(str(new_estimate), index=row_index, field=model.ESTIMATE)
+
+    def set_plan(self, i):
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            self.focused_column().filter_proxy.set_data(i, index=row_index, field='planned')
 
     @pyqtSlot(str)
     def color_row(self, color_character):

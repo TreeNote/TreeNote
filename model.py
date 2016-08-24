@@ -71,6 +71,7 @@ class Tree_item():
         self.saved_root_item_creation_date_time = None  # for bookmarks
         self.creation_date_time = time.time()
         self.selected = False
+        self.planned = 0
 
     def child_number(self):
         if self.parentItem is not None:
@@ -786,6 +787,9 @@ class Delegate(QStyledItemDelegate):
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
+        if index.column() == 0 and item.planned != 0:
+            html += r' <font color=' + PLANNED_COLOR.name() + r'>' + NUMBER_PLAN_DICT[item.planned] + r'</font>'
+
         is_not_available = item.type == TASK and not self.model.is_task_available(index)
         if item.type == DONE_TASK or is_not_available:  # not available tasks in a sequential project are grey
             html = "<font color={}>{}</font>".format(QColor(Qt.darkGray).name(), html)
@@ -1130,6 +1134,15 @@ CHAR_QCOLOR_DICT = {
     'v': QColor('#FF40FF').name(),  # violet
     'e': QColor('#808080').name(),  # dark grey
     'n': NO_COLOR
+}
+PLANNED_COLOR = QColor('#44A6C7')
+NUMBER_PLAN_DICT = {
+    0: '0 Not planned',
+    1: '1 Now',
+    2: '2 Later today',
+    3: '3 Tomorrow',
+    4: '4 Soon - Important',
+    5: '5 Soon - Nice to have',
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'-'
