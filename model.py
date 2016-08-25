@@ -650,7 +650,7 @@ class ProxyTools():
         self.sourceModel().main_window.save_file()
         return True
 
-    def map_indexes(self, indexes):
+    def map_to_source(self, indexes):
         mapped_indexes = []
         for index in indexes:
             if index.model() is self.sourceModel().main_window.planned_view.model():
@@ -661,8 +661,19 @@ class ProxyTools():
         return mapped_indexes
 
     def set_data(self, value, indexes=None, field='text'):
-        for index in self.map_indexes(indexes):
+        for index in self.map_to_source(indexes):
             self.sourceModel().set_data(value, index=index, field=field)
+        self.sourceModel().main_window.save_file()
+
+    def adjust_estimate(self, adjustment, indexes):
+        for index in self.map_to_source(indexes):
+            old_estimate = self.sourceModel().getItem(index).estimate
+            if old_estimate == '':
+                old_estimate = 0
+            new_estimate = int(old_estimate) + adjustment
+            if new_estimate < 1:
+                new_estimate = ''
+            self.sourceModel().set_data(str(new_estimate), index=index, field=ESTIMATE)
         self.sourceModel().main_window.save_file()
 
     def remove_rows(self, indexes):

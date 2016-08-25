@@ -1201,7 +1201,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.insert_row(0, parent_filter_proxy_index)
             new_item_index = self.item_model.index(0, 0, parent_index)
             filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
-            self.focused_column().filter_proxy.set_data(planned_level, index=filter_proxy_index, field='planned')
+            self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index], field='planned')
             planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
             self.select_from_to(planned_index, planned_index)
@@ -1382,14 +1382,18 @@ class MainWindow(QMainWindow):
 
     def remindIn(self, days):
         date = '' if days == 0 else QDate.currentDate().addDays(days).toString('dd.MM.yy')
-        self.focused_column().filter_proxy.set_data(date, index=self.current_index(), field='date')
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.set_data(date, indexes=selected, field='date')
+        self.select(selected)
 
     def append_repeat(self):
-        index = self.current_index()
-        self.focused_column().filter_proxy.set_data(model.TASK, index=index, field='type')
-        self.focused_column().filter_proxy.set_data(QDate.currentDate().toString('dd.MM.yy'), index=index, field='date')
-        self.focused_column().filter_proxy.set_data(index.data() + ' repeat=1w', index=index)
-        self.edit_row()
+        if self.current_view() != self.planned_view:
+            index = self.current_index()
+            self.focused_column().filter_proxy.set_data(model.TASK, indexes=[index], field='type')
+            self.focused_column().filter_proxy.set_data(QDate.currentDate().toString('dd.MM.yy'), indexes=[index],
+                                                        field='date')
+            self.focused_column().filter_proxy.set_data(index.data() + ' repeat=1w', indexes=[index])
+            self.edit_row()
 
     def estimate(self, number):
         selected = self.selected_indexes()
@@ -1397,14 +1401,9 @@ class MainWindow(QMainWindow):
         self.select(selected)
 
     def adjust_estimate(self, adjustment):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            old_estimate = self.focused_column().filter_proxy.getItem(row_index).estimate
-            if old_estimate == '':
-                old_estimate = 0
-            new_estimate = int(old_estimate) + adjustment
-            if new_estimate < 1:
-                new_estimate = ''
-            self.focused_column().filter_proxy.set_data(str(new_estimate), index=row_index, field=model.ESTIMATE)
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.adjust_estimate(adjustment, selected)
+        self.select(selected)
 
     def set_plan(self, i):
         selected = self.selected_indexes()
