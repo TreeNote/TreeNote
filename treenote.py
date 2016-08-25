@@ -721,7 +721,7 @@ class MainWindow(QMainWindow):
         self.reset_view()
         for index in self.item_model.indexes():
             if self.item_model.getItem(index) == self.item_model.selected_item:
-                self.set_selection(index, index)
+                self.select_from_to(index, index)
                 QTimer().singleShot(100, lambda: self.focused_column().view.scrollTo(
                     self.filter_proxy_index_from_model_index(index)))
                 break
@@ -860,7 +860,7 @@ class MainWindow(QMainWindow):
         new_search_bar_text = bookmark_item.search_text
         self.set_searchbar_text_and_search(new_search_bar_text)
         # if shortcut was used: select bookmarks row for visual highlight
-        self.set_selection(bookmark_index, bookmark_index)
+        self.select_from_to(bookmark_index, bookmark_index)
 
     # just for one character filters
     def filter(self, key, value):
@@ -889,7 +889,7 @@ class MainWindow(QMainWindow):
     def filter_proxy_index_from_model_index(self, model_index):
         return self.focused_column().filter_proxy.mapFromSource(model_index)
 
-    def set_selection(self, index_from, index_to):
+    def select_from_to(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
             view = self.current_view()
             if index_from.model() is self.item_model:
@@ -904,10 +904,16 @@ class MainWindow(QMainWindow):
             view.selectionModel().select(QItemSelection(index_from, index_to), QItemSelectionModel.ClearAndSelect)
             self.focused_column().view.setFocus()  # after editing a date, the focus is lost
 
+    def select(self, indexes):
+        view = self.current_view()
+        view.clearSelection()
+        for index in indexes:
+            view.selectionModel().select(index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+
     def set_top_row_selected(self):
         current_root_index = self.current_view().rootIndex()
         top_most_index = self.focused_column().filter_proxy.index(0, 0, current_root_index)
-        self.set_selection(top_most_index, top_most_index)
+        self.select_from_to(top_most_index, top_most_index)
         self.current_view().setFocus()
 
     def reset_view(self):
@@ -1198,7 +1204,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.set_data(planned_level, index=filter_proxy_index, field='planned')
             planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
-            self.set_selection(planned_index, planned_index)
+            self.select_from_to(planned_index, planned_index)
         # if there are no entries, pressing enter shall create a child of the current root entry
         elif len(self.item_model.rootItem.childItems) == 0:
             self.focused_column().filter_proxy.insert_row(0, self.focused_column().view.rootIndex())
@@ -1386,8 +1392,9 @@ class MainWindow(QMainWindow):
         self.edit_row()
 
     def estimate(self, number):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.set_data(str(number), index=row_index, field=model.ESTIMATE)
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.set_data(str(number), indexes=selected, field=model.ESTIMATE)
+        self.select(selected)
 
     def adjust_estimate(self, adjustment):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -1400,14 +1407,16 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.set_data(str(new_estimate), index=row_index, field=model.ESTIMATE)
 
     def set_plan(self, i):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.set_data(i, index=row_index, field='planned')
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.set_data(i, indexes=selected, field='planned')
+        self.select(selected)
 
     @pyqtSlot(str)
     def color_row(self, color_character):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character],
-                                                        index=row_index, field='color')
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.set_data(model.CHAR_QCOLOR_DICT[color_character], indexes=selected,
+                                                    field='color')
+        self.select(selected)
 
     # view menu actions
 
@@ -1456,7 +1465,7 @@ class MainWindow(QMainWindow):
         self.focused_column().view.selectionModel().clear()
         root_index = self.focused_column().view.rootIndex()
         self.focus_index(root_index.parent())
-        self.set_selection(root_index, root_index)
+        self.select_from_to(root_index, root_index)
 
     def open_links(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -1584,7 +1593,7 @@ class MainWindow(QMainWindow):
         self.focused_column().view.setFocus()
         self.set_indentation_and_style_tree(self.focused_column().view.indentation())
         top_most_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
-        self.set_selection(top_most_index, top_most_index)
+        self.select_from_to(top_most_index, top_most_index)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
 
     def unsplit_window(self):
@@ -1832,7 +1841,7 @@ class FileLineEdit(QPlainTextEdit):
                     next_index = self.main_window.item_model.index(old_row - 1, 0, old_parent)
                 if not next_index.isValid():
                     next_index = old_parent
-                self.main_window.set_selection(next_index, next_index)
+                self.main_window.select_from_to(next_index, next_index)
                 break
 
     def textUnderCursor(self):

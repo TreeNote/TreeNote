@@ -309,7 +309,7 @@ class TreeModel(QAbstractItemModel):
                 for i in range(len(child_item_list)):
                     indexes.append(model.index(position + i, 0, parent_index))
                 if select:
-                    model.main_window.set_selection(indexes[0], indexes[-1])
+                    model.main_window.select_from_to(indexes[0], indexes[-1])
 
                 model.expand_saved(parent_index)
                 return indexes
@@ -332,10 +332,10 @@ class TreeModel(QAbstractItemModel):
                     if position == len(parent_item.childItems):
                         position -= 1
                     index_next_child = self.model.index(position, 0, parent_index)
-                    self.model.main_window.set_selection(index_next_child, index_next_child)
+                    self.model.main_window.select_from_to(index_next_child, index_next_child)
                 # all children deleted, select parent
                 else:
-                    self.model.main_window.set_selection(parent_index, parent_index)
+                    self.model.main_window.select_from_to(parent_index, parent_index)
 
                 self.model.main_window.fill_bookmarkShortcutsMenu()
                 self.model.main_window.setup_tag_model()
@@ -367,7 +367,7 @@ class TreeModel(QAbstractItemModel):
                             # otherwise segmentation faults will appear when expanding programmatically
                             self.model.main_window.focused_column().view.expand(proxy_index)
 
-                            self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
+                            self.model.main_window.select_from_to(index_of_new_entry, index_of_new_entry)
                             # open editor, when in tree view
                             # when in plan view, we need to increase planned attribute first, in insert_row()
                             if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model \
@@ -480,7 +480,7 @@ class TreeModel(QAbstractItemModel):
 
                 self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
 
-                self.model.main_window.set_selection(index_first_moved_item_new, index_last_moved_item_new)
+                self.model.main_window.select_from_to(index_first_moved_item_new, index_last_moved_item_new)
                 for row_index in self.model.main_window.focused_column().view.selectionModel().selectedRows():
                     self.model.main_window.focused_column().view.scrollTo(row_index)
 
@@ -650,8 +650,19 @@ class ProxyTools():
         self.sourceModel().main_window.save_file()
         return True
 
-    def set_data(self, value, index=None, field='text'):
-        self.sourceModel().set_data(value, index=self.mapToSource(index), field=field)
+    def map_indexes(self, indexes):
+        mapped_indexes = []
+        for index in indexes:
+            if index.model() is self.sourceModel().main_window.planned_view.model():
+                index = self.sourceModel().main_window.planned_view.model().map_to_original_index(index)
+            if index.model() is not self.sourceModel():
+                index = self.mapToSource(index)
+            mapped_indexes.append(index)
+        return mapped_indexes
+
+    def set_data(self, value, indexes=None, field='text'):
+        for index in self.map_indexes(indexes):
+            self.sourceModel().set_data(value, index=index, field=field)
         self.sourceModel().main_window.save_file()
 
     def remove_rows(self, indexes):
@@ -903,7 +914,7 @@ class Delegate(QStyledItemDelegate):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Escape:
             current_index = self.main_window.current_index()
             self.closeEditor.emit(editor, QAbstractItemDelegate.NoHint)
-            self.main_window.set_selection(current_index, current_index)
+            self.main_window.select_from_to(current_index, current_index)
             return False
         return QStyledItemDelegate.eventFilter(self, editor, event)
 
@@ -956,7 +967,7 @@ class EscCalendarWidget(QCalendarWidget):
         open_popup_date_edit = self.parent().parent()
         open_popup_date_edit.delegate.closeEditor.emit(open_popup_date_edit, QAbstractItemDelegate.NoHint)
         current_index = open_popup_date_edit.delegate.main_window.current_index()
-        open_popup_date_edit.delegate.main_window.set_selection(current_index, current_index)
+        open_popup_date_edit.delegate.main_window.select_from_to(current_index, current_index)
 
     def eventFilter(self, obj, event):
         open_popup_date_edit = self.parent().parent()

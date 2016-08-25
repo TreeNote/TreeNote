@@ -54,7 +54,7 @@ class PlannedModel(QAbstractItemModel):
         item = original_index.internalPointer()
         # we cant pass the original_index, because it has the wrong column()
         # therefore we create an index with the same column which links to the original item
-        original_index_with_same_column = self.createIndex(planned_index.row(), planned_index.column(), item)
+        original_index_with_same_column = self.item_model.createIndex(planned_index.row(), planned_index.column(), item)
         return original_index_with_same_column
 
     def map_to_planned_index(self, original_index):
