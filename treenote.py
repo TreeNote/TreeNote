@@ -1373,12 +1373,14 @@ class MainWindow(QMainWindow):
         return self.focused_column().stacked_widget.currentWidget()
 
     def toggle_task(self):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.toggle_task(row_index)
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.toggle_task(selected)
+        self.select(selected)
 
     def toggle_project(self):
-        for row_index in self.focused_column().view.selectionModel().selectedRows():
-            self.focused_column().filter_proxy.toggle_project(row_index)
+        selected = self.selected_indexes()
+        self.focused_column().filter_proxy.toggle_project(selected)
+        self.select(selected)
 
     def remindIn(self, days):
         date = '' if days == 0 else QDate.currentDate().addDays(days).toString('dd.MM.yy')

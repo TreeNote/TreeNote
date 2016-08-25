@@ -680,12 +680,14 @@ class ProxyTools():
         self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
         self.sourceModel().main_window.save_file()
 
-    def toggle_task(self, index):
-        self.sourceModel().toggle_task(self.mapToSource(index))
+    def toggle_task(self, indexes):
+        for index in self.map_to_source(indexes):
+            self.sourceModel().toggle_task(index)
         self.sourceModel().main_window.save_file()
 
-    def toggle_project(self, index):
-        self.sourceModel().toggle_project(self.mapToSource(index))
+    def toggle_project(self, indexes):
+        for index in self.map_to_source(indexes):
+            self.sourceModel().toggle_project(index)
         self.sourceModel().main_window.save_file()
 
     def is_task_available(self, index):
