@@ -1192,7 +1192,7 @@ class MainWindow(QMainWindow):
             self.current_view().setFocus()
             if not self.selected_indexes():
                 self.set_top_row_selected()
-        elif self.current_view().hasFocus() and isinstance(self.current_view().model(), planned_model.PlannedModel):
+        elif self.current_view().hasFocus() and self.current_view() is self.planned_view:
             selected = self.selected_indexes()
             planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
             parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
@@ -1204,7 +1204,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index], field='planned')
             planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
-            self.select_from_to(planned_index, planned_index)
+            self.select([planned_index])
         # if there are no entries, pressing enter shall create a child of the current root entry
         elif len(self.item_model.rootItem.childItems) == 0:
             self.focused_column().filter_proxy.insert_row(0, self.focused_column().view.rootIndex())
@@ -1294,16 +1294,30 @@ class MainWindow(QMainWindow):
 
         for index in self.selected_indexes():
             remove_if_parent(index)
-        mime_data = ItemMimeData([self.focused_column().filter_proxy.getItem(index) for index in indexes])
+        mime_data = ItemMimeData([self.current_view().model().getItem(index) for index in indexes])
         mime_data.setText(rows_string)
         QApplication.clipboard().setMimeData(mime_data)
 
     def paste(self):
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
-            self.item_model.insert_remove_rows(position=self.current_index().row() + 1,
-                                               parent_index=self.focused_column().filter_proxy.mapToSource(
-                                                   self.current_index().parent()), set_edit_focus=False,
+            if self.current_view() is self.planned_view:
+                selected = self.selected_indexes()
+                planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
+                position = 0
+                parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
+            else:
+                position = self.current_index().row() + 1
+                parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index().parent())
+            self.item_model.insert_remove_rows(position=position, parent_index=parent_index, set_edit_focus=False,
                                                items=copy.deepcopy(QApplication.clipboard().mimeData().items))
+            self.save_file()
+            if self.current_view() is self.planned_view:
+                new_item_index = self.item_model.index(0, 0, parent_index)
+                filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
+                self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index],
+                                                            field='planned')
+                planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
+                self.select([planned_index])
         else:
             # paste from plain text
             # builds a tree structure out of indented rows
@@ -1336,6 +1350,7 @@ class MainWindow(QMainWindow):
                     if key > indention:
                         indention_insert_position_dict[key] = 0
                 indention_parent_index_dict[indention] = child_index
+            self.save_file()
 
     def paste_row(self, new_position, parent_index, text):
         self.item_model.insert_remove_rows(new_position, parent_index, set_edit_focus=False)
