@@ -844,9 +844,12 @@ class MainWindow(QMainWindow):
             self.set_searchbar_text_and_search(new_text)
 
     def get_index_by_creation_date(self, creation_date):
+        return_index = QModelIndex()
         for index in self.item_model.indexes():
             if str(self.item_model.getItem(index).creation_date_time) == str(creation_date):
-                return index
+                return_index = index
+                break
+        return return_index
 
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, bookmark_index):
