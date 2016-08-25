@@ -8,14 +8,17 @@ class PlannedModel(QAbstractItemModel):
         self.filter_proxy = filter_proxy
         self.refresh_model()
 
+    def indexes(self):
+        return (self.map_to_planned_index(index) for index in self.orignal_indexes)
+
     def refresh_model(self):
         # we map to the indexes of the item_model
         self.beginResetModel()
-        self.indexes = [index for index in self.item_model.indexes() if self.item_model.getItem(index).planned != 0]
+        self.orignal_indexes = [index for index in self.item_model.indexes() if self.item_model.getItem(index).planned != 0]
         if self.filter_proxy.filter:
-            self.indexes = [index for index in self.indexes if
-                            self.filter_proxy.filterAcceptsRow(index.row(), index.parent())]
-        self.indexes.sort(key=lambda index: self.item_model.getItem(index).planned)
+            self.orignal_indexes = [index for index in self.orignal_indexes if
+                                    self.filter_proxy.filterAcceptsRow(index.row(), index.parent())]
+        self.orignal_indexes.sort(key=lambda index: self.item_model.getItem(index).planned)
         self.endResetModel()
 
     def columnCount(self, parent):
@@ -31,13 +34,13 @@ class PlannedModel(QAbstractItemModel):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def index(self, row, column, parent=None):
-        return self.createIndex(row, column, self.indexes[row])
+        return self.createIndex(row, column, self.orignal_indexes[row])
 
     def parent(self, index):
         return QModelIndex()
 
     def rowCount(self, parent):
-        return len(self.indexes) if parent == QModelIndex() else 0
+        return len(self.orignal_indexes) if parent == QModelIndex() else 0
 
     def is_task_available(self, index):
         return self.item_model.is_task_available(index.internalPointer())
@@ -58,7 +61,7 @@ class PlannedModel(QAbstractItemModel):
         return original_index_with_same_column
 
     def map_to_planned_index(self, original_index):
-        for i, index in enumerate(self.indexes):
+        for i, index in enumerate(self.orignal_indexes):
             if index == original_index:
                 return self.index(i, 0)
         return QModelIndex()

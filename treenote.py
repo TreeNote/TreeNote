@@ -1409,8 +1409,17 @@ class MainWindow(QMainWindow):
 
     def set_plan(self, i):
         selected = self.selected_indexes()
+        creation_dates = [self.current_view().model().getItem(index).creation_date_time for index in selected]
         self.focused_column().filter_proxy.set_data(i, indexes=selected, field='planned')
-        self.select(selected)
+        if self.current_view() is self.planned_view:
+            self.select(self.get_indexes_from_creation_dates(creation_dates))
+
+    def get_indexes_from_creation_dates(self, creation_dates_list):
+        indexes = []
+        for index in self.current_view().model().indexes():
+            if self.current_view().model().getItem(index).creation_date_time in creation_dates_list:
+                indexes.append(index)
+        return indexes
 
     @pyqtSlot(str)
     def color_row(self, color_character):
