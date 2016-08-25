@@ -602,6 +602,7 @@ class MainWindow(QMainWindow):
         self.start_backup_service(settings.value('backup_interval', 10))
 
         self.print_size = float(settings.value('print_size', 1))
+        self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
         self.set_indentation_and_style_tree(settings.value('indentation', 40))
         self.check_for_software_update()
 
@@ -754,6 +755,7 @@ class MainWindow(QMainWindow):
         settings.setValue('backup_interval', self.backup_interval)
         settings.setValue('last_opened_file_path', self.save_path)
         settings.setValue('print_size', self.print_size)
+        settings.setValue('new_rows_plan_item_creation_date', self.new_rows_plan_item_creation_date)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
 
         # save theme
@@ -841,16 +843,19 @@ class MainWindow(QMainWindow):
                 new_text += ' ' + current_tag + ' '
             self.set_searchbar_text_and_search(new_text)
 
+    def get_index_by_creation_date(self, creation_date):
+        for index in self.item_model.indexes():
+            if str(self.item_model.getItem(index).creation_date_time) == str(creation_date):
+                return index
+
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, bookmark_index):
         bookmark_item = self.bookmark_model.getItem(bookmark_index)
 
         if bookmark_item.saved_root_item_creation_date_time:
-            for index in self.item_model.indexes():
-                item_creation_date_time = self.item_model.getItem(index).creation_date_time
-                if item_creation_date_time == bookmark_item.saved_root_item_creation_date_time:
-                    self.focus_index(self.filter_proxy_index_from_model_index(index))
-                    break
+            focus_index = self.get_index_by_creation_date(bookmark_item.saved_root_item_creation_date_time)
+            if focus_index:
+                self.focus_index(self.filter_proxy_index_from_model_index(focus_index))
 
         new_search_bar_text = bookmark_item.search_text
         self.set_searchbar_text_and_search(new_search_bar_text)
@@ -1184,8 +1189,10 @@ class MainWindow(QMainWindow):
         elif self.current_view().hasFocus() and isinstance(self.current_view().model(), planned_model.PlannedModel):
             selected = self.selected_indexes()
             planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
-            parent_index = self.focused_column().view.rootIndex()  # todo specify in settings
-            self.focused_column().filter_proxy.insert_row(0, parent_index)
+            parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
+            parent_filter_proxy_index = self.filter_proxy_index_from_model_index(
+                parent_index) if parent_index else self.focused_column().view.rootIndex()
+            self.focused_column().filter_proxy.insert_row(0, parent_filter_proxy_index)
             new_item_index = self.item_model.index(0, 0, parent_index)
             filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
             self.focused_column().filter_proxy.set_data(planned_level, index=filter_proxy_index, field='planned')
@@ -1856,6 +1863,61 @@ class FileLineEdit(QPlainTextEdit):
                 self.completer.popup().move(self.popup.x(), self.popup.y() + self.popup.height())
 
 
+class SelectRowLineEdit(QPlainTextEdit):
+    def __init__(self, main_window):
+        super(SelectRowLineEdit, self).__init__()
+        self.main_window = main_window
+        self.setMinimumWidth(400)
+        self.setMaximumHeight(36)
+
+        index = self.main_window.get_index_by_creation_date(self.main_window.new_rows_plan_item_creation_date)
+        if index:
+            self.setPlainText(index.data())
+        else:
+            self.setPlaceholderText(self.tr('Type the name of a row'))
+
+        self._separator = ' '
+        self.completer = QCompleter([index.data() for index in self.main_window.item_model.indexes()])
+        self.completer.setFilterMode(Qt.MatchStartsWith)
+        self.completer.setWidget(self)
+        self.completer.activated[str].connect(self._insertCompletion)
+        self._keysToIgnore = [Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab]
+
+    def _insertCompletion(self, completion):
+        for index in self.main_window.item_model.indexes():
+            item = self.main_window.item_model.getItem(index)
+            if item.text == completion:
+                self.setPlainText(index.data())
+                self.main_window.new_rows_plan_item_creation_date = item.creation_date_time
+                break
+
+    def textUnderCursor(self):
+        text = self.toPlainText()
+        textUnderCursor = ''
+        i = self.textCursor().position() - 1
+        while i >= 0 and text[i] != self._separator:
+            textUnderCursor = text[i] + textUnderCursor
+            i -= 1
+        return textUnderCursor
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            pass
+        if event.key() in self._keysToIgnore and self.completer.popup().isVisible():
+            event.ignore()
+            return
+        super(SelectRowLineEdit, self).keyPressEvent(event)
+
+        completionPrefix = self.textUnderCursor()
+        if len(completionPrefix) > 0:
+            if completionPrefix != self.completer.completionPrefix():
+                self.completer.setCompletionPrefix(completionPrefix)
+                self.completer.popup().setCurrentIndex(self.completer.completionModel().index(0, 0))
+            # if something was just typed
+            if len(event.text()) > 0:
+                self.completer.complete()
+
+
 class ImportDialog(QDialog):
     def __init__(self, main_window, open_filter, title, hint):
         super(ImportDialog, self).__init__(main_window)
@@ -2138,26 +2200,31 @@ class UpdateDialog(QDialog):
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent):
-        super(SettingsDialog, self).__init__(parent)
-        self.parent = parent
+    def __init__(self, main_window):
+        super(SettingsDialog, self).__init__(main_window)
+        self.main_window = main_window
         theme_dropdown = QComboBox()
         theme_dropdown.addItems(['Light', 'Dark'])
-        current_palette_index = 0 if QApplication.palette() == self.parent.light_palette else 1
+        current_palette_index = 0 if QApplication.palette() == self.main_window.light_palette else 1
         theme_dropdown.setCurrentIndex(current_palette_index)
         theme_dropdown.currentIndexChanged[int].connect(self.change_theme)
         indentation_spinbox = QSpinBox()
-        indentation_spinbox.setValue(parent.focused_column().view.indentation())
+        indentation_spinbox.setValue(main_window.focused_column().view.indentation())
         indentation_spinbox.setRange(30, 100)
         indentation_spinbox.valueChanged[int].connect(
-            lambda: parent.set_indentation_and_style_tree(indentation_spinbox.value()))
+            lambda: main_window.set_indentation_and_style_tree(indentation_spinbox.value()))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         backup_interval_spinbox = QSpinBox()
-        backup_interval_spinbox.setValue(parent.backup_interval)
+        backup_interval_spinbox.setValue(main_window.backup_interval)
         backup_interval_spinbox.setRange(0, 10000)
         backup_interval_spinbox.valueChanged[int].connect(
-            lambda: parent.start_backup_service(backup_interval_spinbox.value()))
+            lambda: main_window.start_backup_service(backup_interval_spinbox.value()))
+
+        new_rows_plan_view_label = QLabel('When inserting a row in the plan tab,\n'
+                                          'add it below the following item of the tree:')
+        new_rows_plan_view_label.setAlignment(Qt.AlignRight)
+        new_rows_plan_view_edit = SelectRowLineEdit(self.main_window)
 
         layout = QFormLayout()
         layout.addRow('Theme:', theme_dropdown)
@@ -2168,6 +2235,7 @@ class SettingsDialog(QDialog):
         backup_label.setAlignment(Qt.AlignRight)
         backup_label.setMinimumSize(550, 0)
         layout.addRow(backup_label, backup_interval_spinbox)
+        layout.addRow(new_rows_plan_view_label, new_rows_plan_view_edit)
         layout.addRow(buttonBox)
         layout.setLabelAlignment(Qt.AlignRight)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -2177,10 +2245,10 @@ class SettingsDialog(QDialog):
 
     def change_theme(self, current_palette_index):
         if current_palette_index == 0:
-            new_palette = self.parent.light_palette
+            new_palette = self.main_window.light_palette
         else:
-            new_palette = self.parent.dark_palette
-        self.parent.set_palette(new_palette)
+            new_palette = self.main_window.dark_palette
+        self.main_window.set_palette(new_palette)
 
 
 class DelayedExecutionTimer(QObject):  # source: https://wiki.qt.io/Delay_action_to_wait_for_user_interaction
