@@ -34,6 +34,8 @@ class PlannedModel(QAbstractItemModel):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def index(self, row, column, parent=None):
+        if row >= len(self.orignal_indexes):
+            return QModelIndex()
         return self.createIndex(row, column, self.orignal_indexes[row])
 
     def parent(self, index):

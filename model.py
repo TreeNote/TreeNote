@@ -305,6 +305,8 @@ class TreeModel(QAbstractItemModel):
                     parent_item.childItems.insert(position + i, child_item)
                 model.endInsertRows()
 
+                model.main_window.save_file()
+
                 indexes = []
                 for i in range(len(child_item_list)):
                     indexes.append(model.index(position + i, 0, parent_index))
@@ -326,16 +328,24 @@ class TreeModel(QAbstractItemModel):
                     del parent_item.childItems[position]
                     self.model.endRemoveRows()
 
+                self.model.main_window.save_file()
+
                 # select the item below
-                if len(parent_item.childItems) > 0:
-                    # there is no item below, so select the one above
-                    if position == len(parent_item.childItems):
-                        position -= 1
-                    index_next_child = self.model.index(position, 0, parent_index)
-                    self.model.main_window.select_from_to(index_next_child, index_next_child)
-                # all children deleted, select parent
+                if self.model.main_window.current_view() is self.model.main_window.planned_view:
+                    select_index = self.model.main_window.current_view().model().index(
+                        self.model.main_window.current_index().row() + 1, 0)
+                    if select_index:
+                        self.model.main_window.select([select_index])
                 else:
-                    self.model.main_window.select_from_to(parent_index, parent_index)
+                    if len(parent_item.childItems) > 0:
+                        # there is no item below, so select the one above
+                        if position == len(parent_item.childItems):
+                            position -= 1
+                        index_next_child = self.model.index(position, 0, parent_index)
+                        self.model.main_window.select([index_next_child])
+                    # all children deleted, select parent
+                    else:
+                        self.model.main_window.select([parent_index])
 
                 self.model.main_window.fill_bookmarkShortcutsMenu()
                 self.model.main_window.setup_tag_model()
@@ -677,8 +687,7 @@ class ProxyTools():
         self.sourceModel().main_window.save_file()
 
     def remove_rows(self, indexes):
-        self.sourceModel().remove_rows([self.mapToSource(index) for index in indexes])
-        self.sourceModel().main_window.save_file()
+        self.sourceModel().remove_rows(self.map_to_source(indexes))
 
     def toggle_task(self, indexes):
         for index in self.map_to_source(indexes):
