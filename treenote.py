@@ -1155,11 +1155,11 @@ class MainWindow(QMainWindow):
 
     def move_up(self):
         indexes = self.selected_indexes()
-        indexes[0].model().move_vertical(indexes, -1)
+        self.focused_column().filter_proxy.move_vertical(indexes, -1)
 
     def move_down(self):
         indexes = self.selected_indexes()
-        indexes[0].model().move_vertical(indexes, +1)
+        self.focused_column().filter_proxy.move_vertical(indexes, +1)
 
     def move_left(self):
         if self.focusWidget() is self.focused_column().view:

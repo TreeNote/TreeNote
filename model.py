@@ -463,50 +463,71 @@ class TreeModel(QAbstractItemModel):
             title = 'Move vertically'
 
             def move(self, up_or_down):
-                item = self.model.getItem(self.indexes[0])
-                parent_index = self.model.parent(self.indexes[0])
-                parent_item = self.model.getItem(parent_index)
-                count = len(indexes)
-                old_child_number = item.child_number()
+                if self.model.main_window.current_view() is self.model.main_window.planned_view:
+                    index = self.indexes[0]
+                    index_to_swap = self.model.main_window.planned_view.model().index(index.row() + up_or_down, 0)
+                    item = self.model.getItem(self.indexes[0])
+                    if index_to_swap.isValid():
+                        item_to_swap = self.model.main_window.planned_view.model().getItem(index_to_swap)
+                        if item_to_swap.planned == item.planned:
+                            # swap the two order values
+                            item.planned_order, item_to_swap.planned_order = item_to_swap.planned_order, item.planned_order
+                            # since we moved the row, we have to select the index at the swapped position
+                            index = index_to_swap
+                        else:
+                            item.planned = item_to_swap.planned
+                            item.planned_order = item_to_swap.planned_order + up_or_down * -1
+                    elif 1 < item.planned < max(NUMBER_PLAN_DICT.keys()):
+                        item.planned += up_or_down
+                    self.model.main_window.save_file()
+                    self.model.main_window.select([index])
+                else:
+                    item = self.model.getItem(self.indexes[0])
+                    parent_index = self.model.parent(self.indexes[0])
+                    parent_item = self.model.getItem(parent_index)
+                    count = len(indexes)
+                    old_child_number = item.child_number()
 
-                self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
+                    self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
 
-                index_first_moved_item = self.model.index(old_child_number, 0, parent_index)
-                index_last_moved_item = self.model.index(old_child_number + count - 1, 0, parent_index)
+                    index_first_moved_item = self.model.index(old_child_number, 0, parent_index)
+                    index_last_moved_item = self.model.index(old_child_number + count - 1, 0, parent_index)
 
-                # if we want to move several items up, we can move the item-above below the selection instead
-                if up_or_down == -1:
-                    if old_child_number == 0:
-                        return
-                    new_position = item.child_number() + count - 1
-                    old_position = old_child_number - 1
+                    # if we want to move several items up, we can move the item-above below the selection instead
+                    if up_or_down == -1:
+                        if old_child_number == 0:
+                            return
+                        new_position = item.child_number() + count - 1
+                        old_position = old_child_number - 1
+                        index_moving_item = self.model.index(old_position, 0, parent_index)
+                    elif up_or_down == +1:
+                        if old_child_number == len(parent_item.childItems) - 1:
+                            return
+                        new_position = item.child_number()
+                        old_position = old_child_number + count
                     index_moving_item = self.model.index(old_position, 0, parent_index)
-                elif up_or_down == +1:
-                    if old_child_number == len(parent_item.childItems) - 1:
-                        return
-                    new_position = item.child_number()
-                    old_position = old_child_number + count
-                index_moving_item = self.model.index(old_position, 0, parent_index)
-                parent_item.childItems.insert(new_position, parent_item.childItems.pop(old_position))
-                index_moving_item_new = self.model.index(new_position, 0, parent_index)
+                    parent_item.childItems.insert(new_position, parent_item.childItems.pop(old_position))
+                    index_moving_item_new = self.model.index(new_position, 0, parent_index)
 
-                index_first_moved_item_new = self.model.index(old_child_number + up_or_down, 0, parent_index)
-                index_last_moved_item_new = self.model.index(old_child_number + up_or_down + count - 1, 0, parent_index)
-                self.model.changePersistentIndex(index_first_moved_item, index_first_moved_item_new)
-                self.model.changePersistentIndex(index_last_moved_item, index_last_moved_item_new)
-                self.model.changePersistentIndex(index_moving_item, index_moving_item_new)
+                    index_first_moved_item_new = self.model.index(old_child_number + up_or_down, 0, parent_index)
+                    index_last_moved_item_new = self.model.index(old_child_number + up_or_down + count - 1, 0,
+                                                                 parent_index)
+                    self.model.changePersistentIndex(index_first_moved_item, index_first_moved_item_new)
+                    self.model.changePersistentIndex(index_last_moved_item, index_last_moved_item_new)
+                    self.model.changePersistentIndex(index_moving_item, index_moving_item_new)
 
-                self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
+                    self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
 
-                self.model.main_window.select_from_to(index_first_moved_item_new, index_last_moved_item_new)
-                for row_index in self.model.main_window.focused_column().view.selectionModel().selectedRows():
-                    self.model.main_window.focused_column().view.scrollTo(row_index)
+                    self.model.main_window.select_from_to(index_first_moved_item_new, index_last_moved_item_new)
+                    for row_index in self.model.main_window.focused_column().view.selectionModel().selectedRows():
+                        self.model.main_window.focused_column().view.scrollTo(row_index)
 
-                for child_number in range(self.model.rowCount(parent_index)):
-                    child_index = self.model.index(child_number, 0, parent_index)
-                    state = self.model.getItem(child_index).expanded
-                    proxy_index = self.model.main_window.filter_proxy_index_from_model_index(child_index)
-                    self.model.main_window.focused_column().view.setExpanded(proxy_index, state)
+                    for child_number in range(self.model.rowCount(parent_index)):
+                        child_index = self.model.index(child_number, 0, parent_index)
+                        state = self.model.getItem(child_index).expanded
+                        proxy_index = self.model.main_window.filter_proxy_index_from_model_index(child_index)
+                        self.model.main_window.focused_column().view.setExpanded(proxy_index, state)
+                    self.model.main_window.save_file()
 
             def redo(self):
                 self.move(self.up_or_down)
@@ -721,8 +742,7 @@ class ProxyTools():
 
     def move_vertical(self, indexes, up_or_down):
         if len(indexes) > 0:
-            self.sourceModel().move_vertical([self.mapToSource(index) for index in indexes], up_or_down)
-            self.sourceModel().main_window.save_file()
+            self.sourceModel().move_vertical(self.map_to_source(indexes), up_or_down)
 
     def file(self, indexes, new_parent):
         self.sourceModel().file([self.mapToSource(index) for index in indexes], new_parent)
