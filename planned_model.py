@@ -11,14 +11,20 @@ class PlannedModel(QAbstractItemModel):
     def indexes(self):
         return (self.map_to_planned_index(index) for index in self.orignal_indexes)
 
+    def items(self):
+        return (self.item_model.getItem(index) for index in self.orignal_indexes)
+
     def refresh_model(self):
         # we map to the indexes of the item_model
         self.beginResetModel()
-        self.orignal_indexes = [index for index in self.item_model.indexes() if self.item_model.getItem(index).planned != 0]
+        self.orignal_indexes = [index for index in self.item_model.indexes() if
+                                self.item_model.getItem(index).planned != 0]
         if self.filter_proxy.filter:
             self.orignal_indexes = [index for index in self.orignal_indexes if
                                     self.filter_proxy.filterAcceptsRow(index.row(), index.parent())]
-        self.orignal_indexes.sort(key=lambda index: self.item_model.getItem(index).planned)
+        # sort by planned level, then by planned_order
+        self.orignal_indexes.sort(
+            key=lambda index: (self.item_model.getItem(index).planned, self.item_model.getItem(index).planned_order))
         self.endResetModel()
 
     def columnCount(self, parent):

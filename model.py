@@ -74,6 +74,7 @@ class Tree_item():
         self.creation_date_time = time.time()
         self.selected = False
         self.planned = 0
+        self.planned_order = 0
 
     def child_number(self):
         if self.parentItem is not None:
@@ -227,6 +228,13 @@ class TreeModel(QAbstractItemModel):
                             new_link = INTERNAL_LINK_DELIMITER + value + INTERNAL_LINK_DELIMITER
                             if old_link in item.text:
                                 item.text = item.text.replace(old_link, new_link)
+                    elif self.field == PLANNED:
+                        orders_of_same_planning_level = [other_item.planned_order for other_item in
+                                                         self.model.main_window.planned_view.model().items() if
+                                                         other_item.planned == value and other_item != item]
+                        if orders_of_same_planning_level:
+                            item.planned_order = max(orders_of_same_planning_level) + 1
+
                 elif self.column == 1:
                     self.old_value = item.estimate
                     item.estimate = value
@@ -1200,6 +1208,7 @@ NOT_AVAILABLE_TASK = 'not_available_todo'
 SEQ = 'sequential'
 PAR = 'parallel'
 PAUSED = 'paused'
+PLANNED = 'planned'
 CHAR_TYPE_DICT = {
     'd': DONE_TASK,  # done task
     't': TASK,  # task

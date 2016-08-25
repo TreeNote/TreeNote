@@ -1204,7 +1204,7 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.insert_row(0, parent_filter_proxy_index)
             new_item_index = self.item_model.index(0, 0, parent_index)
             filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
-            self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index], field='planned')
+            self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index], field=model.PLANNED)
             planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
             self.select([planned_index])
@@ -1318,7 +1318,7 @@ class MainWindow(QMainWindow):
                 new_item_index = self.item_model.index(0, 0, parent_index)
                 filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
                 self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index],
-                                                            field='planned')
+                                                            field=model.PLANNED)
                 planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
                 self.select([planned_index])
         else:
@@ -1428,7 +1428,7 @@ class MainWindow(QMainWindow):
     def set_plan(self, i):
         selected = self.selected_indexes()
         creation_dates = [self.current_view().model().getItem(index).creation_date_time for index in selected]
-        self.focused_column().filter_proxy.set_data(i, indexes=selected, field='planned')
+        self.focused_column().filter_proxy.set_data(i, indexes=selected, field=model.PLANNED)
         if self.current_view() is self.planned_view:
             self.select(self.get_indexes_from_creation_dates(creation_dates))
 
