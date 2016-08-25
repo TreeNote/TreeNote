@@ -1182,12 +1182,14 @@ class MainWindow(QMainWindow):
             if not self.selected_indexes():
                 self.set_top_row_selected()
         elif self.current_view().hasFocus() and isinstance(self.current_view().model(), planned_model.PlannedModel):
-            parent = self.focused_column().view.rootIndex()  # todo specify in settings
-            self.focused_column().filter_proxy.insert_row(0, parent)
-            new_item_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
-            planned = 1  # todo: use same as selection
-            self.focused_column().filter_proxy.set_data(planned, index=new_item_index, field='planned')
-            planned_index = self.planned_view.model().index(0, 0, QModelIndex())
+            selected = self.selected_indexes()
+            planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
+            parent_index = self.focused_column().view.rootIndex()  # todo specify in settings
+            self.focused_column().filter_proxy.insert_row(0, parent_index)
+            new_item_index = self.item_model.index(0, 0, parent_index)
+            filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
+            self.focused_column().filter_proxy.set_data(planned_level, index=filter_proxy_index, field='planned')
+            planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
             self.set_selection(planned_index, planned_index)
         # if there are no entries, pressing enter shall create a child of the current root entry

@@ -30,7 +30,7 @@ class PlannedModel(QAbstractItemModel):
     def flags(self, index):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
         return self.createIndex(row, column, self.indexes[row])
 
     def parent(self, index):
@@ -49,10 +49,16 @@ class PlannedModel(QAbstractItemModel):
     def data(self, index, role):
         return self.item_model.data(self.map_to_original_index(index), role)
 
-    def map_to_original_index(self, index):
-        original_index = index.internalPointer()
+    def map_to_original_index(self, planned_index):
+        original_index = planned_index.internalPointer()
         item = original_index.internalPointer()
         # we cant pass the original_index, because it has the wrong column()
         # therefore we create an index with the same column which links to the original item
-        original_index_with_same_column = self.createIndex(index.row(), index.column(), item)
+        original_index_with_same_column = self.createIndex(planned_index.row(), planned_index.column(), item)
         return original_index_with_same_column
+
+    def map_to_planned_index(self, original_index):
+        for i, index in enumerate(self.indexes):
+            if index == original_index:
+                return self.index(i, 0)
+        return QModelIndex()
