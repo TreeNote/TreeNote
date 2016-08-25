@@ -1019,6 +1019,8 @@ class MainWindow(QMainWindow):
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
 
+        self.planned_view.model().refresh_model()
+
     def is_selection_visible(self):
         if not self.focused_column().view.selectionModel().selectedRows():
             return False
@@ -1532,7 +1534,7 @@ class MainWindow(QMainWindow):
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setSectionsClickable(True)
 
-        plan_model = planned_model.PlannedModel(self.item_model)
+        plan_model = planned_model.PlannedModel(self.item_model, new_column.filter_proxy)
         self.planned_view = ResizeTreeView(plan_model)
         self.planned_view.setItemDelegate(model.Delegate(self, plan_model, self.planned_view.header()))
 

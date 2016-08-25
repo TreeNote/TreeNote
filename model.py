@@ -190,9 +190,7 @@ class TreeModel(QAbstractItemModel):
         if role != Qt.DisplayRole and role != Qt.EditRole:
             return None
 
-        return self.get_data(self.getItem(index), index)
-
-    def get_data(self, item, index):
+        item = self.getItem(index)
         if index.column() == 0:
             # hidden option to show number of children behind each row
             if False:
@@ -739,13 +737,13 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                     continue
             elif token.startswith(HIDE_TAGS):
                 # accept (continue) when row has no tag
-                if not re.search(' ' + TAG_DELIMITER, index.data()):
+                if not re.search(' ' + TAG_DELIMITER, item.text):
                     continue
             elif token.startswith(HIDE_FUTURE_START_DATE):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
-            elif token.casefold() in index.data().casefold():
+            elif token.casefold() in item.text.casefold():
                 continue
             break  # user type stuff that's not found
         else:  # just executed when not breaked

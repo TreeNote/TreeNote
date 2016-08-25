@@ -2,15 +2,20 @@ from PyQt5.QtCore import *
 
 
 class PlannedModel(QAbstractItemModel):
-    def __init__(self, item_model):
+    def __init__(self, item_model, filter_proxy):
         super(PlannedModel, self).__init__()
         self.item_model = item_model
+        self.filter_proxy = filter_proxy
         self.refresh_model()
 
     def refresh_model(self):
+        # we map to the indexes of the item_model
         self.beginResetModel()
-        self.items = [item for item in self.item_model.items() if item.planned != 0]
-        self.items.sort(key=lambda item: item.planned)
+        self.indexes = [index for index in self.item_model.indexes() if self.item_model.getItem(index).planned != 0]
+        if self.filter_proxy.filter:
+            self.indexes = [index for index in self.indexes if
+                            self.filter_proxy.filterAcceptsRow(index.row(), index.parent())]
+        self.indexes.sort(key=lambda index: self.item_model.getItem(index).planned)
         self.endResetModel()
 
     def columnCount(self, parent):
@@ -20,32 +25,34 @@ class PlannedModel(QAbstractItemModel):
         return self.item_model.headerData(column, orientation, role)
 
     def getItem(self, index):
-        return index.internalPointer()
+        return self.item_model.getItem(index.internalPointer())
 
     def flags(self, index):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def index(self, row, column, parent):
-        return self.createIndex(row, column, self.items[row])
+        return self.createIndex(row, column, self.indexes[row])
 
     def parent(self, index):
         return QModelIndex()
 
     def rowCount(self, parent):
-        return len(self.items) if parent == QModelIndex() else 0
+        return len(self.indexes) if parent == QModelIndex() else 0
 
     def is_task_available(self, index):
-        return self.item_model.is_task_available(index)
+        return self.item_model.is_task_available(index.internalPointer())
 
     def setData(self, index, value, role=None):
-        self.item_model.set_data(value, index=index, field='text')
+        self.item_model.set_data(value, index=self.map_to_original_index(index), field='text')
         return True
 
     def data(self, index, role):
-        if not index.isValid():
-            return None
+        return self.item_model.data(self.map_to_original_index(index), role)
 
-        if role != Qt.DisplayRole and role != Qt.EditRole:
-            return None
-
-        return self.item_model.get_data(self.getItem(index), index)
+    def map_to_original_index(self, index):
+        original_index = index.internalPointer()
+        item = original_index.internalPointer()
+        # we cant pass the original_index, because it has the wrong column()
+        # therefore we create an index with the same column which links to the original item
+        original_index_with_same_column = self.createIndex(index.row(), index.column(), item)
+        return original_index_with_same_column
