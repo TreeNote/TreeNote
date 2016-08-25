@@ -368,7 +368,10 @@ class TreeModel(QAbstractItemModel):
                             self.model.main_window.focused_column().view.expand(proxy_index)
 
                             self.model.main_window.set_selection(index_of_new_entry, index_of_new_entry)
-                            if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model:
+                            # open editor, when in tree view
+                            # when in plan view, we need to increase planned attribute first, in insert_row()
+                            if self.set_edit_focus and index_of_new_entry.model() is self.model.main_window.item_model \
+                                    and self.model.main_window.current_view() is self.model.main_window.focused_column().view:
                                 self.model.main_window.focusWidget().edit(
                                     self.model.main_window.filter_proxy_index_from_model_index(index_of_new_entry))
 

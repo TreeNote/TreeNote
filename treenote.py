@@ -886,7 +886,7 @@ class MainWindow(QMainWindow):
 
     def set_selection(self, index_from, index_to):
         if self.focused_column().view.state() != QAbstractItemView.EditingState:
-            view = self.focused_column().view
+            view = self.current_view()
             if index_from.model() is self.item_model:
                 index_to = self.filter_proxy_index_from_model_index(index_to)
                 index_from = self.filter_proxy_index_from_model_index(index_from)
@@ -900,10 +900,10 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setFocus()  # after editing a date, the focus is lost
 
     def set_top_row_selected(self):
-        current_root_index = self.focused_column().view.rootIndex()
+        current_root_index = self.current_view().rootIndex()
         top_most_index = self.focused_column().filter_proxy.index(0, 0, current_root_index)
         self.set_selection(top_most_index, top_most_index)
-        self.focused_column().view.setFocus()
+        self.current_view().setFocus()
 
     def reset_view(self):
         self.hideFutureStartdateCheckBox.setChecked(False)
@@ -1176,25 +1176,36 @@ class MainWindow(QMainWindow):
         self.focused_column().filter_proxy.insert_row(0, index)
 
     def insert_row(self):
-        index = self.current_index()
-        # if the user sees not entries, pressing enter shall create a child of the current root entry
-        if index == QModelIndex():
+        # focus view after search with enter
+        if self.focused_column().search_bar.hasFocus():
+            self.current_view().setFocus()
+            if not self.selected_indexes():
+                self.set_top_row_selected()
+        elif self.current_view().hasFocus() and isinstance(self.current_view().model(), planned_model.PlannedModel):
+            parent = self.focused_column().view.rootIndex()  # todo specify in settings
+            self.focused_column().filter_proxy.insert_row(0, parent)
+            new_item_index = self.focused_column().filter_proxy.index(0, 0, QModelIndex())
+            planned = 1  # todo: use same as selection
+            self.focused_column().filter_proxy.set_data(planned, index=new_item_index, field='planned')
+            planned_index = self.planned_view.model().index(0, 0, QModelIndex())
+            self.focusWidget().edit(planned_index)
+            self.set_selection(planned_index, planned_index)
+        # if there are no entries, pressing enter shall create a child of the current root entry
+        elif len(self.item_model.rootItem.childItems) == 0:
             self.focused_column().filter_proxy.insert_row(0, self.focused_column().view.rootIndex())
-        else:
-            if self.focused_column().view.hasFocus():
-                # if selection has childs and is expanded: create top child instead of sibling
-                if self.focused_column().view.isExpanded(self.current_index()) and \
-                                self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
-                    self.insert_child()
-                else:
-                    self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
-            elif self.focused_column().view.state() == QAbstractItemView.EditingState:
-                # commit data by changing the current selection
-                self.focused_column().view.selectionModel().currentChanged.emit(index, index)
+        elif self.current_view().hasFocus():
+            index = self.current_index()
+            # if selection has childs and is expanded: create top child
+            if self.current_view().isExpanded(self.current_index()) and \
+                            self.focused_column().filter_proxy.rowCount(self.current_index()) > 0:
+                self.insert_child()
+            # create new entry below selection
             else:
-                self.focused_column().view.setFocus()  # focus view after search with enter
-                if not self.selected_indexes():
-                    self.set_top_row_selected()
+                self.focused_column().filter_proxy.insert_row(index.row() + 1, index.parent())
+        elif self.current_view().state() == QAbstractItemView.EditingState:
+            # commit data by changing the current selection
+            index = self.current_index()
+            self.current_view().selectionModel().currentChanged.emit(index, index)
 
     def remove_selection(self):
         self.focused_column().filter_proxy.remove_rows(self.selected_indexes())
@@ -1341,7 +1352,10 @@ class MainWindow(QMainWindow):
             self.focused_column().view.setFocus()
 
     def current_index(self):
-        return self.focused_column().view.selectionModel().currentIndex()
+        return self.current_view().selectionModel().currentIndex()
+
+    def current_view(self):
+        return self.focused_column().stacked_widget.currentWidget()
 
     def toggle_task(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
@@ -1538,21 +1552,21 @@ class MainWindow(QMainWindow):
         self.planned_view = ResizeTreeView(plan_model)
         self.planned_view.setItemDelegate(model.Delegate(self, plan_model, self.planned_view.header()))
 
-        stacked_widget = QStackedWidget()
-        stacked_widget.addWidget(new_column.view)
-        stacked_widget.addWidget(QLabel('Coming soon :)'))
-        stacked_widget.addWidget(self.planned_view)
+        new_column.stacked_widget = QStackedWidget()
+        new_column.stacked_widget.addWidget(new_column.view)
+        new_column.stacked_widget.addWidget(QLabel('Coming soon :)'))
+        new_column.stacked_widget.addWidget(self.planned_view)
 
         def change_tab(i):
             self.path_bar.setVisible(i == 0)
-            stacked_widget.setCurrentIndex(i)
+            new_column.stacked_widget.setCurrentIndex(i)
 
         self.tab_bar.currentChanged.connect(change_tab)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
         layout.addWidget(self.search_holder)
-        layout.addWidget(stacked_widget)
+        layout.addWidget(new_column.stacked_widget)
         new_column.setLayout(layout)
 
         self.item_views_splitter.addWidget(new_column)
