@@ -772,10 +772,22 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         index = self.sourceModel().index(row, 0, parent_index)
         return False if not index.isValid() else self.filter_accepts_row(self.filter, index)
 
-    def filter_accepts_row(self, filter, index):
+    def somehow_parent(self, focused_item, recursion_item):
+        if not recursion_item.parentItem:
+            return False
+        elif recursion_item.parentItem is focused_item:
+            return True
+        else:
+            return self.somehow_parent(focused_item, recursion_item.parentItem)
+
+    def filter_accepts_row(self, filter, index, focused_item=None):
         item = self.sourceModel().getItem(index)
 
-        # return True if this row's data is accepted
+        if focused_item:
+            if not self.somehow_parent(focused_item, item):
+                return False
+
+                # return True if this row's data is accepted
         tokens = filter.split()  # all tokens must be in the row's data
         for token in tokens:
             if token.startswith(SORT):  # ignore / let it pass

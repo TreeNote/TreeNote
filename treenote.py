@@ -838,12 +838,9 @@ class MainWindow(QMainWindow):
             self.set_searchbar_text_and_search(new_text)
 
     def get_index_by_creation_date(self, creation_date):
-        return_index = QModelIndex()
         for index in self.item_model.indexes():
             if str(self.item_model.getItem(index).creation_date_time) == str(creation_date):
-                return_index = index
-                break
-        return return_index
+                return index
 
     # set the search bar text according to the selected bookmark
     def filter_bookmark(self, bookmark_index):
@@ -1195,8 +1192,11 @@ class MainWindow(QMainWindow):
             selected = self.selected_indexes()
             planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
             parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
-            parent_filter_proxy_index = self.filter_proxy_index_from_model_index(
-                parent_index) if parent_index else self.focused_column().view.rootIndex()
+            if parent_index:
+                parent_filter_proxy_index = self.filter_proxy_index_from_model_index(parent_index)
+            else:
+                parent_filter_proxy_index = QModelIndex()
+                parent_index = QModelIndex()
             self.focused_column().filter_proxy.insert_row(0, parent_filter_proxy_index)
             new_item_index = self.item_model.index(0, 0, parent_index)
             filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
@@ -1305,6 +1305,8 @@ class MainWindow(QMainWindow):
                 planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
                 position = 0
                 parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
+                if not parent_index:
+                    parent_index = QModelIndex()
             else:
                 position = self.current_index().row() + 1
                 parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index().parent())
@@ -1660,8 +1662,13 @@ class MainWindow(QMainWindow):
         self.planned_view.model().refresh_model()
         # refresh bookmark backgrounds to indicate which of them has children
         for bookmark_item in self.bookmark_model.items():
+            focused_item = None
+            if bookmark_item.saved_root_item_creation_date_time:
+                focused_index = self.get_index_by_creation_date(bookmark_item.saved_root_item_creation_date_time)
+                focused_item = self.item_model.getItem(focused_index)
             bookmark_item.highlight = any(
-                self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index) for index in
+                self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index,
+                                                                      focused_item=focused_item) for index in
                 self.item_model.indexes())
         self.bookmark_model.layoutChanged.emit()
         # this method is called everytime a change is done.
