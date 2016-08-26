@@ -475,9 +475,13 @@ class TreeModel(QAbstractItemModel):
                             # since we moved the row, we have to select the index at the swapped position
                             index = index_to_swap
                         else:
-                            item.planned = item_to_swap.planned
-                            item.planned_order = item_to_swap.planned_order + up_or_down * -1
-                    elif 1 < item.planned < max(NUMBER_PLAN_DICT.keys()):
+                            item.planned += up_or_down
+                            if item.planned == item_to_swap.planned:
+                                item.planned_order = item_to_swap.planned_order + up_or_down * -1
+                            else:
+                                item.planned_order = 0
+                    elif up_or_down < 0 and item.planned > 1 or up_or_down > 0 and item.planned < max(
+                            NUMBER_PLAN_DICT.keys()):
                         item.planned += up_or_down
                     self.model.main_window.save_file()
                     self.model.main_window.select([index])
@@ -1219,8 +1223,9 @@ NUMBER_PLAN_DICT = {
     1: '1 Now',
     2: '2 Later today',
     3: '3 Tomorrow',
-    4: '4 Urgent and important',
-    5: '5 Urgent and unimportant / nice to have',
+    4: '4 In two days',
+    5: '5 Urgent and important',
+    6: '6 Urgent and unimportant / nice to have',
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'-'

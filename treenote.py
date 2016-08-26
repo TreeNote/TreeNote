@@ -507,7 +507,7 @@ class MainWindow(QMainWindow):
                 shortcut.activated.connect(partial(self.remindIn, i * value))
         self.editRowMenu.addAction(self.appendRepeatAction)
         self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set plan of selected rows'))
-        for i in range(6):
+        for i in range(7):
             self.setPlanMenu.addAction(
                 add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
                                        triggered=partial(self.set_plan, i)), list=self.item_view_actions))
@@ -1204,7 +1204,8 @@ class MainWindow(QMainWindow):
             self.focused_column().filter_proxy.insert_row(0, parent_filter_proxy_index)
             new_item_index = self.item_model.index(0, 0, parent_index)
             filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
-            self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index], field=model.PLANNED)
+            self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index],
+                                                        field=model.PLANNED)
             planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
             self.focusWidget().edit(planned_index)
             self.select([planned_index])
