@@ -1659,7 +1659,22 @@ class MainWindow(QMainWindow):
             self.change_active_tree()
 
     def save_file(self, save_expanded_states=False):
+        self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
+        if save_expanded_states:
+            for index in self.item_model.indexes():
+                proxy_index = self.filter_proxy_index_from_model_index(index)
+                self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
+                self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
+        pickle.dump((self.item_model.selected_item, self.item_model.rootItem, self.bookmark_model.rootItem),
+                    open(self.save_path, 'wb'),
+                    protocol=pickle.HIGHEST_PROTOCOL)
+
+        # this method is called everytime a change is done.
+        # therefore it is the right place to set the model changed for backup purposes
+        self.item_model.changed = True
+
         self.planned_view.model().refresh_model()
+
         # refresh bookmark backgrounds to indicate which of them has children
         for bookmark_item in self.bookmark_model.items():
             focused_item = None
@@ -1671,18 +1686,6 @@ class MainWindow(QMainWindow):
                                                                       focused_item=focused_item) for index in
                 self.item_model.indexes())
         self.bookmark_model.layoutChanged.emit()
-        # this method is called everytime a change is done.
-        # therefore it is the right place to set the model changed for backup purposes
-        self.item_model.changed = True
-        self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
-        if save_expanded_states:
-            for index in self.item_model.indexes():
-                proxy_index = self.filter_proxy_index_from_model_index(index)
-                self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
-                self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
-        pickle.dump((self.item_model.selected_item, self.item_model.rootItem, self.bookmark_model.rootItem),
-                    open(self.save_path, 'wb'),
-                    protocol=pickle.HIGHEST_PROTOCOL)
 
     def export_plain_text(self):
         path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.txt', "*.txt")[0]
