@@ -1447,6 +1447,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
+        self.tab_bar.setCurrentIndex(0)
         self.focused_column().view.setRootIndex(index)
         self.set_searchbar_text_and_search('')
         real_index = self.focused_column().filter_proxy.mapToSource(index)
