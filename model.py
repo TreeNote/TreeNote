@@ -71,6 +71,7 @@ class Tree_item():
         self.search_text = ''  # for bookmarks
         self.shortcut = None  # for bookmarks
         self.saved_root_item_creation_date_time = None  # for bookmarks
+        self.highlight = False  # for bookmarks
         self.creation_date_time = time.time()
         self.selected = False
         self.planned = 0
@@ -769,13 +770,13 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
 
     def filterAcceptsRow(self, row, parent_index):
         index = self.sourceModel().index(row, 0, parent_index)
-        if not index.isValid():
-            return False
+        return False if not index.isValid() else self.filter_accepts_row(self.filter, index)
 
+    def filter_accepts_row(self, filter, index):
         item = self.sourceModel().getItem(index)
 
         # return True if this row's data is accepted
-        tokens = self.filter.split()  # all tokens must be in the row's data
+        tokens = filter.split()  # all tokens must be in the row's data
         for token in tokens:
             if token.startswith(SORT):  # ignore / let it pass
                 continue
@@ -820,8 +821,8 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
         # return True if a child row is accepted
         # but not with the hide checkboxes
         if not token.startswith(HIDE_FUTURE_START_DATE) and not token.startswith(HIDE_TAGS):
-            for row in range(self.sourceModel().rowCount(index)):
-                if self.filterAcceptsRow(row, index):
+            for row in range(len(item.childItems)):
+                if self.filter_accepts_row(filter, self.sourceModel().index(row, 0, index)):
                     return True
 
         return False
@@ -986,10 +987,12 @@ class BookmarkDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         item = self.model.getItem(index)
         document = QTextDocument()
-        text = item.text
+        html = item.text
         if item.shortcut:
-            text += ' (' + item.shortcut + ')'
-        document.setPlainText(text)
+            html += ' (' + item.shortcut + ')'
+        if item.highlight:
+            html = r'<font color={}>{}</font>'.format(RED, html)
+        document.setHtml(html)
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
         else:
@@ -1207,11 +1210,12 @@ INTERNAL_LINK_COLOR = QColor('#00b797')
 REPEAT_COLOR = QColor('#CF4573')  # red
 NO_COLOR = 'NO_COLOR'
 DARK_GREY = QColor('#808080').name()
+RED = QColor('#FF2F00').name()
 CHAR_QCOLOR_DICT = {
     'g': QColor('#85E326').name(),  # green
     'y': QColor('#EEEF22').name(),  # yellow
     'b': QColor('#8A9ADD').name(),  # blue
-    'r': QColor('#FF2F00').name(),  # red
+    'r': RED,  # red
     'o': QColor('#FF9500').name(),  # orange
     'v': QColor('#FF40FF').name(),  # violet
     'e': DARK_GREY,

@@ -1657,9 +1657,15 @@ class MainWindow(QMainWindow):
             self.change_active_tree()
 
     def save_file(self, save_expanded_states=False):
+        self.planned_view.model().refresh_model()
+        # refresh bookmark backgrounds to indicate which of them has children
+        for bookmark_item in self.bookmark_model.items():
+            bookmark_item.highlight = any(
+                self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index) for index in
+                self.item_model.indexes())
+        self.bookmark_model.layoutChanged.emit()
         # this method is called everytime a change is done.
         # therefore it is the right place to set the model changed for backup purposes
-        self.planned_view.model().refresh_model()
         self.item_model.changed = True
         self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
         if save_expanded_states:
