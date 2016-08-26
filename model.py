@@ -859,8 +859,12 @@ class Delegate(QStyledItemDelegate):
         if index.column() == 0 and item.planned != 0:
             html += r' <font color=' + PLANNED_COLOR.name() + r'>' + NUMBER_PLAN_DICT[item.planned] + r'</font>'
 
-        if isinstance(self.model, planned_model.PlannedModel) and \
-                        index.column() == 0 and item.parentItem != self.main_window.item_model.rootItem:
+        # planned view: paint parent at the start
+        # but not if the parent is the 'normal' parent which was set in the settings
+        if self.model is self.main_window.planned_view.model() and \
+                        index.column() == 0 and item.parentItem != self.main_window.item_model.rootItem and \
+                        str(item.parentItem.creation_date_time) != str(
+                    self.main_window.new_rows_plan_item_creation_date):
             html = r'<font color={}>{}</font> {}'.format(DARK_GREY, item.parentItem.text, html)
 
         is_not_available = item.type == TASK and not self.model.is_task_available(index)
