@@ -911,6 +911,8 @@ class MainWindow(QMainWindow):
         view = self.current_view()
         view.clearSelection()
         for index in indexes:
+            if index.model() is self.item_model:
+                index = self.filter_proxy_index_from_model_index(index)
             view.selectionModel().select(index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def set_top_row_selected(self):
