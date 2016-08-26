@@ -675,21 +675,15 @@ class MainWindow(QMainWindow):
         for index in self.item_model.indexes():
             item = self.bookmark_model.getItem(index)
             if item.shortcut:
-                self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
-                                                             triggered=partial(self.open_quicklink_shortcut, index)))
+                self.bookmarkShortcutsMenu.addAction(
+                    QAction(item.text, self, shortcut=item.shortcut,
+                            triggered=partial(self.focus_index, self.filter_proxy_index_from_model_index(index))))
         self.bookmarkShortcutsMenu.addSeparator()
         for index in self.bookmark_model.indexes():
             item = self.bookmark_model.getItem(index)
             if item.shortcut:
-                self.bookmarkShortcutsMenu.addAction(QAction(item.text, self, shortcut=item.shortcut,
-                                                             triggered=partial(self.filter_bookmark, index)))
-
-    def open_quicklink_shortcut(self, real_index):
-        index = self.filter_proxy_index_from_model_index(real_index)
-        self.focus_index(index)
-        # select row for visual highlight
-        self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
-                                                     QItemSelectionModel.ClearAndSelect)
+                self.bookmarkShortcutsMenu.addAction(
+                    QAction(item.text, self, shortcut=item.shortcut, triggered=partial(self.filter_bookmark, index)))
 
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
