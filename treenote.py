@@ -1675,17 +1675,18 @@ class MainWindow(QMainWindow):
 
         self.planned_view.model().refresh_model()
 
-        # refresh bookmark backgrounds to indicate which of them has children
-        for bookmark_item in self.bookmark_model.items():
-            focused_item = None
-            if bookmark_item.saved_root_item_creation_date_time:
-                focused_index = self.get_index_by_creation_date(bookmark_item.saved_root_item_creation_date_time)
-                focused_item = self.item_model.getItem(focused_index)
-            bookmark_item.highlight = any(
-                self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index,
-                                                                      focused_item=focused_item) for index in
-                self.item_model.indexes())
-        self.bookmark_model.layoutChanged.emit()
+        # todo: uncommented, because it slows down
+        # # refresh bookmark backgrounds to indicate which of them has children
+        # for bookmark_item in self.bookmark_model.items():
+        #     focused_item = None
+        #     if bookmark_item.saved_root_item_creation_date_time:
+        #         focused_index = self.get_index_by_creation_date(bookmark_item.saved_root_item_creation_date_time)
+        #         focused_item = self.item_model.getItem(focused_index)
+        #     bookmark_item.highlight = any(
+        #         self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index,
+        #                                                               focused_item=focused_item) for index in
+        #         self.item_model.indexes())
+        # self.bookmark_model.layoutChanged.emit()
 
     def export_plain_text(self):
         path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.txt', "*.txt")[0]
