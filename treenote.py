@@ -1286,7 +1286,7 @@ class MainWindow(QMainWindow):
         indexes = self.selected_indexes()
 
         def remove_if_parent(idx):
-            if idx.parent() != QModelIndex():
+            if idx.parent() != QModelIndex() and idx in indexes:
                 if idx.parent() in indexes:
                     indexes.remove(idx)
                 else:
