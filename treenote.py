@@ -39,11 +39,10 @@ from resources import qrc_resources  # get's removed with 'optimize imports'!
 
 BOOKMARKS_HEADER = ['Bookmarks']
 TREE_HEADER = ['Text', 'Estimate', 'Start date']
-HIDE_SHOW_THE_SIDEBARS = 'Hide / show the sidebars'
-HIDE_SHOW_COLUMNS = "Hide / show the columns 'Estimate' and 'Start date'"
+HIDE_SHOW_THE_SIDEBARS = 'Hide / show the &sidebars'
 COLUMNS_HIDDEN = 'columns_hidden'
-EDIT_BOOKMARK = 'Edit selected bookmark'
-EDIT_QUICKLINK = 'Edit selected quick link shortcut'
+EDIT_BOOKMARK = 'Edit selected &bookmark'
+EDIT_QUICKLINK = 'Edit selected quick link &shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
 SELECTED_INDEX = 'SELECTED_ID'
@@ -261,11 +260,11 @@ class MainWindow(QMainWindow):
                 list.append(qaction)
             return qaction
 
-        add_action('settingsAct', QAction(self.tr('Preferences...'), self, shortcut='Ctrl+,',
+        add_action('settingsAct', QAction(self.tr('P&references...'), self, shortcut='Ctrl+,',
                                           triggered=lambda: SettingsDialog(self).exec_()))
         add_action('updateAct',
                    QAction(self.tr('Check for Updates...'), self, triggered=lambda: UpdateDialog(self).exec()))
-        add_action('aboutAct', QAction(self.tr('About...'), self, triggered=lambda: AboutBox(self).exec()))
+        add_action('aboutAct', QAction(self.tr('&About...'), self, triggered=lambda: AboutBox(self).exec()))
         # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'),
         #            self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
         # add_action('splitWindowAct', QAction(self.tr('Split window'),
@@ -338,7 +337,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Set internal link of selected row as root'), self, shortcut='I',
                            triggered=self.open_internal_link), list=self.item_view_actions)
         add_action('renameTagAction',
-                   QAction(self.tr('Rename selected tag'), self, triggered=lambda: RenameTagDialog(
+                   QAction(self.tr('Rename selected &tag'), self, triggered=lambda: RenameTagDialog(
                        self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
         add_action('editBookmarkAction',
                    QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(
@@ -351,7 +350,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Move selected bookmark down'), self, triggered=self.move_bookmark_down),
                    list=self.bookmark_view_actions)
         add_action('deleteBookmarkAction',
-                   QAction(self.tr('Delete selected bookmark'), self, triggered=self.remove_bookmark_selection),
+                   QAction(self.tr('&Delete selected bookmark'), self, triggered=self.remove_bookmark_selection),
                    list=self.bookmark_view_actions)
         add_action('editShortcutAction',
                    QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(
@@ -362,9 +361,9 @@ class MainWindow(QMainWindow):
         add_action('toggleSideBarsAction',
                    QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Shift+S', triggered=self.toggle_sidebars))
         add_action('toggleFullScreenAction',
-                   QAction('Toggle fullscreen mode', self, shortcut='Shift+F', triggered=self.toggle_fullscreen))
+                   QAction('Toggle &fullscreen mode', self, shortcut='Shift+F', triggered=self.toggle_fullscreen))
         add_action('toggleColumnsAction',
-                   QAction(HIDE_SHOW_COLUMNS, self, shortcut='Shift+C', triggered=self.toggle_columns))
+                   QAction("Hide / show the &columns 'Estimate' and 'Start date'", self, shortcut='Shift+C', triggered=self.toggle_columns))
         add_action('toggleProjectAction',
                    QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
                            shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
@@ -372,7 +371,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr("Append 'repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
                    list=self.item_view_actions)
         add_action('appendRepeatAction',
-                   QAction(self.tr("Append 'repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
+                   QAction(self.tr("Append '&repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
                    list=self.item_view_actions)
         add_action('goDownAction', QAction(self.tr('Set selected row as root'), self, shortcut='Ctrl+Down',
                                            triggered=lambda: self.focus_index(self.current_index())),
@@ -410,11 +409,11 @@ class MainWindow(QMainWindow):
         add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left',
                                              triggered=self.collapse), list=self.item_view_not_editing_actions)
         add_action('quitAction',
-                   QAction(self.tr('Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=self.close))
+                   QAction(self.tr('&Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=self.close))
         add_action('openFileAction',
-                   QAction(self.tr('Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
+                   QAction(self.tr('&Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
         add_action('newFileAction',
-                   QAction(self.tr('New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
+                   QAction(self.tr('&New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
         add_action('importHitListAction',
                    QAction(self.tr('from The Hit List (Mac)...'), self, triggered=lambda: ImportDialog(
                        self, "*.thlbackup", "Import from The Hit List",
@@ -427,13 +426,13 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('from TreeNote JSON export...'), self, triggered=lambda: ImportDialog(
                        self, "*.json", "Import from TreeNote Backup", None).exec()))
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('File'))
+        self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.fileMenu.addAction(self.newFileAction)
         self.fileMenu.addAction(self.openFileAction)
-        self.importMenu = self.fileMenu.addMenu(self.tr('Import'))
+        self.importMenu = self.fileMenu.addMenu(self.tr('&Import'))
         self.importMenu.addAction(self.importJSONAction)
         self.importMenu.addAction(self.importHitListAction)
-        self.exportMenu = self.fileMenu.addMenu(self.tr('Export'))
+        self.exportMenu = self.fileMenu.addMenu(self.tr('&Export'))
         self.exportMenu.addAction(self.exportJSONAction)
         self.exportMenu.addAction(self.exportPlainTextAction)
         self.fileMenu.addAction(self.printAction)
@@ -448,11 +447,11 @@ class MainWindow(QMainWindow):
             self.fileMenu.addSeparator()
             self.fileMenu.addAction(self.quitAction)
 
-        self.structureMenu = self.menuBar().addMenu(self.tr('Edit structure'))
+        self.structureMenu = self.menuBar().addMenu(self.tr('Edit &structure'))
         self.structureMenu.addAction(self.insertRowAction)
         self.structureMenu.addAction(self.insertChildAction)
         self.structureMenu.addAction(self.deleteSelectedRowsAction)
-        self.moveMenu = self.structureMenu.addMenu(self.tr('Move selected rows'))
+        self.moveMenu = self.structureMenu.addMenu(self.tr('&Move selected rows'))
         self.moveMenu.addAction(self.moveUpAction)
         self.moveMenu.addAction(self.moveDownAction)
         self.moveMenu.addAction(self.moveLeftAction)
@@ -463,11 +462,11 @@ class MainWindow(QMainWindow):
         self.structureMenu.addAction(self.copyAction)
         self.structureMenu.addAction(self.pasteAction)
 
-        self.editRowMenu = self.menuBar().addMenu(self.tr('Edit row'))
+        self.editRowMenu = self.menuBar().addMenu(self.tr('Edit &row'))
         self.editRowMenu.addAction(self.editRowAction)
         self.editRowMenu.addAction(self.toggleTaskAction)
         self.editRowMenu.addAction(self.toggleProjectAction)
-        self.colorMenu = self.editRowMenu.addMenu(self.tr('Color selected rows'))
+        self.colorMenu = self.editRowMenu.addMenu(self.tr('&Color selected rows'))
         self.colorMenu.addAction(self.colorGreenAction)
         self.colorMenu.addAction(self.colorYellowAction)
         self.colorMenu.addAction(self.colorBlueAction)
@@ -476,7 +475,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorVioletAction)
         self.colorMenu.addAction(self.colorGreyAction)
         self.colorMenu.addAction(self.colorNoColorAction)
-        self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set estimate of selected rows'))
+        self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set &estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
         for i in [10, 15, 30, 45, 60, 90, 120, 180]:
             action = add_action('',
@@ -492,7 +491,7 @@ class MainWindow(QMainWindow):
             shortcut.activated.connect(partial(self.estimate, i))
         self.estimateMenu.addAction(self.increaseEstimateAction)
         self.estimateMenu.addAction(self.decreaseEstimateAction)
-        self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start date of selected rows'))
+        self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start &date of selected rows'))
         self.remindInMenu.addAction(
             add_action('', QAction('No start date', self, shortcut='.,D',
                                    triggered=partial(self.remindIn, 0)), list=self.item_view_actions))
@@ -506,13 +505,13 @@ class MainWindow(QMainWindow):
                 shortcut.setContext(Qt.ApplicationShortcut)
                 shortcut.activated.connect(partial(self.remindIn, i * value))
         self.editRowMenu.addAction(self.appendRepeatAction)
-        self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set plan of selected rows'))
+        self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set &plan of selected rows'))
         for i in range(7):
             self.setPlanMenu.addAction(
                 add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
                                        triggered=partial(self.set_plan, i)), list=self.item_view_actions))
 
-        self.viewMenu = self.menuBar().addMenu(self.tr('View'))
+        self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.goDownAction)
         self.viewMenu.addAction(self.goUpAction)
         self.viewMenu.addAction(self.resetViewAction)
@@ -539,9 +538,9 @@ class MainWindow(QMainWindow):
         self.viewMenu.addAction(self.increaseInterFaceFontAction)
         self.viewMenu.addAction(self.decreaseInterFaceFontAction)
 
-        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('My shortcuts'))
+        self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('&My shortcuts'))
 
-        self.helpMenu = self.menuBar().addMenu(self.tr('Help'))
+        self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.updateAct)
         self.helpMenu.addAction(self.aboutAct)
 
