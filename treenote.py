@@ -1068,10 +1068,6 @@ class MainWindow(QMainWindow):
                                                                        QItemSelectionModel.Select)
             else:
                 self.focused_column().view.setExpanded(index, True)
-                # save expanded state only when in normal mode,
-                # not when doing a text search and therefore having everything expanded
-                if self.is_no_text_search(self.focused_column().search_bar.text()):
-                    self.focused_column().filter_proxy.getItem(index).expanded = True
 
     def collapse(self):
         for index in self.selected_indexes():
@@ -1090,8 +1086,6 @@ class MainWindow(QMainWindow):
                                                                        QItemSelectionModel.Deselect)
             else:
                 self.focused_column().view.setExpanded(index, False)
-                if self.is_no_text_search(self.focused_column().search_bar.text()):
-                    self.focused_column().filter_proxy.getItem(index).expanded = False
 
     def is_no_text_search(self, text):
         def is_filter_keyword(token):
@@ -1592,14 +1586,14 @@ class MainWindow(QMainWindow):
         new_column.filter_proxy.setDynamicSortFilter(True)
         new_column.filter_proxy.filter = ''
 
-        new_column.view = ResizeTreeView(new_column.filter_proxy)
+        new_column.view = ResizeTreeView(self, new_column.filter_proxy)
         new_column.view.setItemDelegate(model.Delegate(self, new_column.filter_proxy, new_column.view.header()))
         new_column.view.selectionModel().selectionChanged.connect(self.update_actions)
         new_column.view.header().sectionClicked[int].connect(self.toggle_sorting)
         new_column.view.header().setSectionsClickable(True)
 
         plan_model = planned_model.PlannedModel(self.item_model, new_column.filter_proxy)
-        self.planned_view = ResizeTreeView(plan_model)
+        self.planned_view = ResizeTreeView(self, plan_model)
         self.planned_view.setItemDelegate(model.Delegate(self, plan_model, self.planned_view.header()))
 
         new_column.stacked_widget = QStackedWidget()
@@ -2343,8 +2337,9 @@ class CustomHeaderView(QHeaderView):
 
 
 class ResizeTreeView(QTreeView):
-    def __init__(self, model):
+    def __init__(self, main_window, model):
         super(ResizeTreeView, self).__init__()
+        self.main_window = main_window
         self.setModel(model)
         self.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.setAnimated(True)
@@ -2356,6 +2351,18 @@ class ResizeTreeView(QTreeView):
         self.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.header().setSectionResizeMode(1, QHeaderView.Fixed)
         self.header().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.expanded.connect(self.expand)
+        self.collapsed.connect(self.collapse)
+
+    def expand(self, index):
+        # save expanded state only when in normal mode,
+        # not when doing a text search and therefore having everything expanded
+        if self.main_window.is_no_text_search(self.main_window.focused_column().search_bar.text()):
+            self.model().getItem(index).expanded = True
+
+    def collapse(self, index):
+        if self.main_window.is_no_text_search(self.main_window.focused_column().search_bar.text()):
+            self.model().getItem(index).expanded = False
 
     def resizeEvent(self, event):
         self.itemDelegate().sizeHintChanged.emit(QModelIndex())
