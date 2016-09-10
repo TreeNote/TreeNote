@@ -363,7 +363,8 @@ class MainWindow(QMainWindow):
         add_action('toggleFullScreenAction',
                    QAction('Toggle &fullscreen mode', self, shortcut='Shift+F', triggered=self.toggle_fullscreen))
         add_action('toggleColumnsAction',
-                   QAction("Hide / show the &columns 'Estimate' and 'Start date'", self, shortcut='Shift+C', triggered=self.toggle_columns))
+                   QAction("Hide / show the &columns 'Estimate' and 'Start date'", self, shortcut='Shift+C',
+                           triggered=self.toggle_columns))
         add_action('toggleProjectAction',
                    QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
                            shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
@@ -1449,9 +1450,13 @@ class MainWindow(QMainWindow):
     @pyqtSlot(QModelIndex)
     def focus_index(self, index):
         self.tab_bar.setCurrentIndex(0)
-        self.focused_column().view.setRootIndex(index)
+        if index.model() is self.planned_view.model():
+            real_index = index.internalPointer()
+            index = self.focused_column().filter_proxy.mapFromSource(real_index)
+        else:
+            real_index = self.focused_column().filter_proxy.mapToSource(index)
+        self.current_view().setRootIndex(index)
         self.set_searchbar_text_and_search('')
-        real_index = self.focused_column().filter_proxy.mapToSource(index)
         self.quicklinks_view.selectionModel().select(QItemSelection(real_index, real_index),
                                                      QItemSelectionModel.ClearAndSelect)
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
