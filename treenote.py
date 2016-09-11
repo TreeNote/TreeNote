@@ -76,12 +76,14 @@ def time_stamp():
 
 class ExportThread(QThread):
     def run(self):
-        path = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'backups' + os.sep + \
+        path = self.main_window.backup_folder + os.sep + \
                self.main_window.save_path.split(os.sep)[-1].replace('.treenote', '') + '_' + time_stamp()
         self.main_window.save_json(path + '.json')
 
 
 class MainWindow(QMainWindow):
+    popup_json_save_failed = pyqtSignal()
+
     def __init__(self):
         super(MainWindow, self).__init__()
         app.setStyle("Fusion")
@@ -607,6 +609,10 @@ class MainWindow(QMainWindow):
         self.backup_folder = settings.value('backup_folder', 'None set')
         self.check_for_software_update()
 
+        self.popup_json_save_failed.connect(lambda: QMessageBox(QMessageBox.NoIcon, ' ',
+                                                                "JSON Export failed: Could not find the folder '{}'".format(
+                                                                    self.backup_folder)).exec())
+
     def backup_tree_if_changed(self):
         if self.item_model.changed:
             self.item_model.changed = False
@@ -617,7 +623,7 @@ class MainWindow(QMainWindow):
     def start_backup_service(self, minutes):
         self.backup_interval = int(minutes)
         self.backup_timer.stop()
-        if minutes != 0:
+        if self.backup_interval != 0:
             self.backup_timer.start(self.backup_interval * 1000 * 60)  # time specified in ms
 
     def check_for_software_update(self):
@@ -1708,8 +1714,10 @@ class MainWindow(QMainWindow):
             del dic['parentItem']
             return dic
 
-        json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(path, 'w'),
-                  default=json_encoder)
+        try:
+            json.dump((self.item_model.rootItem, self.bookmark_model.rootItem), open(path, 'w'), default=json_encoder)
+        except FileNotFoundError:
+            self.popup_json_save_failed.emit()
 
     def start_open_file(self):
         path = QFileDialog.getOpenFileName(self, "Open", filter="*.treenote")[0]
@@ -2269,6 +2277,8 @@ class SettingsDialog(QDialog):
         folder_chooser_layout = QHBoxLayout()
         folder_chooser_layout.setSpacing(5)
         self.backup_folder_textedit = QTextEdit()
+        self.backup_folder_textedit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.backup_folder_textedit.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.backup_folder_textedit.setReadOnly(True)
         self.backup_folder_textedit.setFixedWidth(300)
         self.update_backup_folder_textedit()
