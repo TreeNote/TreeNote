@@ -604,6 +604,7 @@ class MainWindow(QMainWindow):
         self.print_size = float(settings.value('print_size', 1))
         self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
         self.set_indentation_and_style_tree(settings.value('indentation', 40))
+        self.backup_folder = settings.value('backup_folder', 'None set')
         self.check_for_software_update()
 
     def backup_tree_if_changed(self):
@@ -751,6 +752,7 @@ class MainWindow(QMainWindow):
         settings.setValue('print_size', self.print_size)
         settings.setValue('new_rows_plan_item_creation_date', self.new_rows_plan_item_creation_date)
         settings.setValue(COLUMNS_HIDDEN, self.focused_column().view.isHeaderHidden())
+        settings.setValue('backup_folder', self.backup_folder)
 
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
@@ -2263,6 +2265,19 @@ class SettingsDialog(QDialog):
         indentation_spinbox.setRange(30, 100)
         indentation_spinbox.valueChanged[int].connect(
             lambda: main_window.set_indentation_and_style_tree(indentation_spinbox.value()))
+
+        folder_chooser_layout = QHBoxLayout()
+        folder_chooser_layout.setSpacing(5)
+        self.backup_folder_textedit = QTextEdit()
+        self.backup_folder_textedit.setReadOnly(True)
+        self.backup_folder_textedit.setFixedWidth(300)
+        self.update_backup_folder_textedit()
+        choose_button = QPushButton('Browse...')
+        choose_button.clicked.connect(self.choose_folder)
+        folder_chooser_layout.addWidget(self.backup_folder_textedit)
+        folder_chooser_layout.addWidget(choose_button)
+        folder_chooser_layout.setStretchFactor(self.backup_folder_textedit, 1)
+
         buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         backup_interval_spinbox = QSpinBox()
@@ -2279,7 +2294,8 @@ class SettingsDialog(QDialog):
         layout = QFormLayout()
         layout.addRow('Theme:', theme_dropdown)
         layout.addRow('Indentation of children in the tree:', indentation_spinbox)
-        backup_label = QLabel("Create a JSON export of the tree to the folder 'backups' "
+        layout.addRow('Backup folder:', folder_chooser_layout)
+        backup_label = QLabel("Create a JSON export of the tree to the specified backup folder "
                               "every ... minutes, if the tree has changed (0 minutes disables this feature):")
         backup_label.setWordWrap(True)
         backup_label.setAlignment(Qt.AlignRight)
@@ -2292,6 +2308,18 @@ class SettingsDialog(QDialog):
         layout.setVerticalSpacing(30)
         self.setLayout(layout)
         self.setWindowTitle(self.tr('Preferences'))
+
+    def update_backup_folder_textedit(self):
+        self.backup_folder_textedit.setText(self.main_window.backup_folder)
+        self.backup_folder_textedit.document().setTextWidth(self.backup_folder_textedit.width())
+        self.backup_folder_textedit.setFixedHeight(self.backup_folder_textedit.document().size().height() +
+                                                   self.backup_folder_textedit.contentsMargins().top() * 2)
+
+    def choose_folder(self):
+        self.main_window.backup_folder = QFileDialog.getExistingDirectory(self, 'Choose backup folder',
+                                                                          self.main_window.save_path,
+                                                                          QFileDialog.ShowDirsOnly)
+        self.update_backup_folder_textedit()
 
     def change_theme(self, current_palette_index):
         if current_palette_index == 0:
