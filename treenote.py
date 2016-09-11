@@ -76,8 +76,9 @@ def time_stamp():
 
 class ExportThread(QThread):
     def run(self):
-        path = self.main_window.backup_folder + os.sep + \
-               self.main_window.save_path.split(os.sep)[-1].replace('.treenote', '') + '_' + time_stamp()
+        splitted_path = os.path.split(self.main_window.save_path)
+        path = os.path.join(self.main_window.backup_folder,
+                            splitted_path[-1].replace('.treenote', '') + '_' + time_stamp())
         self.main_window.save_json(path + '.json')
 
 
