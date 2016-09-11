@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
 
         self.backup_timer = QTimer()
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
-        self.start_backup_service(settings.value('backup_interval', 10))
+        self.start_backup_service(settings.value('backup_interval', 0))
 
         self.print_size = float(settings.value('print_size', 1))
         self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
@@ -611,7 +611,8 @@ class MainWindow(QMainWindow):
         self.check_for_software_update()
 
         self.popup_json_save_failed.connect(lambda: QMessageBox(QMessageBox.NoIcon, ' ',
-                                                                "JSON Export failed: Could not find the folder '{}'".format(
+                                                                "Backup failed: Could not find the folder '{}'.\n"
+                                                                "Specifiy an existing folder in the settings!".format(
                                                                     self.backup_folder)).exec())
 
     def backup_tree_if_changed(self):
