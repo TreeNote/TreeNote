@@ -1210,7 +1210,7 @@ class MainWindow(QMainWindow):
             self.focusWidget().edit(planned_index)
             self.select([planned_index])
         # if there are no entries, pressing enter shall create a child of the current root entry
-        elif len(self.item_model.rootItem.childItems) == 0:
+        elif len(self.focused_column().filter_proxy.getItem(self.current_view().rootIndex()).childItems) == 0:
             self.focused_column().filter_proxy.insert_row(0, self.focused_column().view.rootIndex())
         elif self.current_view().hasFocus():
             index = self.current_index()
