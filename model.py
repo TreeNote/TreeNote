@@ -102,7 +102,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.text = '/'
         self.rootItem.header_list = header_list
         self.rootItem.add_child(0)
-        self.rootItem.childItems[0].text = "This is your first entry. Hit 'return' to ceate another one."
+        self.rootItem.childItems[0].text = "This is your first entry. Hit 'return' to create another one."
         self.selected_item = self.rootItem.childItems[0]
 
     def child_indexes(self, parent_index):
