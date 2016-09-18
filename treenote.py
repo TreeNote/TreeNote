@@ -1564,9 +1564,8 @@ class MainWindow(QMainWindow):
         self.tab_bar.setUsesScrollButtons(False)
         self.tab_bar.setDrawBase(False)
         self.tab_bar.addTab('Tree')
-        self.tab_bar.addTab('Calendar')
         self.tab_bar.addTab('Plan')
-        for i in range(3):
+        for i in range(2):
             self.tab_bar.setTabToolTip(i, 'Press Ctrl+{} to select this tab'.format(i + 1))
             shortcut = QShortcut(QKeySequence('Ctrl+{}'.format(i + 1)), self)
             shortcut.setContext(Qt.ApplicationShortcut)
@@ -1609,7 +1608,6 @@ class MainWindow(QMainWindow):
 
         new_column.stacked_widget = QStackedWidget()
         new_column.stacked_widget.addWidget(new_column.view)
-        new_column.stacked_widget.addWidget(QLabel('Coming soon :)'))
         new_column.stacked_widget.addWidget(self.planned_view)
 
         def change_tab(i):
