@@ -911,6 +911,7 @@ class MainWindow(QMainWindow):
     def select(self, indexes):
         view = self.current_view()
         view.clearSelection()
+        view.selectionModel().setCurrentIndex(indexes[-1], QItemSelectionModel.ClearAndSelect)
         for index in indexes:
             if index.model() is self.item_model:
                 index = self.filter_proxy_index_from_model_index(index)
