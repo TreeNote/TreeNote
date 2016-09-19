@@ -701,7 +701,8 @@ class MainWindow(QMainWindow):
     def set_palette(self, new_palette):
         for widget in self.get_widgets():
             widget.setPalette(new_palette)
-            self.filter_spoiler.contentArea.setStyleSheet("QScrollArea { border: none; }")
+        self.filter_spoiler.contentArea.setStyleSheet("QScrollArea { border: none; }")
+        self.refresh_path_bar()
 
     def fill_bookmarkShortcutsMenu(self):
         self.bookmarkShortcutsMenu.clear()
@@ -1201,7 +1202,7 @@ class MainWindow(QMainWindow):
                             "Click the first column or Esc to disable sorting.").exec()
             else:
                 self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.
-                                                               selectionModel().selectedRows(), -1)
+                                                                   selectionModel().selectedRows(), -1)
 
     def move_right(self):
         if self.focusWidget() is self.focused_column().view:
@@ -1512,8 +1513,9 @@ class MainWindow(QMainWindow):
         if not self.focused_column().search_bar.isModified() and not self.is_selection_visible():
             self.set_top_row_selected()
         self.setup_tag_model()
+        self.refresh_path_bar()
 
-        # refresh path bar
+    def refresh_path_bar(self):
         while self.path_bar.layout().itemAt(0):
             self.path_bar.layout().itemAt(0).widget().setParent(None)
 
