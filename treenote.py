@@ -597,7 +597,7 @@ class MainWindow(QMainWindow):
         QTimer().singleShot(200, self.reset_view)
 
         # restore columns
-        columns_hidden = settings.value(COLUMNS_HIDDEN, 'true')
+        columns_hidden = settings.value(COLUMNS_HIDDEN, 'false')
         if columns_hidden == 'true':
             self.toggle_columns()
 
