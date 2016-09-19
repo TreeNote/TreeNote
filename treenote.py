@@ -51,6 +51,7 @@ INITIAL_SIDEBAR_WIDTH = 200
 ESTIMATE_COLUMN_WIDTH = 85
 TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
+PLAN_TAB = 'Plan'
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
@@ -1564,7 +1565,7 @@ class MainWindow(QMainWindow):
         self.tab_bar.setUsesScrollButtons(False)
         self.tab_bar.setDrawBase(False)
         self.tab_bar.addTab('Tree')
-        self.tab_bar.addTab('Plan')
+        self.tab_bar.addTab(PLAN_TAB)
         for i in range(2):
             self.tab_bar.setTabToolTip(i, 'Press Ctrl+{} to select this tab'.format(i + 1))
             shortcut = QShortcut(QKeySequence('Ctrl+{}'.format(i + 1)), self)
@@ -1613,6 +1614,8 @@ class MainWindow(QMainWindow):
         def change_tab(i):
             self.path_bar.setVisible(i == 0)
             new_column.stacked_widget.setCurrentIndex(i)
+            if self.tab_bar.tabText(i) == PLAN_TAB and self.focused_column().search_bar.text():
+                self.set_searchbar_text_and_search('')
 
         self.tab_bar.currentChanged.connect(change_tab)
 
