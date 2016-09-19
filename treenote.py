@@ -518,7 +518,8 @@ class MainWindow(QMainWindow):
         line_break_action = QAction(self.tr('Insert a line break while editing a row'), self, shortcut='Shift+Return')
         line_break_action.setDisabled(True)
         self.editRowMenu.addAction(line_break_action)
-        internal_link_action = QAction(self.tr('Start writing an internal link while editing a row with'), self, shortcut='#')
+        internal_link_action = QAction(self.tr('Start writing an internal link while editing a row with'), self,
+                                       shortcut='#')
         internal_link_action.setDisabled(True)
         self.editRowMenu.addAction(internal_link_action)
 
@@ -724,6 +725,11 @@ class MainWindow(QMainWindow):
             if item.shortcut:
                 self.bookmarkShortcutsMenu.addAction(
                     QAction(item.text, self, shortcut=item.shortcut, triggered=partial(self.filter_bookmark, index)))
+        if self.bookmarkShortcutsMenu.isEmpty():
+            no_shortcuts_yet_action = QAction(self.tr('No shortcuts from the quick tree or the bookmarks set yet.'),
+                                              self)
+            no_shortcuts_yet_action.setDisabled(True)
+            self.bookmarkShortcutsMenu.addAction(no_shortcuts_yet_action)
 
     def focused_column(self):  # returns focused item view holder
         for i in range(0, self.item_views_splitter.count()):
