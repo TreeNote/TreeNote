@@ -515,6 +515,12 @@ class MainWindow(QMainWindow):
             self.setPlanMenu.addAction(
                 add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
                                        triggered=partial(self.set_plan, i)), list=self.item_view_actions))
+        line_break_action = QAction(self.tr('Insert a line break while editing a row'), self, shortcut='Shift+Return')
+        line_break_action.setDisabled(True)
+        self.editRowMenu.addAction(line_break_action)
+        internal_link_action = QAction(self.tr('Start writing an internal link while editing a row with'), self, shortcut='#')
+        internal_link_action.setDisabled(True)
+        self.editRowMenu.addAction(internal_link_action)
 
         self.viewMenu = self.menuBar().addMenu(self.tr('&View'))
         self.viewMenu.addAction(self.goDownAction)
