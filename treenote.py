@@ -2103,20 +2103,7 @@ class SearchBarQLineEdit(QLineEdit):
     def __init__(self, main):
         super(QLineEdit, self).__init__()
         self.main = main
-        self.setStyleSheet('QLineEdit {\
-        padding-left: 22px;\
-        padding-top: 3px;\
-        padding-right: 3px;\
-        padding-bottom: 3px;\
-        background: url(:/search);\
-        background-position: left;\
-        background-repeat: no-repeat;\
-        border-radius: 2px;\
-        height: 22px;}')
-        self.setStyleSheet('QLineEdit:focus {\
-        border: 1px solid #006080;\
-        border-radius: 2px;\
-        height: 24px; }')
+        self.setClearButtonEnabled(True)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Down or event.key() == Qt.Key_Up:
