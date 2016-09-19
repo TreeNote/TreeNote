@@ -1244,8 +1244,8 @@ NUMBER_PLAN_DICT = {
     6: '6 Urgent and unimportant / nice to have',
 }
 TAG_DELIMITER = r':'
-INTERNAL_LINK_DELIMITER = r'-'
-FIND_INTERNAL_LINK = r'((\n|^| )(' + INTERNAL_LINK_DELIMITER + r'(\w| )+' + INTERNAL_LINK_DELIMITER + '))'
+INTERNAL_LINK_DELIMITER = r'#'
+FIND_INTERNAL_LINK = r'((\n|^| )(' + INTERNAL_LINK_DELIMITER + r'\w(\w| )+' + INTERNAL_LINK_DELIMITER + '))( |$)'
 DONE_TASK = 'done'  # same as icon file names
 TASK = 'todo'
 NOTE = 'note'
