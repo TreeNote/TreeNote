@@ -1176,25 +1176,46 @@ class MainWindow(QMainWindow):
         self.bookmark_model.move_vertical(self.bookmarks_view.selectedIndexes(), 1)
 
     def move_up(self):
-        indexes = self.selected_indexes()
-        self.focused_column().filter_proxy.move_vertical(indexes, -1)
+        if self.current_view().header().isSortIndicatorShown():
+            QMessageBox(QMessageBox.NoIcon, ' ',
+                        "Moving is not possible when the tree is sorted.\n"
+                        "Click the first column or Esc to disable sorting.").exec()
+        else:
+            indexes = self.selected_indexes()
+            self.focused_column().filter_proxy.move_vertical(indexes, -1)
 
     def move_down(self):
-        indexes = self.selected_indexes()
-        self.focused_column().filter_proxy.move_vertical(indexes, +1)
+        if self.current_view().header().isSortIndicatorShown():
+            QMessageBox(QMessageBox.NoIcon, ' ',
+                        "Moving is not possible when the tree is sorted.\n"
+                        "Click the first column or Esc to disable sorting.").exec()
+        else:
+            indexes = self.selected_indexes()
+            self.focused_column().filter_proxy.move_vertical(indexes, +1)
 
     def move_left(self):
         if self.focusWidget() is self.focused_column().view:
-            self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.
+            if self.current_view().header().isSortIndicatorShown():
+                QMessageBox(QMessageBox.NoIcon, ' ',
+                            "Moving is not possible when the tree is sorted.\n"
+                            "Click the first column or Esc to disable sorting.").exec()
+            else:
+                self.focused_column().filter_proxy.move_horizontal(self.focused_column().view.
                                                                selectionModel().selectedRows(), -1)
 
     def move_right(self):
         if self.focusWidget() is self.focused_column().view:
-            selected_indexes = self.focused_column().view.selectionModel().selectedRows()
-            self.focused_column().view.setAnimated(False)
-            self.focused_column().view.setExpanded(selected_indexes[0].sibling(selected_indexes[0].row() - 1, 0), True)
-            self.focused_column().view.setAnimated(True)
-            self.focused_column().filter_proxy.move_horizontal(selected_indexes, +1)
+            if self.current_view().header().isSortIndicatorShown():
+                QMessageBox(QMessageBox.NoIcon, ' ',
+                            "Moving is not possible when the tree is sorted.\n"
+                            "Click the first column or Esc to disable sorting.").exec()
+            else:
+                selected_indexes = self.focused_column().view.selectionModel().selectedRows()
+                self.focused_column().view.setAnimated(False)
+                self.focused_column().view.setExpanded(selected_indexes[0].sibling(selected_indexes[0].row() - 1, 0),
+                                                       True)
+                self.focused_column().view.setAnimated(True)
+                self.focused_column().filter_proxy.move_horizontal(selected_indexes, +1)
 
     def file(self):
         popup = QFrame(self, Qt.Window | Qt.FramelessWindowHint)
