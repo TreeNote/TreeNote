@@ -1539,11 +1539,12 @@ class MainWindow(QMainWindow):
             self.path_bar.layout().addWidget(widget)
 
     def set_path_bar_width(self):
-        margin_count_between_toolbar_widgets = 4 if self.is_sidebar_shown() else 6
-        self.path_bar.setMaximumWidth(self.item_views_splitter.width() - self.tab_bar.sizeHint().width()
-                                      - self.focused_column().search_bar.width()
-                                      - 2 * self.focused_column().bookmark_button.sizeHint().width()
-                                      - margin_count_between_toolbar_widgets * TOOLBAR_MARGIN)
+        if app.activeWindow():  # prevents qt warning on startup
+            margin_count_between_toolbar_widgets = 4 if self.is_sidebar_shown() else 6
+            self.path_bar.setMaximumWidth(self.item_views_splitter.width() - self.tab_bar.sizeHint().width()
+                                          - self.focused_column().search_bar.width()
+                                          - 2 * self.focused_column().bookmark_button.sizeHint().width()
+                                          - margin_count_between_toolbar_widgets * TOOLBAR_MARGIN)
 
     def focus_parent_of_focused(self):
         self.focused_column().view.selectionModel().clear()
