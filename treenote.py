@@ -935,11 +935,11 @@ class MainWindow(QMainWindow):
     def select(self, indexes):
         view = self.current_view()
         view.clearSelection()
-        view.selectionModel().setCurrentIndex(indexes[-1], QItemSelectionModel.ClearAndSelect)
         for index in indexes:
             if index.model() is self.item_model:
                 index = self.filter_proxy_index_from_model_index(index)
             view.selectionModel().select(index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        view.selectionModel().setCurrentIndex(index, QItemSelectionModel.Select)
 
     def set_top_row_selected(self):
         current_root_index = self.current_view().rootIndex()
