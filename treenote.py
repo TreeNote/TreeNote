@@ -1373,7 +1373,15 @@ class MainWindow(QMainWindow):
         mime_data.setText(rows_string)
         QApplication.clipboard().setMimeData(mime_data)
 
+    def current_model(self):
+        if self.current_view() is self.planned_view:
+            return self.planned_view.model()
+        else:
+            return self.focused_column().filter_proxy
+
     def paste(self):
+        expanded_parent = self.current_view().isExpanded(self.current_index()) and \
+                          self.current_model().rowCount(self.current_index()) > 0
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
             items = QApplication.clipboard().mimeData().items
             if self.current_view() is self.planned_view:
@@ -1389,8 +1397,12 @@ class MainWindow(QMainWindow):
                 if not parent_index:
                     parent_index = QModelIndex()
             else:
-                position = self.current_index().row() + 1
-                parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index().parent())
+                if expanded_parent:
+                    position = 0
+                    parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index())
+                else:
+                    position = self.current_index().row() + 1
+                    parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index().parent())
             self.item_model.insert_remove_rows(position=position, parent_index=parent_index, set_edit_focus=False,
                                                items=items)
             if self.current_view() is self.planned_view:
@@ -1415,7 +1427,8 @@ class MainWindow(QMainWindow):
             # idea: insert new rows from top to bottom.
             # depending on the indention, the parent will be the last inserted row with one lower indention
             # we count the row position to know where to insert the next row
-            start_index = self.current_index()
+            start_index = self.current_model().index(0, 0,
+                                                     self.current_index()) if expanded_parent else self.current_index()
             # \r ist for windows compatibility. strip is to remove the last linebreak
             text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
             # which format style has the text?
