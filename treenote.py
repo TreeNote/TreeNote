@@ -1369,13 +1369,14 @@ class MainWindow(QMainWindow):
 
         for index in self.selected_indexes():
             remove_if_parent(index)
-        mime_data = ItemMimeData([self.current_view().model().getItem(index) for index in indexes])
+        items = [self.current_view().model().getItem(index) for index in indexes]
+        mime_data = ItemMimeData(copy.deepcopy(items))
         mime_data.setText(rows_string)
         QApplication.clipboard().setMimeData(mime_data)
 
     def paste(self):
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
-            items = copy.deepcopy(QApplication.clipboard().mimeData().items)
+            items = QApplication.clipboard().mimeData().items
             if self.current_view() is self.planned_view:
                 planned_level = 1
                 if self.selected_indexes():
