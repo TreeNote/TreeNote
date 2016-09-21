@@ -949,8 +949,7 @@ class MainWindow(QMainWindow):
         view = self.current_view()
         view.clearSelection()
         for index in indexes:
-            if index.model() is self.item_model:
-                index = self.filter_proxy_index_from_model_index(index)
+            index = self.map_to_view(index)
             view.selectionModel().select(index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
         view.selectionModel().setCurrentIndex(index, QItemSelectionModel.Select)
 
@@ -1309,12 +1308,25 @@ class MainWindow(QMainWindow):
         self.copy()
         self.remove_selection()
 
+    def map_to_source(self, index):
+        if index.model() is self.planned_view.model():
+            return self.planned_view.model().map_to_original_index(index)
+        else:
+            return self.focused_column().filter_proxy.mapToSource(index)
+
+    def map_to_view(self, index):
+        if index.model() is self.item_model:
+            if self.current_view() is self.planned_view:
+                return self.planned_view.model().map_to_planned_index(index)
+            else:
+                return self.filter_proxy_index_from_model_index(index)
+        return index
+
     def copy(self):
         if len(self.selected_indexes()) == 1:
             rows_string = self.selected_indexes()[0].data()
         else:
-            selected_source_indexes = [self.focused_column().filter_proxy.mapToSource(index)
-                                       for index in self.selected_indexes()]
+            selected_source_indexes = [self.map_to_source(index) for index in self.selected_indexes()]
 
             def tree_as_string(index, rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
@@ -1363,9 +1375,15 @@ class MainWindow(QMainWindow):
 
     def paste(self):
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
+            items = copy.deepcopy(QApplication.clipboard().mimeData().items)
             if self.current_view() is self.planned_view:
-                selected = self.selected_indexes()
-                planned_level = self.current_view().model().getItem(selected[0]).planned if selected else 1
+                planned_level = 1
+                if self.selected_indexes():
+                    last_selected_item = self.current_view().model().getItem(self.selected_indexes()[-1])
+                    planned_level = last_selected_item.planned
+
+                    next_index = self.current_view().model().index(self.selected_indexes()[-1].row() + 1, 0)
+                    next_item = self.current_view().model().getItem(next_index)
                 position = 0
                 parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
                 if not parent_index:
@@ -1374,15 +1392,23 @@ class MainWindow(QMainWindow):
                 position = self.current_index().row() + 1
                 parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index().parent())
             self.item_model.insert_remove_rows(position=position, parent_index=parent_index, set_edit_focus=False,
-                                               items=copy.deepcopy(QApplication.clipboard().mimeData().items))
-            self.save_file()
+                                               items=items)
             if self.current_view() is self.planned_view:
-                new_item_index = self.item_model.index(0, 0, parent_index)
-                filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
-                self.focused_column().filter_proxy.set_data(planned_level, indexes=[filter_proxy_index],
-                                                            field=model.PLANNED)
-                planned_index = self.planned_view.model().map_to_planned_index(new_item_index)
-                self.select([planned_index])
+                # add beneath the last selected item
+                if last_selected_item:
+                    for i, item in enumerate(items):
+                        new_item_index = self.item_model.index(position + i, 0, parent_index)
+                        filter_proxy_index = self.filter_proxy_index_from_model_index(new_item_index)
+                        planned_order_diff = next_item.planned_order - last_selected_item.planned_order
+                        self.focused_column().filter_proxy.set_data(
+                            last_selected_item.planned_order + planned_order_diff / (len(items) + 1) * (i + 1),
+                            indexes=[filter_proxy_index], field=model.PLANNED_ORDER)
+
+                planned_indexes_to_select = []
+                for i, item in enumerate(items):
+                    new_item_index = self.item_model.index(position + i, 0, parent_index)
+                    planned_indexes_to_select.append(self.planned_view.model().map_to_planned_index(new_item_index))
+                self.select(planned_indexes_to_select)
         else:
             # paste from plain text
             # builds a tree structure out of indented rows
@@ -1728,7 +1754,7 @@ class MainWindow(QMainWindow):
             self.change_active_tree()
 
     def save_file(self, save_expanded_states=False):
-        self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
+        # self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
         if save_expanded_states:
             for index in self.item_model.indexes():
                 proxy_index = self.filter_proxy_index_from_model_index(index)

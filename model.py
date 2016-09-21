@@ -88,7 +88,7 @@ class Tree_item():
         return item
 
     def __str__(self):
-        return 'Tree_item({}, {})'.format(self.text, self.planned)
+        return 'Tree_item({}, planned={}, planned_order={})'.format(self.text, self.planned, self.planned_order)
 
 
 class TreeModel(QAbstractItemModel):
@@ -1254,6 +1254,7 @@ SEQ = 'sequential'
 PAR = 'parallel'
 PAUSED = 'paused'
 PLANNED = 'planned'
+PLANNED_ORDER = 'planned_order'
 CHAR_TYPE_DICT = {
     'd': DONE_TASK,  # done task
     't': TASK,  # task
