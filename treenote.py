@@ -144,8 +144,7 @@ class MainWindow(QMainWindow):
 
         # first column
 
-        self.quicklinks_view = QTreeView()
-        self.quicklinks_view.setModel(self.item_model)
+        self.quicklinks_view = SaveExpandTreeView(self.item_model)
         self.quicklinks_view.setItemDelegate(model.BookmarkDelegate(self, self.item_model))
         self.quicklinks_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
@@ -802,7 +801,7 @@ class MainWindow(QMainWindow):
         # save theme
         theme = 'light' if app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
-        self.save_file(save_expanded_states=True)
+        self.save_file()
 
     def getQSettings(self):
         settings_file = 'treenote_settings.ini'
@@ -1754,13 +1753,8 @@ class MainWindow(QMainWindow):
             self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
             self.change_active_tree()
 
-    def save_file(self, save_expanded_states=False):
+    def save_file(self):
         # self.item_model.selected_item = self.focused_column().filter_proxy.getItem(self.current_index())
-        if save_expanded_states:
-            for index in self.item_model.indexes():
-                proxy_index = self.filter_proxy_index_from_model_index(index)
-                self.item_model.getItem(index).expanded = self.focused_column().view.isExpanded(proxy_index)
-                self.item_model.getItem(index).quicklink_expanded = self.quicklinks_view.isExpanded(index)
         pickle.dump((self.item_model.selected_item, self.item_model.rootItem, self.bookmark_model.rootItem),
                     open(self.save_path, 'wb'),
                     protocol=pickle.HIGHEST_PROTOCOL)
@@ -2437,6 +2431,20 @@ class CustomHeaderView(QHeaderView):
         opt.rect = rect
         opt.text = self.text
         QApplication.style().drawControl(QStyle.CE_Header, opt, painter, self)
+
+
+class SaveExpandTreeView(QTreeView):
+    def __init__(self, model):
+        super(SaveExpandTreeView, self).__init__()
+        self.setModel(model)
+        self.expanded.connect(self.expand)
+        self.collapsed.connect(self.collapse)
+
+    def expand(self, index):
+        self.model().getItem(index).quicklink_expanded = True
+
+    def collapse(self, index):
+        self.model().getItem(index).quicklink_expanded = False
 
 
 class ResizeTreeView(QTreeView):
