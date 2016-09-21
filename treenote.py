@@ -1949,6 +1949,7 @@ class FileLineEdit(QPlainTextEdit):
             else:
                 other_indexes.add(index)
         self.completer = QCompleter([index.data() for index in other_indexes])
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setFilterMode(Qt.MatchStartsWith)
         self.completer.setWidget(self)
         self.completer.activated[str].connect(self._insertCompletion)
@@ -1989,7 +1990,7 @@ class FileLineEdit(QPlainTextEdit):
             return
         super(FileLineEdit, self).keyPressEvent(event)
 
-        completionPrefix = self.textUnderCursor()
+        completionPrefix = self.toPlainText()
         if len(completionPrefix) > 0:
             if completionPrefix != self.completer.completionPrefix():
                 self.completer.setCompletionPrefix(completionPrefix)
