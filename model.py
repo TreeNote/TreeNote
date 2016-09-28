@@ -793,17 +793,34 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
             if token.startswith(SORT):  # ignore / let it pass
                 continue
             elif token.startswith('c='):
-                color_character = token[2:3]
+                color_character = token[2]
                 if item.color == CHAR_QCOLOR_DICT.get(color_character):
                     continue
             elif token.startswith('t='):
-                task_character = token[2:3]
+                task_character = token[2]
                 type = CHAR_TYPE_DICT.get(task_character)
                 if item.type == type:
                     # just available tasks
                     if type == TASK and not self.sourceModel().is_task_available(index):
                         break
                     continue
+            elif token.startswith('date<'):
+                count_characters = token[5:-1]
+                if count_characters and item.date:
+                    count = int(count_characters)
+                    date_type_character = token[-1]
+                    if date_type_character == 'd':
+                        future_date = QDate.currentDate().addDays(count)
+                    elif date_type_character == 'w':
+                        future_date = QDate.currentDate().addDays(7 * count)
+                    elif date_type_character == 'm':
+                        future_date = QDate.currentDate().addMonths(1)
+                    elif date_type_character == 'y':
+                        future_date = QDate.currentDate().addYears(1)
+                    else:
+                        break
+                    if QDateFromString(item.date) <= future_date:
+                        continue
             elif re.match(r'e(<|>|=)', token):
                 if item.estimate == '':
                     break
