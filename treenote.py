@@ -181,24 +181,25 @@ class MainWindow(QMainWindow):
         self.estimate_dropdown = init_dropdown('e', self.tr('all'), self.tr('<20'), self.tr('=60'), self.tr('>60'))
         self.color_dropdown = init_dropdown('c=', self.tr('all'), self.tr('green'), self.tr('yellow'), self.tr('red'),
                                             self.tr('orange'), self.tr('blue'), self.tr('violet'), self.tr('no color'))
+        self.date_dropdown = init_dropdown(model.DATE_BELOW, self.tr('all'), self.tr('0d'), self.tr('1w'),
+                                           self.tr('2m'), self.tr('3y'))
         self.hideTagsCheckBox = QCheckBox('Hide rows\nwith a tag')
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
         self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with\nfuture start date')
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
-        self.showOnlyStartdateCheckBox = QCheckBox('Show only rows\nwith a start date')
-        self.showOnlyStartdateCheckBox.clicked.connect(self.filter_show_only_startdate)
 
         layout = QGridLayout()
         layout.setContentsMargins(2 + 10, 0, 6, 0)  # left, top, right, bottom
-        layout.addWidget(QLabel('Tasks:'), 1, 0, 1, 1)
-        layout.addWidget(self.task_dropdown, 1, 1, 1, 1)
-        layout.addWidget(QLabel('Estimate:'), 2, 0, 1, 1)
-        layout.addWidget(self.estimate_dropdown, 2, 1, 1, 1)
-        layout.addWidget(QLabel('Color:'), 3, 0, 1, 1)
-        layout.addWidget(self.color_dropdown, 3, 1, 1, 1)
+        layout.addWidget(QLabel('Color:'), 1, 0, 1, 1)
+        layout.addWidget(self.color_dropdown, 1, 1, 1, 1)
+        layout.addWidget(QLabel('Tasks:'), 2, 0, 1, 1)
+        layout.addWidget(self.task_dropdown, 2, 1, 1, 1)
+        layout.addWidget(QLabel('Date below:'), 3, 0, 1, 1)
+        layout.addWidget(self.date_dropdown, 3, 1, 1, 1)
+        layout.addWidget(QLabel('Estimate:'), 4, 0, 1, 1)
+        layout.addWidget(self.estimate_dropdown, 4, 1, 1, 1)
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
-        layout.addWidget(self.showOnlyStartdateCheckBox, 7, 0, 1, 2)
         layout.setColumnStretch(1, 10)
         self.filter_spoiler = Spoiler(self, 'Available filters')
         self.filter_spoiler.setContentLayout(layout)
@@ -853,13 +854,6 @@ class MainWindow(QMainWindow):
         self.set_searchbar_text_and_search(new_text)
 
     @pyqtSlot(bool)
-    def filter_show_only_startdate(self, only_startdate):
-        if only_startdate:
-            self.append_replace_to_searchbar(model.ONLY_START_DATE, 'yes')
-        else:
-            self.filter(model.ONLY_START_DATE, 'all')
-
-    @pyqtSlot(bool)
     def filter_hide_tags(self, filter_hide_tags):
         if filter_hide_tags:
             self.append_replace_to_searchbar(model.HIDE_TAGS, 'no')
@@ -915,8 +909,8 @@ class MainWindow(QMainWindow):
                 key += value[0]
                 value = value[1:]
             # filter is already in the search bar: replace existing same filter
-            if re.search(key[0] + r'(<|>|=)', search_bar_text):
-                search_bar_text = re.sub(key[0] + r'(<|>|=|\w|\d)* ', key + value + ' ', search_bar_text)
+            if re.search(key[:-1] + r'(<|>|=)', search_bar_text):
+                search_bar_text = re.sub(key[:-1] + r'(<|>|=|\w|\d)* ', key + value + ' ', search_bar_text)
             else:
                 # add filter
                 search_bar_text += ' ' + key + value + ' '
@@ -961,10 +955,10 @@ class MainWindow(QMainWindow):
     def reset_view(self):
         self.hideFutureStartdateCheckBox.setChecked(False)
         self.hideTagsCheckBox.setChecked(False)
-        self.showOnlyStartdateCheckBox.setChecked(False)
         self.task_dropdown.setCurrentIndex(0)
         self.estimate_dropdown.setCurrentIndex(0)
         self.color_dropdown.setCurrentIndex(0)
+        self.date_dropdown.setCurrentIndex(0)
         self.bookmarks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.quicklinks_view.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.ClearAndSelect)
         self.focus_index(QModelIndex())
@@ -1136,7 +1130,7 @@ class MainWindow(QMainWindow):
     def is_no_text_search(self, text):
         def is_filter_keyword(token):
             return token.startswith(model.SORT) or token.startswith('c=') or token.startswith('t=') or \
-                   re.match(r'e(<|>|=)', token) or token.startswith(model.ONLY_START_DATE) or \
+                   re.match(r'e(<|>|=)', token) or token.startswith(model.DATE_BELOW) or \
                    token.startswith(model.HIDE_TAGS) or token.startswith(model.HIDE_FUTURE_START_DATE)
 
         # it is no text search, if it is empty or all tokens are a filter keyword

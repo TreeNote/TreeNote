@@ -804,7 +804,7 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                     if type == TASK and not self.sourceModel().is_task_available(index):
                         break
                     continue
-            elif token.startswith('date<'):
+            elif token.startswith(DATE_BELOW):
                 count_characters = token[5:-1]
                 if count_characters and item.date:
                     count = int(count_characters)
@@ -829,9 +829,6 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                     less_greater_equal_sign = '=='
                 estimate_search = token[2:]
                 if eval(item.estimate + less_greater_equal_sign + estimate_search):
-                    continue
-            elif token.startswith(ONLY_START_DATE):
-                if item.date != '':
                     continue
             elif token.startswith(HIDE_TAGS):
                 # accept (continue) when row has no tag
@@ -1218,7 +1215,6 @@ class AutoCompleteEdit(QPlainTextEdit):
 
 
 NO_TAG_LIST = [':', ':"', ':)', ':/', ':).']
-ONLY_START_DATE = 'only_date'
 HIDE_FUTURE_START_DATE = 'hide_future_date'
 HIDE_TAGS = 'has_tag'
 SORT = 'sort'
@@ -1288,3 +1284,4 @@ FONT = 'Source Sans Pro'
 SIDEBARS_PADDING = -1 if sys.platform == "darwin" else 2
 SIDEBARS_PADDING_EXTRA_SPACE = 3 if sys.platform == "darwin" else 0
 TAB_WIDTH = 30
+DATE_BELOW = 'date<'
