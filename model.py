@@ -1040,11 +1040,17 @@ class EscCalendarWidget(QCalendarWidget):
         super(EscCalendarWidget, self).__init__(parent)
         self.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.setMinimumWidth(280)
+        self.clicked.connect(self.commit_and_done)
         # sadly, capture of the tab key is different on Windows and Mac.
         # so we need it here for windows and at OpenPopupDateEdit for Mac
         if sys.platform != "darwin":
             self.installEventFilter(self)
             self.first_tab_done = True
+
+    def commit_and_done(self):
+        open_popup_date_edit = self.parent().parent()
+        open_popup_date_edit.commit()
+        self.done()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
