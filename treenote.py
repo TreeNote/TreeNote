@@ -1426,17 +1426,27 @@ class MainWindow(QMainWindow):
             # \r ist for windows compatibility. strip is to remove the last linebreak
             text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
             # which format style has the text?
-            if re.search(r'(\n|^)(\t*-)', text):  # each item starts with a dash
-                text = re.sub(r'\n(\t*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
+            if re.search(r'(\n|^)([\t| ]*-)', text):  # each item starts with a dash
+                text = re.sub(r'\n([\t| ]*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
             else:  # each row is an item
-                text = re.sub(r'\n(\t*)', r'\r\1', text)  # replaces \n which produce a new item with \r
+                text = re.sub(r'\n([\t| ]*)', r'\r\1', text)  # replaces \n which produce a new item with \r
             lines = re.split(r'\r', text)
             source_index = self.focused_column().filter_proxy.mapToSource(start_index)
             indention_insert_position_dict = {0: source_index.row() + 1}
             indention_parent_index_dict = {-1: source_index.parent()}
+            # when indented with spaces, deep indentions are made with multiples of the smalles indention
+            smallest_indention = None
             for line in lines:
                 stripped_line = line.lstrip('\t')
                 indention = len(line) - len(stripped_line)
+                if line.startswith(' '):
+                    stripped_line = line.lstrip(' ')
+                    indention = len(line) - len(stripped_line)
+                    if indention > 0:
+                        # first indentions is also smallest indention
+                        if not smallest_indention:
+                            smallest_indention = indention
+                        indention = indention / smallest_indention
                 # remove -, *, spaces and tabs from the beginning of the line
                 cleaned_line = re.sub(r'^(-|\*)? *|\t*', '', stripped_line)
                 if indention not in indention_insert_position_dict:
