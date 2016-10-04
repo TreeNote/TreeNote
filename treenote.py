@@ -1374,6 +1374,10 @@ class MainWindow(QMainWindow):
             return self.focused_column().filter_proxy
 
     def paste(self):
+        position = 0
+        # if there are no entries, pressing enter shall create a child of the current root entry
+        root_index = self.focused_column().view.rootIndex() if len(
+            self.focused_column().filter_proxy.getItem(self.current_view().rootIndex()).childItems) == 0 else None
         expanded_parent = self.current_view().isExpanded(self.current_index()) and \
                           self.current_model().rowCount(self.current_index()) > 0
         if isinstance(QApplication.clipboard().mimeData(), ItemMimeData):
@@ -1386,13 +1390,13 @@ class MainWindow(QMainWindow):
 
                     next_index = self.current_view().model().index(self.selected_indexes()[-1].row() + 1, 0)
                     next_item = self.current_view().model().getItem(next_index)
-                position = 0
                 parent_index = self.get_index_by_creation_date(self.new_rows_plan_item_creation_date)
                 if not parent_index:
                     parent_index = QModelIndex()
             else:
-                if expanded_parent:
-                    position = 0
+                if root_index:
+                    parent_index = self.focused_column().filter_proxy.mapToSource(root_index)
+                elif expanded_parent:
                     parent_index = self.focused_column().filter_proxy.mapToSource(self.current_index())
                 else:
                     position = self.current_index().row() + 1
@@ -1421,8 +1425,6 @@ class MainWindow(QMainWindow):
             # idea: insert new rows from top to bottom.
             # depending on the indention, the parent will be the last inserted row with one lower indention
             # we count the row position to know where to insert the next row
-            start_index = self.current_model().index(0, 0,
-                                                     self.current_index()) if expanded_parent else self.current_index()
             # \r ist for windows compatibility. strip is to remove the last linebreak
             text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
             # which format style has the text?
@@ -1431,9 +1433,15 @@ class MainWindow(QMainWindow):
             else:  # each row is an item
                 text = re.sub(r'\n([\t| ]*)', r'\r\1', text)  # replaces \n which produce a new item with \r
             lines = re.split(r'\r', text)
-            source_index = self.focused_column().filter_proxy.mapToSource(start_index)
-            indention_insert_position_dict = {0: source_index.row() + 1}
-            indention_parent_index_dict = {-1: source_index.parent()}
+            source_index = self.focused_column().filter_proxy.mapToSource(self.current_index())
+            indention_insert_position_dict = {}
+            if root_index:
+                indention_parent_index_dict = {-1: self.focused_column().filter_proxy.mapToSource(root_index)}
+            elif expanded_parent:
+                indention_parent_index_dict = {-1: source_index}
+            else:
+                indention_insert_position_dict[0] = source_index.row() + 1
+                indention_parent_index_dict = {-1: source_index.parent()}
             # when indented with spaces, deep indentions are made with multiples of the smalles indention
             smallest_indention = None
             for line in lines:
