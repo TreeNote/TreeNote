@@ -185,23 +185,23 @@ class MainWindow(QMainWindow):
                                            self.tr('2m'), self.tr('3y'))
         self.hideTagsCheckBox = QCheckBox('Hide rows\nwith a tag')
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
-        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with\nfuture start date')
+        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with a\nfuture start date')
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
 
         layout = QGridLayout()
         layout.setContentsMargins(2 + 10, 0, 6, 0)  # left, top, right, bottom
         layout.addWidget(QLabel('Color:'), 1, 0, 1, 1)
         layout.addWidget(self.color_dropdown, 1, 1, 1, 1)
-        layout.addWidget(QLabel('Tasks:'), 2, 0, 1, 1)
+        layout.addWidget(QLabel('Type:'), 2, 0, 1, 1)
         layout.addWidget(self.task_dropdown, 2, 1, 1, 1)
-        layout.addWidget(QLabel('Date below:'), 3, 0, 1, 1)
+        layout.addWidget(QLabel('Date until:'), 3, 0, 1, 1)
         layout.addWidget(self.date_dropdown, 3, 1, 1, 1)
         layout.addWidget(QLabel('Estimate:'), 4, 0, 1, 1)
         layout.addWidget(self.estimate_dropdown, 4, 1, 1, 1)
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
         layout.setColumnStretch(1, 10)
-        self.filter_spoiler = Spoiler(self, 'Available filters')
+        self.filter_spoiler = Spoiler(self, 'Filters')
         self.filter_spoiler.setContentLayout(layout)
 
         self.bookmarks_view = QTreeView()
@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set &estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
-        for i in [10, 15, 30, 45, 60, 90, 120, 180]:
+        for i in [5, 10, 15, 20, 30, 45, 60, 90, 120, 180]:
             action = add_action('',
                                 QAction('{} minutes'.format(i), self, shortcut=','.join(number for number in str(i)),
                                         triggered=partial(self.estimate, i)), list=self.item_view_actions)
@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
                 shortcut.activated.connect(partial(self.remindIn, i * value))
         self.editRowMenu.addAction(self.appendRepeatAction)
         self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set &plan of selected rows'))
-        for i in range(7):
+        for i in range(len(model.NUMBER_PLAN_DICT)):
             self.setPlanMenu.addAction(
                 add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
                                        triggered=partial(self.set_plan, i)), list=self.item_view_actions))

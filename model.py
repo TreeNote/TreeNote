@@ -1266,7 +1266,8 @@ NUMBER_PLAN_DICT = {
     3: '3 Tomorrow',
     4: '4 In two days',
     5: '5 Urgent and important',
-    6: '6 Urgent and unimportant / nice to have',
+    6: '6 Urgent and unimportant',
+    7: '7 Not Urgent and important',
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'#'
