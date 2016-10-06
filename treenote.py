@@ -1877,11 +1877,15 @@ class MainWindow(QMainWindow):
     def print(self):
         dialog = QPrintPreviewDialog()
         view = PrintTreeView(self, dialog.findChildren(QPrintPreviewWidget)[0])
+        if self.current_view() is self.planned_view:
+            view.setModel(self.planned_view.model())
+        else:
+            view.setModel(self.item_model)
+            view.model().expand_saved(print_view=view)
         toolbar = dialog.findChildren(QToolBar)[0]
         toolbar.addAction(QIcon(':/plus'), self.tr('Increase print size'), lambda: view.change_print_size(0.1))
         toolbar.addAction(QIcon(':/minus'), self.tr('Decrease print size'), lambda: view.change_print_size(-0.1))
         toolbar.addWidget(QLabel('Change the print size with the red buttons.'))
-        view.setModel(self.item_model)
         dialog.paintRequested.connect(view.print)
         dialog.showMaximized()
         dialog.exec_()
@@ -1906,7 +1910,6 @@ class PrintTreeView(QTreeView):
         painter.setFont(QFont(model.FONT, 9))
         painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         tree_width = printer.pageRect().width() - printer.pageLayout().marginsPixels(printer.resolution()).right() * 2
-        self.model().expand_saved(print_view=self)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setPalette(self.main_window.light_palette)
