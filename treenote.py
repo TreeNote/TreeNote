@@ -118,16 +118,20 @@ class MainWindow(QMainWindow):
 
         settings = self.getQSettings()
 
-        last_opened_file_path = settings.value('last_opened_file_path')
-        if last_opened_file_path:
-            try:
-                self.open_file(last_opened_file_path)
-            except Exception as e:
-                QMessageBox.information(self, '', '{} \n\n Did not find last Treenote '
-                                                  'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
-                self.new_file()
+        arguments = app.arguments()
+        if len(arguments) > 1:
+            self.open_file(arguments[1])
         else:
-            self.import_backup(RESOURCE_FOLDER + 'example_tree.json', 'example_tree_{}.treenote'.format(time_stamp()))
+            last_opened_file_path = settings.value('last_opened_file_path')
+            if last_opened_file_path:
+                try:
+                    self.open_file(last_opened_file_path)
+                except Exception as e:
+                    QMessageBox.information(self, '', '{} \n\n Did not find last Treenote '
+                                                      'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
+                    self.new_file()
+            else:
+                self.import_backup(RESOURCE_FOLDER + 'example_tree.json', 'example_tree_{}.treenote'.format(time_stamp()))
 
         app.focusChanged.connect(self.update_actions)
 
@@ -500,7 +504,7 @@ class MainWindow(QMainWindow):
         self.remindInMenu.addAction(
             add_action('', QAction('No start date', self, shortcut='.,D',
                                    triggered=partial(self.remindIn, 0)), list=self.item_view_actions))
-        for time_unit, value, max in [('days', 1, 7), ('weeks', 7, 4), ('months', 30, 10), ('years', 365, 4)]:
+        for time_unit, value, max in [('days', 1, 7), ('weeks', 7, 4), ('months', 30, 12), ('years', 365, 4)]:
             for i in range(1, max):
                 self.remindInMenu.addAction(
                     add_action('', QAction('Remind in {} {}'.format(i, time_unit), self,
