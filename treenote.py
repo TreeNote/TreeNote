@@ -36,6 +36,18 @@ import util
 import version
 from resources import qrc_resources  # get's removed with 'optimize imports'!
 
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for developing and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 BOOKMARKS_HEADER = ['Bookmarks']
 TREE_HEADER = ['Text', 'Estimate', 'Start date']
 HIDE_SHOW_THE_SIDEBARS = 'Hide / show the &sidebars'
@@ -49,7 +61,7 @@ APP_FONT_SIZE = 17 if sys.platform == "darwin" else 14
 INITIAL_SIDEBAR_WIDTH = 200
 ESTIMATE_COLUMN_WIDTH = 85
 TOOLBAR_MARGIN = 6
-RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
+RESOURCE_FOLDER = resource_path('resources')
 PLAN_TAB = 'Plan'
 
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
@@ -129,7 +141,7 @@ class MainWindow(QMainWindow):
                                                       'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
                     self.new_file()
             else:
-                self.import_backup(RESOURCE_FOLDER + 'example_tree.json',
+                self.import_backup(os.path.join(RESOURCE_FOLDER, 'example_tree.json'),
                                    'example_tree_{}.treenote'.format(time_stamp()))
 
         app.focusChanged.connect(self.update_actions)
@@ -2508,7 +2520,7 @@ if __name__ == '__main__':
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
     app.setWindowIcon(QIcon(':/logo'))
-    QFontDatabase.addApplicationFont(RESOURCE_FOLDER + 'SourceSansPro-Regular.otf')
+    QFontDatabase.addApplicationFont(os.path.join(RESOURCE_FOLDER, 'SourceSansPro-Regular.otf'))
 
     form = MainWindow()
     form.show()
