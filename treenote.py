@@ -2046,12 +2046,25 @@ class SelectRowLineEdit(QPlainTextEdit):
                 self.completer.complete()
 
 
-class ImportDialog(QDialog):
+class FocusTreeAfterCloseDialog(QDialog):
+    def __init__(self, main_window):
+        super(FocusTreeAfterCloseDialog, self).__init__(main_window)
+        self.main_window = main_window
+
+    def accept(self):
+        super(FocusTreeAfterCloseDialog, self).accept()
+        self.main_window.focused_column().view.setFocus()
+
+    def reject(self):
+        super(FocusTreeAfterCloseDialog, self).reject()
+        self.main_window.focused_column().view.setFocus()
+
+
+class ImportDialog(FocusTreeAfterCloseDialog):
     def __init__(self, main_window, open_filter, title, hint):
         super(ImportDialog, self).__init__(main_window)
         self.setWindowTitle(title)
         self.setMinimumWidth(900)
-        self.main_window = main_window
         self.import_file_edit = QLineEdit()
         self.select_import_file_button = QPushButton('Select file...')
         self.select_import_file_button.clicked.connect(
@@ -2074,10 +2087,10 @@ class ImportDialog(QDialog):
         grid.addWidget(self.select_treenote_file_button, 2, 2)
         grid.addWidget(buttonBox, 3, 0, 1, 3, Qt.AlignRight)
         self.setLayout(grid)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
 
-    def apply(self):
+    def accept(self):
         try:
             self.main_window.import_backup(self.import_file_edit.text(), self.treenote_file_edit.text())
         except Exception as e:
@@ -2087,9 +2100,9 @@ class ImportDialog(QDialog):
             super(ImportDialog, self).accept()
 
 
-class AboutBox(QDialog):
-    def __init__(self, parent):
-        super(AboutBox, self).__init__()
+class AboutBox(FocusTreeAfterCloseDialog):
+    def __init__(self, main_window):
+        super(AboutBox, self).__init__(main_window)
         headline = QLabel('TreeNote')
         headline.setFont(QFont(model.FONT, 25))
         label = QLabel(
@@ -2134,7 +2147,7 @@ class SearchBarQLineEdit(QLineEdit):
             QLineEdit.keyPressEvent(self, event)
 
 
-class BookmarkDialog(QDialog):
+class BookmarkDialog(FocusTreeAfterCloseDialog):
     # init it with either search_bar_text or index set
     # search_bar_text is set: create new bookmark
     # index is set: edit existing bookmark
@@ -2142,7 +2155,6 @@ class BookmarkDialog(QDialog):
     def __init__(self, main_window, search_bar_text=None, index=None):
         super(BookmarkDialog, self).__init__(main_window)
         self.setMinimumWidth(600)
-        self.main_window = main_window
         self.search_bar_text = search_bar_text
         self.index = index
         rootIndex = self.main_window.focused_column().view.rootIndex()
@@ -2187,14 +2199,14 @@ class BookmarkDialog(QDialog):
             grid.addWidget(self.save_root_checkbox, 3, 1)
         grid.addWidget(buttonBox, 4, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         if self.index is None:
             self.setWindowTitle("Bookmark current filters")
         else:
             self.setWindowTitle("Edit bookmark")
 
-    def apply(self):
+    def accept(self):
         if self.index is None:
             new_item_position = len(self.main_window.bookmark_model.rootItem.childItems)
             self.main_window.bookmark_model.insert_remove_rows(new_item_position, QModelIndex())
@@ -2212,11 +2224,10 @@ class BookmarkDialog(QDialog):
         super(BookmarkDialog, self).accept()
 
 
-class ShortcutDialog(QDialog):
+class ShortcutDialog(FocusTreeAfterCloseDialog):
     def __init__(self, main_window, index):
-        super(QDialog, self).__init__(main_window)
+        super(ShortcutDialog, self).__init__(main_window)
         self.setMinimumWidth(340)
-        self.main_window = main_window
         self.index = index
         item = main_window.item_model.getItem(index)
         self.shortcut_edit = QKeySequenceEdit()
@@ -2224,7 +2235,7 @@ class ShortcutDialog(QDialog):
         clearButton = QPushButton('Clear')
         clearButton.clicked.connect(self.shortcut_edit.clear)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
 
         grid = QGridLayout()
@@ -2235,17 +2246,16 @@ class ShortcutDialog(QDialog):
         self.setLayout(grid)
         self.setWindowTitle(EDIT_QUICKLINK)
 
-    def apply(self):
+    def accept(self):
         self.main_window.item_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
                                              field=model.SHORTCUT)
         self.main_window.fill_bookmarkShortcutsMenu()
         super(ShortcutDialog, self).accept()
 
 
-class RenameTagDialog(QDialog):
-    def __init__(self, parent, tag):
-        super(RenameTagDialog, self).__init__(parent)
-        self.parent = parent
+class RenameTagDialog(FocusTreeAfterCloseDialog):
+    def __init__(self, main_window, tag):
+        super(RenameTagDialog, self).__init__(main_window)
         self.tag = tag
         self.line_edit = QLineEdit(tag)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
@@ -2255,20 +2265,19 @@ class RenameTagDialog(QDialog):
         grid.addWidget(self.line_edit, 0, 1)
         grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.apply)
+        buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
         buttonBox.button(QDialogButtonBox.Apply).setDefault(True)
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.setWindowTitle(self.tr('Rename tag'))
 
-    def apply(self):
-        self.parent.rename_tag(self.tag, self.line_edit.text())
+    def accept(self):
+        self.main_window.rename_tag(self.tag, self.line_edit.text())
         super(RenameTagDialog, self).accept()
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(FocusTreeAfterCloseDialog):
     def __init__(self, main_window):
         super(SettingsDialog, self).__init__(main_window)
-        self.main_window = main_window
         theme_dropdown = QComboBox()
         theme_dropdown.addItems(['Light', 'Dark'])
         current_palette_index = 0 if QApplication.palette() == self.main_window.light_palette else 1
