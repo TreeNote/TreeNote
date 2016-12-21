@@ -568,8 +568,6 @@ class MainWindow(QMainWindow):
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
         self.helpMenu.addAction(self.aboutAct)
 
-        self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
-
         self.split_window()
 
         # restore previous position
@@ -670,25 +668,6 @@ class MainWindow(QMainWindow):
                     self.item_model.indexes())
             self.bookmark_model.layoutChanged.emit()
 
-    def make_single_key_menu_shortcuts_work_on_mac(self, actions):
-        # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
-        if sys.platform == "darwin":
-            # This class collects a set of parameterless signals, and re-emits
-            # them with a string corresponding to the object that sent the signal.
-            self.signalMapper = QSignalMapper(self)
-            self.signalMapper.mapped[str].connect(self.evoke_singlekey_action)
-            for action in actions:
-                if action is self.moveBookmarkUpAction or \
-                                action is self.moveBookmarkDownAction or \
-                                action is self.deleteBookmarkAction:  # the shortcuts of these are already used
-                    continue
-                keySequence = action.shortcut()
-                if keySequence.count() == 1:
-                    shortcut = QShortcut(keySequence, self)
-                    shortcut.activated.connect(self.signalMapper.map)
-                    self.signalMapper.setMapping(shortcut, action.text())  # pass the action's name
-                    action.shortcut = QKeySequence()  # disable the old shortcut
-
     def get_widgets(self):
         return [QApplication,
                 self.focused_column().toggle_sidebars_button,
@@ -774,7 +753,6 @@ class MainWindow(QMainWindow):
         self.undoAction.setShortcut('CTRL+Z')
         self.redoAction = self.item_model.undoStack.createRedoAction(self)
         self.redoAction.setShortcut('CTRL+Shift+Z')
-        self.make_single_key_menu_shortcuts_work_on_mac([self.undoAction, self.redoAction])
         self.fileMenu.insertAction(self.editShortcutAction, self.undoAction)
         self.fileMenu.insertAction(self.editShortcutAction, self.redoAction)
         self.fileMenu.insertAction(self.editShortcutAction, self.fileMenu.addSeparator())
@@ -805,12 +783,6 @@ class MainWindow(QMainWindow):
     def getQSettings(self):
         return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini',
                          QSettings.IniFormat)
-
-    def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
-        for action in self.all_actions:
-            if action.text() == action_name and action.isEnabled():
-                action.trigger()
-                break
 
     def update_actions(self):  # enable / disable menu items whether they are doable right now
         def toggle_actions(bool_focused, actions_list):
