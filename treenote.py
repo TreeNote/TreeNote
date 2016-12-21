@@ -23,7 +23,6 @@ import textwrap
 from functools import partial
 from traceback import format_exception
 #
-import requests
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -53,7 +52,6 @@ TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = os.path.dirname(os.path.realpath(__file__)) + os.sep + 'resources' + os.sep
 PLAN_TAB = 'Plan'
 
-logging.getLogger("requests").setLevel(logging.WARNING)
 logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
                     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -131,7 +129,8 @@ class MainWindow(QMainWindow):
                                                       'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
                     self.new_file()
             else:
-                self.import_backup(RESOURCE_FOLDER + 'example_tree.json', 'example_tree_{}.treenote'.format(time_stamp()))
+                self.import_backup(RESOURCE_FOLDER + 'example_tree.json',
+                                   'example_tree_{}.treenote'.format(time_stamp()))
 
         app.focusChanged.connect(self.update_actions)
 
@@ -270,8 +269,6 @@ class MainWindow(QMainWindow):
 
         add_action('settingsAct', QAction(self.tr('P&references...'), self, shortcut='Ctrl+,',
                                           triggered=lambda: SettingsDialog(self).exec_()))
-        add_action('updateAct',
-                   QAction(self.tr('Check for Updates...'), self, triggered=lambda: UpdateDialog(self).exec()))
         add_action('aboutAct', QAction(self.tr('&About...'), self, triggered=lambda: AboutBox(self).exec()))
         # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'),
         #            self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
@@ -557,7 +554,6 @@ class MainWindow(QMainWindow):
         self.bookmarkShortcutsMenu = self.menuBar().addMenu(self.tr('&My shortcuts'))
 
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
-        self.helpMenu.addAction(self.updateAct)
         self.helpMenu.addAction(self.aboutAct)
 
         self.make_single_key_menu_shortcuts_work_on_mac(self.all_actions)
@@ -625,7 +621,6 @@ class MainWindow(QMainWindow):
         self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
         self.set_indentation_and_style_tree(settings.value('indentation', 40))
         self.backup_folder = settings.value('backup_folder', 'None set')
-        self.check_for_software_update()
 
         self.popup_json_save_failed.connect(lambda: QMessageBox(QMessageBox.NoIcon, ' ',
                                                                 "Backup failed: Could not find the folder '{}'.\n"
@@ -662,19 +657,6 @@ class MainWindow(QMainWindow):
                                                                           focused_item=focused_item) for index in
                     self.item_model.indexes())
             self.bookmark_model.layoutChanged.emit()
-
-    def check_for_software_update(self):
-        try:
-            self.new_version_data = requests.get(
-                'https://api.github.com/repos/treenote/treenote/releases/latest').json()
-            skip_this_version = self.getQSettings().value('skip_version') is not None and \
-                                self.getQSettings().value('skip_version') == self.new_version_data['tag_name']
-            is_newer_version = git_tag_to_versionnr(version.version_nr) < \
-                               git_tag_to_versionnr(self.new_version_data['tag_name'])
-            if not skip_this_version and is_newer_version:
-                UpdateDialog(self).exec_()
-        except:
-            pass
 
     def make_single_key_menu_shortcuts_work_on_mac(self, actions):
         # source: http://thebreakfastpost.com/2014/06/03/single-key-menu-shortcuts-with-qt5-on-osx/
@@ -809,10 +791,8 @@ class MainWindow(QMainWindow):
         self.save_file()
 
     def getQSettings(self):
-        settings_file = 'treenote_settings.ini'
-        if len(sys.argv) > 1 and sys.argv[1] == 'develop':
-            settings_file = 'treenote_settings_for_developing.ini'
-        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + settings_file, QSettings.IniFormat)
+        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini',
+                         QSettings.IniFormat)
 
     def evoke_singlekey_action(self, action_name):  # fix shortcuts for mac
         for action in self.all_actions:
@@ -2299,55 +2279,6 @@ class RenameTagDialog(QDialog):
     def apply(self):
         self.parent.rename_tag(self.tag, self.line_edit.text())
         super(RenameTagDialog, self).accept()
-
-
-class UpdateDialog(QDialog):
-    def __init__(self, parent):
-        super(UpdateDialog, self).__init__(parent)
-        releaseNotesEdit = QPlainTextEdit(parent.new_version_data['body'])
-        releaseNotesEdit.setReadOnly(True)
-        releaseNotesEdit.setMinimumHeight(400)
-        skipButton = QPushButton('Skip this version')
-        skipButton.clicked.connect(self.skip)
-        ignoreButton = QPushButton('Ignore for now')
-        ignoreButton.clicked.connect(self.close)
-        downloadButton = QPushButton('Download')
-        downloadButton.setDefault(True)
-        downloadButton.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('http://treenote.github.io/download')))
-
-        grid = QGridLayout()  # fromRow, fromColumn, rowSpan, columnSpan
-        new_version = parent.new_version_data['tag_name'][1:]
-        your_version = version.version_nr[1:]
-        grid.addWidget(QLabel(self.tr('Treenote ' + new_version +
-                                      ' is the newest version. You have ' + your_version)), 0, 0, 1, -1)
-        grid.addItem(QSpacerItem(-1, 10), 1, 0, 1, 1)
-        if new_version == your_version:
-            buttonBox = QDialogButtonBox(QDialogButtonBox.Close)
-            buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
-            grid.addWidget(buttonBox)
-        else:
-            grid.addWidget(QLabel(self.tr('Release notes:')), 2, 0, 1, -1)
-            grid.addWidget(releaseNotesEdit, 3, 0, 1, -1)
-            grid.addItem(QSpacerItem(-1, 10), 4, 0, 1, 1)
-            grid.addWidget(QLabel(self.tr('Extract the downloaded archive, then doubleclick the executable inside.\n'
-                                          'If you can’t open your old .treenote file with the new TreeNote version,\n'
-                                          'just import the newest JSON export from the backups folder.')), 5, 0, 1, -1)
-            grid.addItem(QSpacerItem(-1, 10), 6, 0, 1, 1)
-
-            row = QWidget()
-            rowLayout = QHBoxLayout()
-            rowLayout.addWidget(ignoreButton)
-            rowLayout.addWidget(skipButton)
-            rowLayout.addWidget(downloadButton)
-            row.setLayout(rowLayout)
-            grid.addWidget(row, 7, 2, 1, -1, Qt.AlignLeft)
-        grid.setContentsMargins(20, 20, 20, 20)
-        self.setLayout(grid)
-        self.setWindowTitle(self.tr('Software Update'))
-
-    def skip(self):
-        self.parent().getQSettings().setValue('skip_version', self.parent().new_version_data['tag_name'])
-        self.reject()
 
 
 class SettingsDialog(QDialog):
