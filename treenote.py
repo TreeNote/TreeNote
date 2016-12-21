@@ -1938,7 +1938,14 @@ class FileLineEdit(QPlainTextEdit):
                 below_selection_set.add(index)
             else:
                 other_indexes.add(index)
-        self.completer = QCompleter([index.data() for index in other_indexes])
+
+        def item_length(item_text) -> int:
+            try:
+                return len(item_text)
+            except TypeError:
+                return 0
+
+        self.completer = QCompleter(sorted((index.data() for index in other_indexes), key=item_length))
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setFilterMode(Qt.MatchStartsWith)
         self.completer.setWidget(self)
