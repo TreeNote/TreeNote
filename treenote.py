@@ -626,11 +626,6 @@ class MainWindow(QMainWindow):
         if columns_hidden == 'true':
             self.toggle_columns()
 
-        self.highlight_bookmarks_timer = QTimer()
-        self.highlight_bookmarks_timer.timeout.connect(self.highlight_bookmarks)
-        self.highlight_bookmarks_timer.start(180 * 1000 * 60)  # every 180 minutes
-        self.highlight_bookmarks()
-
         self.backup_timer = QTimer()
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 0))
@@ -657,24 +652,6 @@ class MainWindow(QMainWindow):
         self.backup_timer.stop()
         if self.backup_interval != 0:
             self.backup_timer.start(self.backup_interval * 1000 * 60)  # time specified in ms
-
-    def highlight_bookmarks(self):
-        # since this calculation is resource heave delay it when the application is used currently,
-        # so it is done when the application is in the background
-        if app.activeWindow():
-            QTimer().singleShot(5 * 1000 * 60, self.highlight_bookmarks)  # delay for 5 minutes
-        else:
-            # refresh bookmark backgrounds to indicate which of them has children
-            for bookmark_item in self.bookmark_model.items():
-                focused_item = None
-                if bookmark_item.saved_root_item_creation_date_time:
-                    focused_index = self.get_index_by_creation_date(bookmark_item.saved_root_item_creation_date_time)
-                    focused_item = self.item_model.getItem(focused_index)
-                bookmark_item.highlight = any(
-                    self.focused_column().filter_proxy.filter_accepts_row(bookmark_item.search_text, index,
-                                                                          focused_item=focused_item) for index in
-                    self.item_model.indexes())
-            self.bookmark_model.layoutChanged.emit()
 
     def get_widgets(self):
         return [QApplication,

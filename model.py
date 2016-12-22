@@ -71,7 +71,6 @@ class Tree_item():
         self.search_text = ''  # for bookmarks
         self.shortcut = None  # for bookmarks
         self.saved_root_item_creation_date_time = None  # for bookmarks
-        self.highlight = False  # for bookmarks
         self.creation_date_time = time.time()
         self.selected = False
         self.planned = 0
@@ -1016,8 +1015,6 @@ class BookmarkDelegate(QStyledItemDelegate):
         html = item.text
         if item.shortcut:
             html += ' (' + item.shortcut + ')'
-        if item.highlight:
-            html = r'<font color={}>{}</font>'.format(RED, html)
         document.setHtml(html)
         if option.state & QStyle.State_Selected:
             color = option.palette.highlight()
