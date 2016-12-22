@@ -138,8 +138,11 @@ class MainWindow(QMainWindow):
                                                       'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
                     self.new_file()
             else:
-                self.import_backup(os.path.join(RESOURCE_FOLDER, 'example_tree.json'),
-                                   'example_tree_{}.treenote'.format(time_stamp()))
+                example_tree_path = os.path.join(RESOURCE_FOLDER,
+                                                 'example_tree_{}.json'.format(QLocale.system().name()))
+                if not os.path.exists(example_tree_path):
+                    example_tree_path = os.path.join(RESOURCE_FOLDER, 'example_tree.json')
+                self.import_backup(example_tree_path, 'example_tree_{}.treenote'.format(time_stamp()))
 
         app.focusChanged.connect(self.update_actions)
 
