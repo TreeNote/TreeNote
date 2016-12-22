@@ -1175,11 +1175,6 @@ class AutoCompleteEdit(QPlainTextEdit):
         row_height = font_height + self.delegate.main_window.padding * 2
         self.setFixedHeight(rows * row_height + added_rows * row_height)
 
-        # scroll up until the editor is completely visible
-        while self.visibleRegion().boundingRect().height() + 1 < self.height():
-            bar = self.delegate.main_window.focused_column().view.verticalScrollBar()
-            bar.setValue(bar.value() + 1)
-
     def keyPressEvent(self, event):
         # multiline editing
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
