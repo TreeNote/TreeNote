@@ -272,6 +272,22 @@ class MainWindow(QMainWindow):
         self.quick_links_view_actions = []
         self.all_actions = []
 
+        def act(name, icon_name=None, trig=None, trigbool=None, shct=None):
+            if not isinstance(shct, QKeySequence):
+                shct = QKeySequence(shct)
+            if icon_name:
+                action = QAction(QIcon.fromTheme(icon_name), name)
+            else:
+                action = QAction(name)
+            if trig:
+                action.triggered.connect(trig)
+            elif trigbool:
+                action.setCheckable(True)
+                action.triggered[bool].connect(trigbool)
+            if shct:
+                action.setShortcut(shct)
+            return action
+
         def add_action(name, qaction, list=None):
             setattr(self, name, qaction)
             self.all_actions.append(qaction)
@@ -279,9 +295,10 @@ class MainWindow(QMainWindow):
                 list.append(qaction)
             return qaction
 
-        add_action('settingsAct', QAction(self.tr('P&references...'), self, shortcut='Ctrl+,',
-                                          triggered=lambda: SettingsDialog(self).exec_()))
-        add_action('aboutAct', QAction(self.tr('&About...'), self, triggered=lambda: AboutBox(self).exec()))
+        add_action('settingsAct',
+                   act(self.tr('P&references...'), 'preferences-system', lambda: SettingsDialog(self).exec_(),
+                       shct='Ctrl+,'))
+        add_action('aboutAct', act(self.tr('&About...'), 'help-about', lambda: AboutBox(self).exec()))
         # add_action('unsplitWindowAct', QAction(self.tr('Unsplit window'),
         #            self, shortcut='Ctrl+Shift+S', triggered=self.unsplit_window))
         # add_action('splitWindowAct', QAction(self.tr('Split window'),
@@ -313,8 +330,9 @@ class MainWindow(QMainWindow):
         add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Shift+Left',
                                                         triggered=lambda: self.expand_or_collapse_children_selected(
                                                             False)), list=self.item_view_not_editing_actions)
-        add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F',
-                                                   triggered=lambda: self.focused_column().search_bar.setFocus()))
+        add_action('focusSearchBarAction', act(self.tr('Focus search bar'), 'edit-find',
+                                               lambda: self.focused_column().search_bar.setFocus(),
+                                               shct=QKeySequence.Find))
         add_action('colorGreenAction',
                    QAction(self.tr('Green'), self, shortcut='G', triggered=lambda: self.color_row('g')),
                    list=self.item_view_actions)
@@ -381,8 +399,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Hide / show the &sidebars'), self, shortcut='Shift+S',
                            triggered=self.toggle_sidebars))
         add_action('toggleFullScreenAction',
-                   QAction(self.tr('Toggle &fullscreen mode'), self, shortcut='Shift+F',
-                           triggered=self.toggle_fullscreen))
+                   act(self.tr('Toggle &fullscreen mode'), 'view-fullscreen', self.toggle_fullscreen, shct=Qt.Key_F11))
         add_action('toggleColumnsAction',
                    QAction(self.tr("Hide / show the &columns 'Estimate' and 'Start date'"), self, shortcut='Shift+C',
                            triggered=self.toggle_columns))
@@ -411,28 +428,26 @@ class MainWindow(QMainWindow):
                                                     triggered=lambda: self.change_padding(+1)))
         add_action('decreasePaddingAction', QAction(self.tr('Decrease padding'), self, shortcut='Ctrl+Shift+-',
                                                     triggered=lambda: self.change_padding(-1)))
-        add_action('cutAction', QAction(self.tr('Cut'), self, shortcut='Ctrl+X', triggered=self.cut),
+        add_action('cutAction', act(self.tr('Cut'), 'edit-cut', self.cut, shct=QKeySequence.Cut),
                    list=self.item_view_actions)
-        add_action('copyAction', QAction(self.tr('Copy'), self, shortcut='Ctrl+C', triggered=self.copy),
+        add_action('copyAction', act(self.tr('Copy'), 'edit-copy', self.copy, shct=QKeySequence.Copy),
                    list=self.item_view_actions)
-        add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste),
+        add_action('pasteAction', act(self.tr('Paste'), 'edit-paste', self.paste, shct=QKeySequence.Paste),
                    list=self.item_view_actions)
         add_action('exportJSONAction',
                    QAction(self.tr('as a JSON file...'), self, triggered=self.export_json))
         add_action('exportPlainTextAction',
                    QAction(self.tr('as a plain text file...'), self, triggered=self.export_plain_text))
-        add_action('printAction', QAction(self.tr('&Print'), self, shortcut=QKeySequence.Print, triggered=self.print))
+        add_action('printAction', act(self.tr('&Print'), 'document-print', self.print, shct=QKeySequence.Print))
         add_action('expandAction',
                    QAction(self.tr('Expand selected rows / add children to selection'), self, shortcut='Right',
                            triggered=self.expand), list=self.item_view_not_editing_actions)
         add_action('collapseAction', QAction(self.tr('Collapse selected rows / jump to parent'), self, shortcut='Left',
                                              triggered=self.collapse), list=self.item_view_not_editing_actions)
-        add_action('quitAction',
-                   QAction(self.tr('&Quit'), self, shortcut='Ctrl+Q', triggered=self.close))
+        add_action('quitAction', act(self.tr('&Quit'), 'application-exit', self.close, shct=QKeySequence.Quit))
         add_action('openFileAction',
-                   QAction(self.tr('&Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
-        add_action('newFileAction',
-                   QAction(self.tr('&New file...'), self, shortcut='Ctrl+N', triggered=self.new_file))
+                   act(self.tr('&Open file...'), 'document-open', self.start_open_file, shct=QKeySequence.Open))
+        add_action('newFileAction', act(self.tr('&New file...'), 'document-new', self.new_file, shct=QKeySequence.New))
         add_action('importHitListAction',
                    QAction(self.tr('from The Hit List (Mac)...'), self, triggered=lambda: ImportDialog(
                        self, "*.thlbackup", "Import from The Hit List",
@@ -736,9 +751,11 @@ class MainWindow(QMainWindow):
             self.fileMenu.removeAction(self.undoAction)
             self.fileMenu.removeAction(self.redoAction)
         self.undoAction = self.item_model.undoStack.createUndoAction(self)
-        self.undoAction.setShortcut('CTRL+Z')
+        self.undoAction.setShortcut(QKeySequence.Undo)
+        self.undoAction.setIcon(QIcon.fromTheme('edit-undo'))
         self.redoAction = self.item_model.undoStack.createRedoAction(self)
-        self.redoAction.setShortcut('CTRL+Shift+Z')
+        self.redoAction.setShortcut(QKeySequence.Redo)
+        self.redoAction.setIcon(QIcon.fromTheme('edit-redo'))
         self.fileMenu.insertAction(self.editShortcutAction, self.undoAction)
         self.fileMenu.insertAction(self.editShortcutAction, self.redoAction)
         self.fileMenu.insertAction(self.editShortcutAction, self.fileMenu.addSeparator())
