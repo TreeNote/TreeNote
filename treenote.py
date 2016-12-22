@@ -495,7 +495,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set &estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
-        for i in [5, 10, 15, 20, 30, 45, 60, 90, 120, 180]:
+        for i in [15, 20, 30, 45, 60, 90, 120, 180]:
             action = add_action('',
                                 QAction('{} minutes'.format(i), self, shortcut=','.join(number for number in str(i)),
                                         triggered=partial(self.estimate, i)), list=self.item_view_actions)
@@ -513,15 +513,23 @@ class MainWindow(QMainWindow):
         self.remindInMenu.addAction(
             add_action('', QAction('No start date', self, shortcut='.,D',
                                    triggered=partial(self.remindIn, 0)), list=self.item_view_actions))
-        for time_unit, value, max in [('days', 1, 7), ('weeks', 7, 4), ('months', 30, 12), ('years', 365, 4)]:
+
+        def add_shortcuts(time_unit, value, max):
             for i in range(1, max):
+                keys = i if i < 10 else ','.join(list(str(i)))
                 self.remindInMenu.addAction(
                     add_action('', QAction('Remind in {} {}'.format(i, time_unit), self,
-                                           shortcut='{},{}'.format(i, time_unit[0]),
+                                           shortcut='{},{}'.format(keys, time_unit[0]),
                                            triggered=partial(self.remindIn, i * value)), list=self.item_view_actions))
-                shortcut = QShortcut(QKeySequence('Num+{},{}'.format(i, time_unit[0])), self)
+                shortcut = QShortcut(QKeySequence('Num+{},{}'.format(keys, time_unit[0])), self)
                 shortcut.setContext(Qt.ApplicationShortcut)
                 shortcut.activated.connect(partial(self.remindIn, i * value))
+
+        add_shortcuts('days', 1, 7)
+        add_shortcuts('weeks', 7, 4)
+        add_shortcuts('months', 30, 12)
+        add_shortcuts('years', 365, 4)
+
         self.editRowMenu.addAction(self.appendRepeatAction)
         self.setPlanMenu = self.editRowMenu.addMenu(self.tr('Set &plan of selected rows'))
         for i in range(len(model.NUMBER_PLAN_DICT)):
