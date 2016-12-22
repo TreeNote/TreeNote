@@ -49,11 +49,7 @@ def resource_path(relative_path):
 
 
 BOOKMARKS_HEADER = ['Bookmarks']
-TREE_HEADER = ['Text', 'Estimate', 'Start date']
-HIDE_SHOW_THE_SIDEBARS = 'Hide / show the &sidebars'
 COLUMNS_HIDDEN = 'columns_hidden'
-EDIT_BOOKMARK = 'Edit selected &bookmark'
-EDIT_QUICKLINK = 'Edit selected quick link &shortcut'
 EXPANDED_ITEMS = 'EXPANDED_ITEMS'
 EXPANDED_QUICKLINKS_INDEXES = 'EXPANDED_QUICKLINKS'
 SELECTED_INDEX = 'SELECTED_ID'
@@ -123,7 +119,8 @@ class MainWindow(QMainWindow):
         # used to detect if user leaves "just focused" state. when that's the case, expanded states are saved
         self.old_search_text = ''
 
-        self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+        self.tree_header = [self.tr('Text'), self.tr('Estimate'), self.tr('Start date')]
+        self.item_model = model.TreeModel(self, header_list=self.tree_header)
         self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
 
         settings = self.getQSettings()
@@ -198,25 +195,25 @@ class MainWindow(QMainWindow):
                                             self.tr('orange'), self.tr('blue'), self.tr('violet'), self.tr('no color'))
         self.date_dropdown = init_dropdown(model.DATE_BELOW, self.tr('all'), self.tr('0d'), self.tr('1w'),
                                            self.tr('2m'), self.tr('3y'))
-        self.hideTagsCheckBox = QCheckBox('Hide rows\nwith a tag')
+        self.hideTagsCheckBox = QCheckBox(self.tr('Hide rows\nwith a tag'))
         self.hideTagsCheckBox.clicked.connect(self.filter_hide_tags)
-        self.hideFutureStartdateCheckBox = QCheckBox('Hide rows with a\nfuture start date')
+        self.hideFutureStartdateCheckBox = QCheckBox(self.tr('Hide rows with a\nfuture start date'))
         self.hideFutureStartdateCheckBox.clicked.connect(self.filter_hide_future_startdate)
 
         layout = QGridLayout()
         layout.setContentsMargins(2 + 10, 0, 6, 0)  # left, top, right, bottom
-        layout.addWidget(QLabel('Color:'), 1, 0, 1, 1)
+        layout.addWidget(QLabel(self.tr('Color:')), 1, 0, 1, 1)
         layout.addWidget(self.color_dropdown, 1, 1, 1, 1)
-        layout.addWidget(QLabel('Type:'), 2, 0, 1, 1)
+        layout.addWidget(QLabel(self.tr('Type:')), 2, 0, 1, 1)
         layout.addWidget(self.task_dropdown, 2, 1, 1, 1)
-        layout.addWidget(QLabel('Date until:'), 3, 0, 1, 1)
+        layout.addWidget(QLabel(self.tr('Date until:')), 3, 0, 1, 1)
         layout.addWidget(self.date_dropdown, 3, 1, 1, 1)
-        layout.addWidget(QLabel('Estimate:'), 4, 0, 1, 1)
+        layout.addWidget(QLabel(self.tr('Estimate:')), 4, 0, 1, 1)
         layout.addWidget(self.estimate_dropdown, 4, 1, 1, 1)
         layout.addWidget(self.hideTagsCheckBox, 5, 0, 1, 2)
         layout.addWidget(self.hideFutureStartdateCheckBox, 6, 0, 1, 2)
         layout.setColumnStretch(1, 10)
-        self.filter_spoiler = Spoiler(self, 'Filters')
+        self.filter_spoiler = Spoiler(self, self.tr('Filters'))
         self.filter_spoiler.setContentLayout(layout)
 
         self.bookmarks_view = QTreeView()
@@ -315,31 +312,36 @@ class MainWindow(QMainWindow):
                                                             False)), list=self.item_view_not_editing_actions)
         add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F',
                                                    triggered=lambda: self.focused_column().search_bar.setFocus()))
-        add_action('colorGreenAction', QAction('Green', self, shortcut='G', triggered=lambda: self.color_row('g')),
+        add_action('colorGreenAction',
+                   QAction(self.tr('Green'), self, shortcut='G', triggered=lambda: self.color_row('g')),
                    list=self.item_view_actions)
         add_action('colorYellowAction',
-                   QAction('Yellow', self, shortcut='Y', triggered=lambda: self.color_row('y')),
+                   QAction(self.tr('Yellow'), self, shortcut='Y', triggered=lambda: self.color_row('y')),
                    list=self.item_view_actions)
-        add_action('colorBlueAction', QAction('Blue', self, shortcut='B', triggered=lambda: self.color_row('b')),
+        add_action('colorBlueAction',
+                   QAction(self.tr('Blue'), self, shortcut='B', triggered=lambda: self.color_row('b')),
                    list=self.item_view_actions)
-        add_action('colorRedAction', QAction('Red', self, shortcut='R', triggered=lambda: self.color_row('r')),
+        add_action('colorRedAction', QAction(self.tr('Red'), self, shortcut='R', triggered=lambda: self.color_row('r')),
                    list=self.item_view_actions)
         add_action('colorOrangeAction',
-                   QAction('Orange', self, shortcut='O', triggered=lambda: self.color_row('o')),
+                   QAction(self.tr('Orange'), self, shortcut='O', triggered=lambda: self.color_row('o')),
                    list=self.item_view_actions)
         add_action('colorVioletAction',
-                   QAction('Violet', self, shortcut='V', triggered=lambda: self.color_row('v')),
+                   QAction(self.tr('Violet'), self, shortcut='V', triggered=lambda: self.color_row('v')),
                    list=self.item_view_actions)
         add_action('colorNoColorAction',
-                   QAction('No color', self, shortcut='N', triggered=lambda: self.color_row('n')),
+                   QAction(self.tr('No color'), self, shortcut='N', triggered=lambda: self.color_row('n')),
                    list=self.item_view_actions)
-        add_action('noEstimateAction', QAction('No estimate', self, shortcut='0', triggered=partial(self.estimate, '')),
+        add_action('noEstimateAction',
+                   QAction(self.tr('No estimate'), self, shortcut='0', triggered=partial(self.estimate, '')),
                    list=self.item_view_actions)
         add_action('increaseEstimateAction',
-                   QAction('Increase estimate', self, shortcut='+', triggered=partial(self.adjust_estimate, 10)),
+                   QAction(self.tr('Increase estimate'), self, shortcut='+',
+                           triggered=partial(self.adjust_estimate, 10)),
                    list=self.item_view_actions)
         add_action('decreaseEstimateAction',
-                   QAction('Decrease estimate', self, shortcut='-', triggered=partial(self.adjust_estimate, -10)),
+                   QAction(self.tr('Decrease estimate'), self, shortcut='-',
+                           triggered=partial(self.adjust_estimate, -10)),
                    list=self.item_view_actions)
         add_action('toggleTaskAction',
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
@@ -354,7 +356,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Rename selected &tag'), self, triggered=lambda: RenameTagDialog(
                        self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
         add_action('editBookmarkAction',
-                   QAction(self.tr(EDIT_BOOKMARK), self, triggered=lambda: BookmarkDialog(
+                   QAction(self.tr('Edit selected &bookmark'), self, triggered=lambda: BookmarkDialog(
                        self, index=self.bookmarks_view.selectionModel().currentIndex()).exec_()),
                    list=self.bookmark_view_actions)
         add_action('moveBookmarkUpAction',
@@ -367,24 +369,23 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('&Delete selected bookmark'), self, triggered=self.remove_bookmark_selection),
                    list=self.bookmark_view_actions)
         add_action('editShortcutAction',
-                   QAction(self.tr(EDIT_QUICKLINK), self, triggered=lambda: ShortcutDialog(
+                   QAction(self.tr('Edit selected quick link &shortcut'), self, triggered=lambda: ShortcutDialog(
                        self, self.quicklinks_view.selectionModel().currentIndex()).exec_()),
                    list=self.quick_links_view_actions)
         add_action('resetViewAction',
                    QAction(self.tr('Reset search filter'), self, shortcut='esc', triggered=self.reset_view))
         add_action('toggleSideBarsAction',
-                   QAction(HIDE_SHOW_THE_SIDEBARS, self, shortcut='Shift+S', triggered=self.toggle_sidebars))
+                   QAction(self.tr('Hide / show the &sidebars'), self, shortcut='Shift+S',
+                           triggered=self.toggle_sidebars))
         add_action('toggleFullScreenAction',
-                   QAction('Toggle &fullscreen mode', self, shortcut='Shift+F', triggered=self.toggle_fullscreen))
+                   QAction(self.tr('Toggle &fullscreen mode'), self, shortcut='Shift+F',
+                           triggered=self.toggle_fullscreen))
         add_action('toggleColumnsAction',
-                   QAction("Hide / show the &columns 'Estimate' and 'Start date'", self, shortcut='Shift+C',
+                   QAction(self.tr("Hide / show the &columns 'Estimate' and 'Start date'"), self, shortcut='Shift+C',
                            triggered=self.toggle_columns))
         add_action('toggleProjectAction',
                    QAction(self.tr('Toggle: note, sequential project, parallel project, paused project'), self,
                            shortcut='P', triggered=self.toggle_project), list=self.item_view_actions)
-        add_action('appendRepeatAction',
-                   QAction(self.tr("Append 'repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
-                   list=self.item_view_actions)
         add_action('appendRepeatAction',
                    QAction(self.tr("Append '&repeat=1w'"), self, shortcut='Ctrl+R', triggered=self.append_repeat),
                    list=self.item_view_actions)
@@ -414,17 +415,17 @@ class MainWindow(QMainWindow):
         add_action('pasteAction', QAction(self.tr('Paste'), self, shortcut='Ctrl+V', triggered=self.paste),
                    list=self.item_view_actions)
         add_action('exportJSONAction',
-                   QAction(self.tr('as a TreeNote JSON file...'), self, triggered=self.export_json))
+                   QAction(self.tr('as a JSON file...'), self, triggered=self.export_json))
         add_action('exportPlainTextAction',
                    QAction(self.tr('as a plain text file...'), self, triggered=self.export_plain_text))
         add_action('printAction', QAction(self.tr('&Print'), self, shortcut=QKeySequence.Print, triggered=self.print))
         add_action('expandAction',
-                   QAction('Expand selected rows / add children to selection', self, shortcut='Right',
+                   QAction(self.tr('Expand selected rows / add children to selection'), self, shortcut='Right',
                            triggered=self.expand), list=self.item_view_not_editing_actions)
-        add_action('collapseAction', QAction('Collapse selected rows / jump to parent', self, shortcut='Left',
+        add_action('collapseAction', QAction(self.tr('Collapse selected rows / jump to parent'), self, shortcut='Left',
                                              triggered=self.collapse), list=self.item_view_not_editing_actions)
         add_action('quitAction',
-                   QAction(self.tr('&Quit TreeNote'), self, shortcut='Ctrl+Q', triggered=self.close))
+                   QAction(self.tr('&Quit'), self, shortcut='Ctrl+Q', triggered=self.close))
         add_action('openFileAction',
                    QAction(self.tr('&Open file...'), self, shortcut='Ctrl+O', triggered=self.start_open_file))
         add_action('newFileAction',
@@ -493,7 +494,8 @@ class MainWindow(QMainWindow):
         self.estimateMenu.addAction(self.noEstimateAction)
         for i in [15, 20, 30, 45, 60, 90, 120, 180]:
             action = add_action('',
-                                QAction('{} minutes'.format(i), self, shortcut=','.join(number for number in str(i)),
+                                QAction(self.tr('{} minutes').format(i), self,
+                                        shortcut=','.join(number for number in str(i)),
                                         triggered=partial(self.estimate, i)), list=self.item_view_actions)
             self.estimateMenu.addAction(action)
 
@@ -507,14 +509,14 @@ class MainWindow(QMainWindow):
         self.estimateMenu.addAction(self.decreaseEstimateAction)
         self.remindInMenu = self.editRowMenu.addMenu(self.tr('Set start &date of selected rows'))
         self.remindInMenu.addAction(
-            add_action('', QAction('No start date', self, shortcut='.,D',
+            add_action('', QAction(self.tr('No start date'), self, shortcut='.,D',
                                    triggered=partial(self.remindIn, 0)), list=self.item_view_actions))
 
         def add_shortcuts(time_unit, value, max):
             for i in range(1, max):
                 keys = i if i < 10 else ','.join(list(str(i)))
                 self.remindInMenu.addAction(
-                    add_action('', QAction('Remind in {} {}'.format(i, time_unit), self,
+                    add_action('', QAction(self.tr('Remind in {} {}').format(i, time_unit), self,
                                            shortcut='{},{}'.format(keys, time_unit[0]),
                                            triggered=partial(self.remindIn, i * value)), list=self.item_view_actions))
                 shortcut = QShortcut(QKeySequence('Num+{},{}'.format(keys, time_unit[0])), self)
@@ -532,10 +534,10 @@ class MainWindow(QMainWindow):
             self.setPlanMenu.addAction(
                 add_action('', QAction(model.NUMBER_PLAN_DICT[i], self, shortcut='Shift+{}'.format(i),
                                        triggered=partial(self.set_plan, i)), list=self.item_view_actions))
-        line_break_action = QAction(self.tr('Insert a line break while editing a row'), self, shortcut='Shift+Return')
+        line_break_action = QAction(self.tr('Insert a line break while editing a row:'), self, shortcut='Shift+Return')
         line_break_action.setDisabled(True)
         self.editRowMenu.addAction(line_break_action)
-        internal_link_action = QAction(self.tr('Start writing an internal link while editing a row with'), self,
+        internal_link_action = QAction(self.tr('Create an internal link while editing a row:'), self,
                                        shortcut='#')
         internal_link_action.setDisabled(True)
         self.editRowMenu.addAction(internal_link_action)
@@ -1590,7 +1592,7 @@ class MainWindow(QMainWindow):
         new_column = QWidget()
 
         new_column.toggle_sidebars_button = QPushButton()
-        new_column.toggle_sidebars_button.setToolTip(HIDE_SHOW_THE_SIDEBARS)
+        new_column.toggle_sidebars_button.setToolTip(self.tr('Hide / show the sidebars'))
         new_column.toggle_sidebars_button.setIcon(QIcon(':/toggle_sidebars'))
         new_column.toggle_sidebars_button.setStyleSheet('QPushButton {\
             width: 22px;\
@@ -1623,7 +1625,7 @@ class MainWindow(QMainWindow):
         self.tab_bar = QTabBar()
         self.tab_bar.setUsesScrollButtons(False)
         self.tab_bar.setDrawBase(False)
-        self.tab_bar.addTab('Tree')
+        self.tab_bar.addTab(self.tr('Tree'))
         self.tab_bar.addTab(PLAN_TAB)
         for i in range(2):
             self.tab_bar.setTabToolTip(i, 'Press Ctrl+{} to select this tab'.format(i + 1))
@@ -1723,7 +1725,7 @@ class MainWindow(QMainWindow):
         path = QFileDialog.getSaveFileName(self, "Save", 'my_tree.treenote', "*.treenote")[0]
         if len(path) > 0:
             self.save_path = path
-            self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+            self.item_model = model.TreeModel(self, header_list=self.tree_header)
             self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
             self.change_active_tree()
 
@@ -1770,7 +1772,7 @@ class MainWindow(QMainWindow):
             self.open_file(path)
 
     def import_backup(self, open_path, save_path):
-        self.item_model = model.TreeModel(self, header_list=TREE_HEADER)
+        self.item_model = model.TreeModel(self, header_list=self.tree_header)
         self.bookmark_model = model.TreeModel(self, header_list=BOOKMARKS_HEADER)
         if 'json' in open_path:
             if 'json' in open_path:
@@ -1794,7 +1796,7 @@ class MainWindow(QMainWindow):
                 if date:
                     item.date = date.strftime('%d.%m.%y')
                 if item.text == 'ROOT':
-                    item.header_list = TREE_HEADER
+                    item.header_list = self.tree_header
                     self.item_model.rootItem = item
                 item.child_id_list = task_dict.get('subtasks', [])
                 item.estimate = str(task_dict.get('priority', item.estimate))
@@ -1834,7 +1836,7 @@ class MainWindow(QMainWindow):
         toolbar = dialog.findChildren(QToolBar)[0]
         toolbar.addAction(QIcon(':/plus'), self.tr('Increase print size'), lambda: view.change_print_size(0.1))
         toolbar.addAction(QIcon(':/minus'), self.tr('Decrease print size'), lambda: view.change_print_size(-0.1))
-        toolbar.addWidget(QLabel('Change the print size with the red buttons.'))
+        toolbar.addWidget(QLabel(self.tr('Change the print size with the red buttons.')))
         dialog.paintRequested.connect(view.print)
         dialog.showMaximized()
         dialog.exec_()
@@ -2232,7 +2234,7 @@ class ShortcutDialog(FocusTreeAfterCloseDialog):
         grid.addWidget(clearButton, 0, 2)
         grid.addWidget(buttonBox, 1, 0, 1, 2, Qt.AlignRight)  # fromRow, fromColumn, rowSpan, columnSpan.
         self.setLayout(grid)
-        self.setWindowTitle(EDIT_QUICKLINK)
+        self.setWindowTitle('Edit selected quick link shortcut')
 
     def accept(self):
         self.main_window.item_model.set_data(self.shortcut_edit.keySequence().toString(), index=self.index,
