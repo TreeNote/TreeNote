@@ -307,10 +307,10 @@ class MainWindow(QMainWindow):
         add_action('fileSelectedRows',
                    QAction(self.tr('File selected rows...'), self, shortcut='F', triggered=self.file),
                    list=self.item_view_actions)
-        add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Alt+Right',
+        add_action('expandAllChildrenAction', QAction(self.tr('Expand all children'), self, shortcut='Shift+Right',
                                                       triggered=lambda: self.expand_or_collapse_children_selected(
                                                           True)), list=self.item_view_not_editing_actions)
-        add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Alt+Left',
+        add_action('collapseAllChildrenAction', QAction(self.tr('Collapse all children'), self, shortcut='Shift+Left',
                                                         triggered=lambda: self.expand_or_collapse_children_selected(
                                                             False)), list=self.item_view_not_editing_actions)
         add_action('focusSearchBarAction', QAction(self.tr('Focus search bar'), self, shortcut='Ctrl+F',
@@ -397,10 +397,10 @@ class MainWindow(QMainWindow):
         add_action('goUpAction', QAction(self.tr('Set parent of current root as root'), self, shortcut='Ctrl+Up',
                                          triggered=self.focus_parent_of_focused), list=self.item_view_actions)
         add_action('increaseInterFaceFontAction', QAction(self.tr('Increase interface font-size'), self,
-                                                          shortcut=QKeySequence(Qt.ALT + Qt.Key_Plus),
+                                                          shortcut=QKeySequence(Qt.SHIFT + Qt.Key_Plus),
                                                           triggered=lambda: self.change_interface_font_size(+1)))
         add_action('decreaseInterFaceFontAction', QAction(self.tr('Decrease interface font-size'), self,
-                                                          shortcut=QKeySequence(Qt.ALT + Qt.Key_Minus),
+                                                          shortcut=QKeySequence(Qt.SHIFT + Qt.Key_Minus),
                                                           triggered=lambda: self.change_interface_font_size(-1)))
         add_action('increaseFontAction', QAction(self.tr('Increase font-size'), self, shortcut='Ctrl++',
                                                  triggered=lambda: self.change_font_size(+1)))
