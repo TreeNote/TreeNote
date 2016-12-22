@@ -272,6 +272,8 @@ class MainWindow(QMainWindow):
         self.quick_links_view_actions = []
         self.all_actions = []
 
+        QIcon.setThemeName('any_theme')
+
         def act(name, icon_name=None, trig=None, trigbool=None, shct=None):
             if not isinstance(shct, QKeySequence):
                 shct = QKeySequence(shct)
