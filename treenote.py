@@ -2491,6 +2491,14 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon(':/logo'))
     QFontDatabase.addApplicationFont(os.path.join(RESOURCE_FOLDER, 'SourceSansPro-Regular.otf'))
 
+    locale = QLocale.system().name()
+    qt_translator = QTranslator()
+    if qt_translator.load("qtbase_" + locale, QLibraryInfo.location(QLibraryInfo.TranslationsPath)):
+        app.installTranslator(qt_translator)
+    app_translator = QTranslator()
+    if app_translator.load('treenote_' + locale, os.path.join(RESOURCE_FOLDER, 'locales')):
+        app.installTranslator(app_translator)
+
     form = MainWindow()
     form.show()
     app.exec_()
