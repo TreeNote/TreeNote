@@ -837,7 +837,11 @@ class FilterProxyModel(QSortFilterProxyModel, ProxyTools):
                 # accept (continue) when no date or date is not in future
                 if item.date == '' or QDateFromString(item.date) <= QDate.currentDate():
                     continue
-            elif token.casefold() in item.text.casefold():
+            # searching for "blue" shall find "a blue flower" but not "bluetooth"
+            elif ' ' + token.casefold() + ' ' in ' ' + item.text.casefold() + ' ':
+                continue
+            # searching for "*blue*" shall find "bluetooth"
+            elif token[0] == '*' and token[-1] == '*' and token[1:-1].casefold() in item.text.casefold():
                 continue
             break  # user type stuff that's not found
         else:  # just executed when not breaked
