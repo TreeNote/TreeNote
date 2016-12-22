@@ -1247,7 +1247,6 @@ CHAR_QCOLOR_DICT = {
     'r': RED,  # red
     'o': QColor('#FF9500').name(),  # orange
     'v': QColor('#FF40FF').name(),  # violet
-    'e': DARK_GREY,
     'n': NO_COLOR
 }
 PLANNED_COLOR = QColor('#44A6C7')
