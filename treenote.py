@@ -1462,14 +1462,15 @@ class MainWindow(QMainWindow):
     def edit_row_without_check(self):
         current_index = self.current_index()
         if self.current_view().state() == QAbstractItemView.EditingState:  # change column with tab key
-            next_column_number = (current_index.column() + 2)
-            if next_column_number == 0 or next_column_number == 2:
-                sibling_index = current_index.sibling(current_index.row(), next_column_number)
-                self.current_view().selectionModel().setCurrentIndex(sibling_index,
-                                                                     QItemSelectionModel.ClearAndSelect)
-                self.current_view().edit(sibling_index)
-            else:
-                self.current_view().setFocus()
+            if not self.focused_column().view.isHeaderHidden():
+                next_column_number = (current_index.column() + 2)
+                if next_column_number == 0 or next_column_number == 2:
+                    sibling_index = current_index.sibling(current_index.row(), next_column_number)
+                    self.current_view().selectionModel().setCurrentIndex(sibling_index,
+                                                                         QItemSelectionModel.ClearAndSelect)
+                    self.current_view().edit(sibling_index)
+                else:
+                    self.current_view().setFocus()
         elif self.current_view().hasFocus():
             self.current_view().edit(current_index)
         else:
