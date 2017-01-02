@@ -886,7 +886,7 @@ class Delegate(QStyledItemDelegate):
         # color tags by surrounding them with coloring html brackets
         html = re.sub(r'((\n|^| )(' + TAG_DELIMITER + r'\w+)+($| |\n))',
                       r'<font color=' + TAG_COLOR.name() + r'>\1</font>', html)
-        html = re.sub(FIND_INTERNAL_LINK, r'<font color=' + INTERNAL_LINK_COLOR.name() + r'>\1</font>', html)
+        html = re.sub(FIND_INTERNAL_LINK, r'<font color=' + INTERNAL_LINK_COLOR.name() + r'>\1 </font>', html)
         html = re.sub(r'(repeat=\d(d|w|m|y)($| |\n))', r'<font color=' + REPEAT_COLOR.name() + r'>\1</font>', html)
         html = html.replace('\n', '<br>')
 
