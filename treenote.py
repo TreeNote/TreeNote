@@ -135,7 +135,8 @@ class MainWindow(QMainWindow):
                     self.open_file(last_opened_file_path)
                 except Exception as e:
                     QMessageBox.information(self, '', self.tr('{} \n\n Did not find last Treenote '
-                                                      'file. Creating a new treenote file...').format(e), QMessageBox.Ok)
+                                                              'file. Creating a new treenote file...').format(e),
+                                            QMessageBox.Ok)
                     self.new_file()
             else:
                 example_tree_path = os.path.join(RESOURCE_FOLDER,
@@ -372,11 +373,11 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Open URLs of selected rows in the web browser, or open file'), self, shortcut='L',
                            triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('showInFolderAction',
-                   QAction(self.tr('Show in folder'), self, shortcut='.',
+                   QAction(self.tr('Show in folder'), self, shortcut='E',
                            triggered=self.show_in_folder), list=self.item_view_actions)
         add_action('openInternalLinkAction',
                    QAction(self.tr('Set internal link of selected row as root'), self, shortcut='I',
-                           triggered=self.open_internal_link), list=self.item_view_actions)
+                           triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('renameTagAction',
                    QAction(self.tr('Rename selected &tag'), self, triggered=lambda: RenameTagDialog(
                        self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
@@ -709,8 +710,9 @@ class MainWindow(QMainWindow):
                 self.bookmarkShortcutsMenu.addAction(
                     QAction(item.text, self, shortcut=item.shortcut, triggered=partial(self.filter_bookmark, index)))
         if self.bookmarkShortcutsMenu.isEmpty():
-            no_shortcuts_yet_action = QAction(self.tr('No shortcuts from the quick access sidebar or the bookmarks set yet.'),
-                                              self)
+            no_shortcuts_yet_action = QAction(
+                self.tr('No shortcuts from the quick access sidebar or the bookmarks set yet.'),
+                self)
             no_shortcuts_yet_action.setDisabled(True)
             self.bookmarkShortcutsMenu.addAction(no_shortcuts_yet_action)
 
@@ -1599,10 +1601,18 @@ class MainWindow(QMainWindow):
 
     def open_links_or_files(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
+            match = re.search(model.FIND_INTERNAL_LINK, row_index.data())
             # open file
             if row_index.data().startswith('file:///'):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data().replace('file://', '')))
-            # open in web browser
+            # open internal link
+            elif match:
+                text_to_find = match.group(1)[1:].strip(model.INTERNAL_LINK_DELIMITER)
+                for index in self.item_model.indexes():
+                    if self.item_model.getItem(index).text == text_to_find:
+                        self.focus_index(self.filter_proxy_index_from_model_index(index))
+                        break
+            # open URL in web browser
             else:
                 url_list = re.findall(util.url_regex, row_index.data())
                 for url in url_list:
@@ -1613,16 +1623,6 @@ class MainWindow(QMainWindow):
                 else:  # no urls found: search the web for the selected entry
                     text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                     QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
-
-    def open_internal_link(self):
-        match = re.search(model.FIND_INTERNAL_LINK,
-                          self.focused_column().view.selectionModel().selectedRows()[0].data())
-        if match:
-            text_to_find = match.group(1)[1:].strip(model.INTERNAL_LINK_DELIMITER)
-            for index in self.item_model.indexes():
-                if self.item_model.getItem(index).text == text_to_find:
-                    self.focus_index(self.filter_proxy_index_from_model_index(index))
-                    break
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
@@ -2188,7 +2188,7 @@ class BookmarkDialog(FocusTreeAfterCloseDialog):
         self.save_root_checkbox = QCheckBox()
         self.save_root_checkbox.setChecked(True)
 
-        save_root_item_label_text = "Save current root item '{}':".format(self.root_item.text)
+        save_root_item_label_text = self.tr("Save current root item '{}':").format(self.root_item.text)
         if index is not None:
             item = main_window.bookmark_model.getItem(index)
             self.save_root_checkbox = None
@@ -2347,7 +2347,7 @@ class SettingsDialog(FocusTreeAfterCloseDialog):
         layout.addRow(self.tr('Indentation of children in the tree:'), indentation_spinbox)
         layout.addRow(self.tr('Backup folder:'), folder_chooser_layout)
         backup_label = QLabel(self.tr("Create a JSON export of the tree to the specified backup folder "
-                              "every ... minutes, if the tree has changed (0 minutes disables this feature):"))
+                                      "every ... minutes, if the tree has changed (0 minutes disables this feature):"))
         backup_label.setWordWrap(True)
         backup_label.setAlignment(Qt.AlignRight)
         backup_label.setMinimumSize(550, 0)
