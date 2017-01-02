@@ -370,8 +370,11 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
         add_action('openLinkAction',
-                   QAction(self.tr('Open URLs of selected rows in the web browser'), self, shortcut='L',
-                           triggered=self.open_links), list=self.item_view_actions)
+                   QAction(self.tr('Open URLs of selected rows in the web browser, or open file'), self, shortcut='L',
+                           triggered=self.open_links_or_files), list=self.item_view_actions)
+        add_action('showInFolderAction',
+                   QAction(self.tr('Show in folder'), self, shortcut='.',
+                           triggered=self.show_in_folder), list=self.item_view_actions)
         add_action('openInternalLinkAction',
                    QAction(self.tr('Set internal link of selected row as root'), self, shortcut='I',
                            triggered=self.open_internal_link), list=self.item_view_actions)
@@ -575,6 +578,7 @@ class MainWindow(QMainWindow):
         # self.viewMenu.addAction(self.splitWindowAct)
         # self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.openLinkAction)
+        self.viewMenu.addAction(self.showInFolderAction)
         self.viewMenu.addAction(self.openInternalLinkAction)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.toggleSideBarsAction)
@@ -1588,17 +1592,28 @@ class MainWindow(QMainWindow):
         self.focus_index(root_index.parent())
         self.select_from_to(root_index, root_index)
 
-    def open_links(self):
+    def show_in_folder(self):
         for row_index in self.focused_column().view.selectionModel().selectedRows():
-            url_list = re.findall(util.url_regex, row_index.data())
-            for url in url_list:
-                if not re.search(r'https?://', url):
-                    url = 'http://' + url
-                QDesktopServices.openUrl(QUrl(url))
-                break
-            else:  # no urls found: search the web for the selected entry
-                text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
-                QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
+            if row_index.data().startswith('file:///'):
+                file_info = QFileInfo(row_index.data().replace('file://', ''))
+                QDesktopServices.openUrl(QUrl.fromLocalFile(file_info.absoluteDir().absolutePath()))
+
+    def open_links_or_files(self):
+        for row_index in self.focused_column().view.selectionModel().selectedRows():
+            # open file
+            if row_index.data().startswith('file:///'):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data().replace('file://', '')))
+            # open in web browser
+            else:
+                url_list = re.findall(util.url_regex, row_index.data())
+                for url in url_list:
+                    if not re.search(r'https?://', url):
+                        url = 'http://' + url
+                    QDesktopServices.openUrl(QUrl(url))
+                    break
+                else:  # no urls found: search the web for the selected entry
+                    text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
+                    QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
 
     def open_internal_link(self):
         match = re.search(model.FIND_INTERNAL_LINK,
