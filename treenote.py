@@ -134,8 +134,8 @@ class MainWindow(QMainWindow):
                 try:
                     self.open_file(last_opened_file_path)
                 except Exception as e:
-                    QMessageBox.information(self, '', '{} \n\n Did not find last Treenote '
-                                                      'file. Creating a new treenote file...'.format(e), QMessageBox.Ok)
+                    QMessageBox.information(self, '', self.tr('{} \n\n Did not find last Treenote '
+                                                      'file. Creating a new treenote file...').format(e), QMessageBox.Ok)
                     self.new_file()
             else:
                 example_tree_path = os.path.join(RESOURCE_FOLDER,
@@ -165,8 +165,7 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.customContextMenuRequested.connect(self.open_edit_shortcut_contextmenu)
         self.quicklinks_view.clicked.connect(lambda i: self.focus_index(self.filter_proxy_index_from_model_index(i)))
         self.quicklinks_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.quicklinks_view.setHeader(CustomHeaderView('Quick tree'))
-        self.quicklinks_view.header().setToolTip('Focus on the clicked row')
+        self.quicklinks_view.setHeader(CustomHeaderView(self.tr('Quick access')))
         self.quicklinks_view.hideColumn(1)
         self.quicklinks_view.hideColumn(2)
         self.quicklinks_view.setUniformRowHeights(True)  # improves performance
@@ -710,7 +709,7 @@ class MainWindow(QMainWindow):
                 self.bookmarkShortcutsMenu.addAction(
                     QAction(item.text, self, shortcut=item.shortcut, triggered=partial(self.filter_bookmark, index)))
         if self.bookmarkShortcutsMenu.isEmpty():
-            no_shortcuts_yet_action = QAction(self.tr('No shortcuts from the quick tree or the bookmarks set yet.'),
+            no_shortcuts_yet_action = QAction(self.tr('No shortcuts from the quick access sidebar or the bookmarks set yet.'),
                                               self)
             no_shortcuts_yet_action.setDisabled(True)
             self.bookmarkShortcutsMenu.addAction(no_shortcuts_yet_action)
@@ -2029,7 +2028,7 @@ class SelectRowLineEdit(QPlainTextEdit):
         if index:
             self.setPlainText(index.data())
         else:
-            self.setPlaceholderText(self.tr('Type the name of a row'))
+            self.setPlaceholderText(self.tr('Type the name of an entry'))
 
         self._separator = ' '
         self.completer = QCompleter([index.data() for index in self.main_window.item_model.indexes()])
@@ -2344,11 +2343,11 @@ class SettingsDialog(FocusTreeAfterCloseDialog):
         new_rows_plan_view_edit = SelectRowLineEdit(self.main_window)
 
         layout = QFormLayout()
-        layout.addRow('Theme:', theme_dropdown)
-        layout.addRow('Indentation of children in the tree:', indentation_spinbox)
-        layout.addRow('Backup folder:', folder_chooser_layout)
-        backup_label = QLabel("Create a JSON export of the tree to the specified backup folder "
-                              "every ... minutes, if the tree has changed (0 minutes disables this feature):")
+        layout.addRow(self.tr('Theme:'), theme_dropdown)
+        layout.addRow(self.tr('Indentation of children in the tree:'), indentation_spinbox)
+        layout.addRow(self.tr('Backup folder:'), folder_chooser_layout)
+        backup_label = QLabel(self.tr("Create a JSON export of the tree to the specified backup folder "
+                              "every ... minutes, if the tree has changed (0 minutes disables this feature):"))
         backup_label.setWordWrap(True)
         backup_label.setAlignment(Qt.AlignRight)
         backup_label.setMinimumSize(550, 0)
@@ -2368,7 +2367,7 @@ class SettingsDialog(FocusTreeAfterCloseDialog):
                                                    self.backup_folder_textedit.contentsMargins().top() * 2)
 
     def choose_folder(self):
-        self.main_window.backup_folder = QFileDialog.getExistingDirectory(self, 'Choose backup folder',
+        self.main_window.backup_folder = QFileDialog.getExistingDirectory(self, self.tr('Choose backup folder'),
                                                                           self.main_window.save_path,
                                                                           QFileDialog.ShowDirsOnly)
         self.update_backup_folder_textedit()

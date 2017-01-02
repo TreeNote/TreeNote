@@ -212,7 +212,7 @@ class TreeModel(QAbstractItemModel):
     def set_data(self, value, index, field='text'):
         class SetDataCommand(QUndoCommandStructure):
             _fields = ['model', 'index', 'value', 'column', 'field']
-            title = 'Edit row'
+            title = self.tr("'Edit row'")
 
             def set_data(self, value):
                 item = self.model.getItem(self.index)
@@ -301,7 +301,7 @@ class TreeModel(QAbstractItemModel):
         class InsertRemoveRowCommand(QUndoCommandStructure):
             _fields = ['model', 'position', 'parent_index', 'deleted_child_parent_index_position_list',
                        'set_edit_focus', 'indexes', 'items']
-            title = 'Add or remove row'
+            title = self.tr("'Add or remove row'")
 
             @staticmethod  # static because it is called from the outside for moving
             def insert_existing_entry(model, position, parent_index, child_item_list, select=True):
@@ -428,7 +428,7 @@ class TreeModel(QAbstractItemModel):
     def file(self, indexes, new_parent):
         class FileCommand(QUndoCommandStructure):
             _fields = ['model', 'indexes_and_old_positions_dict', 'new_parent']
-            title = 'File'
+            title = self.tr("'File'")
 
             def move(self, index, new_parent, old_position=None):
                 item = self.model.getItem(index)
@@ -460,7 +460,7 @@ class TreeModel(QAbstractItemModel):
 
         class MoveVerticalCommand(QUndoCommandStructure):
             _fields = ['model', 'indexes', 'up_or_down']
-            title = 'Move vertically'
+            title = self.tr("'Move vertically'")
 
             def move(self, up_or_down):
                 if self.model.main_window.current_view() is self.model.main_window.planned_view:
@@ -561,7 +561,7 @@ class TreeModel(QAbstractItemModel):
         class MoveHorizontalCommand(QUndoCommandStructure):
             _fields = ['model', 'direction', 'parent_parent_index', 'parent_index', 'indexes_to_insert',
                        'position', 'original_position', 'sibling_index', 'last_childnr_of_sibling']
-            title = 'move horizontal'
+            title = self.tr("'Move horizontal'")
 
             def move(self, parent_index, insert_in_index, position, original_position):
                 items = [self.model.getItem(index) for index in self.indexes_to_insert]
