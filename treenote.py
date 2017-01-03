@@ -73,10 +73,6 @@ def exception_handler(type_, text, traceback):
 sys.excepthook = exception_handler
 
 
-def git_tag_to_versionnr(git_tag):
-    return int(re.sub(r'\.|v', '', git_tag))
-
-
 def time_stamp():
     return QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
 
@@ -2134,7 +2130,7 @@ class AboutBox(FocusTreeAfterCloseDialog):
         headline.setFont(QFont(model.FONT, 25))
         label = QLabel(
             self.tr(
-                'Version ' + version.version_nr.replace('v', '') +
+                'Version ' + version.version_nr +
                 '<br><br>'
                 'TreeNote is an easy outliner for personal knowledge and task management. '
                 'More info at <a href="http://treenote.github.io">treenote.github.io</a>.<br>'
