@@ -20,7 +20,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import planned_model
+import TreeNote.planned_model as planned_model
 
 
 def QDateFromString(string):

@@ -29,12 +29,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtPrintSupport import *
 #
-import model
-import tag_model
-import planned_model
-import util
-import version
-from resources import qrc_resources  # get's removed with 'optimize imports'!
+import TreeNote.model as model
+import TreeNote.tag_model as tag_model
+import TreeNote.planned_model as planned_model
+import TreeNote.util as util
+from TreeNote import version_nr
+from TreeNote.resources import qrc_resources  # get's removed with 'optimize imports'!
 
 
 def resource_path(relative_path):
@@ -43,7 +43,7 @@ def resource_path(relative_path):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.abspath(".")
+        base_path = os.path.dirname(__file__)
 
     return os.path.join(base_path, relative_path)
 
@@ -60,7 +60,7 @@ TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = resource_path('resources')
 PLAN_TAB = 'Plan'
 
-logging.basicConfig(filename=os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote.log',
+logging.basicConfig(filename='treenote.log',
                     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -88,8 +88,9 @@ class ExportThread(QThread):
 class MainWindow(QMainWindow):
     popup_json_save_failed = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, app):
         super(MainWindow, self).__init__()
+        self.app = app
         app.setStyle("Fusion")
         self.light_palette = app.palette()
         self.light_palette.setColor(QPalette.Highlight, model.SELECTION_LIGHT_BLUE)
@@ -782,7 +783,7 @@ class MainWindow(QMainWindow):
         settings.setValue('backup_folder', self.backup_folder)
 
         # save theme
-        theme = 'light' if app.palette() == self.light_palette else 'dark'
+        theme = 'light' if self.app.palette() == self.light_palette else 'dark'
         settings.setValue('theme', theme)
         self.save_file()
 
@@ -1577,7 +1578,7 @@ class MainWindow(QMainWindow):
             self.path_bar.layout().addWidget(widget)
 
     def set_path_bar_width(self):
-        if app.activeWindow():  # prevents qt warning on startup
+        if self.app.activeWindow():  # prevents qt warning on startup
             margin_count_between_toolbar_widgets = 4 if self.is_sidebar_shown() else 6
             self.path_bar.setMaximumWidth(self.item_views_splitter.width() - self.tab_bar.sizeHint().width()
                                           - self.focused_column().search_bar.width()
@@ -2130,7 +2131,7 @@ class AboutBox(FocusTreeAfterCloseDialog):
         headline.setFont(QFont(model.FONT, 25))
         label = QLabel(
             self.tr(
-                'Version ' + version.version_nr +
+                'Version ' + version_nr +
                 '<br><br>'
                 'TreeNote is an easy outliner for personal knowledge and task management. '
                 'More info at <a href="http://treenote.github.io">treenote.github.io</a>.<br>'
@@ -2519,7 +2520,7 @@ class Spoiler(QWidget):
         contentAnimation.setEndValue(contentHeight)
 
 
-if __name__ == '__main__':
+def treenote_main():
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
@@ -2534,6 +2535,10 @@ if __name__ == '__main__':
     if app_translator.load('treenote_' + locale, os.path.join(RESOURCE_FOLDER, 'locales')):
         app.installTranslator(app_translator)
 
-    form = MainWindow()
+    form = MainWindow(app)
     form.show()
     app.exec_()
+
+
+if __name__ == '__main__':
+    treenote_main()

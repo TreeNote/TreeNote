@@ -1,6 +1,6 @@
 from PyQt5.QtCore import *
 
-import model
+import TreeNote.model as model
 
 FULL_PATH = 'FULL_PATH'
 
