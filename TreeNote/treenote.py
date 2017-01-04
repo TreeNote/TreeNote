@@ -59,8 +59,11 @@ ESTIMATE_COLUMN_WIDTH = 85
 TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = resource_path('resources')
 PLAN_TAB = 'Plan'
+HOME_TREENOTE_FOLDER = os.path.join(os.path.expanduser("~"), 'TreeNote')
+if not os.path.exists(HOME_TREENOTE_FOLDER):
+    os.makedirs(HOME_TREENOTE_FOLDER)
 
-logging.basicConfig(filename='treenote.log',
+logging.basicConfig(filename=os.path.join(HOME_TREENOTE_FOLDER, 'treenote.log'),
                     format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -140,7 +143,8 @@ class MainWindow(QMainWindow):
                                                  'example_tree_{}.json'.format(QLocale.system().name()))
                 if not os.path.exists(example_tree_path):
                     example_tree_path = os.path.join(RESOURCE_FOLDER, 'example_tree.json')
-                self.import_backup(example_tree_path, 'example_tree_{}.treenote'.format(time_stamp()))
+                self.import_backup(example_tree_path,
+                                   os.path.join(HOME_TREENOTE_FOLDER, 'example_tree_{}.treenote'.format(time_stamp())))
 
         app.focusChanged.connect(self.update_actions)
 
@@ -788,8 +792,7 @@ class MainWindow(QMainWindow):
         self.save_file()
 
     def getQSettings(self):
-        return QSettings(os.path.dirname(os.path.realpath(__file__)) + os.sep + 'treenote_settings.ini',
-                         QSettings.IniFormat)
+        return QSettings(os.path.join(HOME_TREENOTE_FOLDER, 'treenote_settings.ini'), QSettings.IniFormat)
 
     def update_actions(self):  # enable / disable menu items whether they are doable right now
         def toggle_actions(bool_focused, actions_list):
