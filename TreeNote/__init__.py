@@ -1,4 +1,4 @@
-version_nr = '1.7.0'
+version_nr = '1.7.1'
 
 from TreeNote.treenote import treenote_main
 
