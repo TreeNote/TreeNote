@@ -371,14 +371,11 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
         add_action('openLinkAction',
-                   QAction(self.tr('Open URLs of selected rows in the web browser, or open file'), self, shortcut='L',
+                   QAction(self.tr('Open URLs of selected rows in the web browser, or open file or open internal link'), self, shortcut='L',
                            triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('showInFolderAction',
                    QAction(self.tr('Show in folder'), self, shortcut='E',
                            triggered=self.show_in_folder), list=self.item_view_actions)
-        add_action('openInternalLinkAction',
-                   QAction(self.tr('Set internal link of selected row as root'), self, shortcut='I',
-                           triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('renameTagAction',
                    QAction(self.tr('Rename selected &tag'), self, triggered=lambda: RenameTagDialog(
                        self, self.tag_view.currentIndex().data()).exec_()), list=self.tag_view_actions)
@@ -580,7 +577,6 @@ class MainWindow(QMainWindow):
         # self.viewMenu.addAction(self.unsplitWindowAct)
         self.viewMenu.addAction(self.openLinkAction)
         self.viewMenu.addAction(self.showInFolderAction)
-        self.viewMenu.addAction(self.openInternalLinkAction)
         self.viewMenu.addAction(self.focusSearchBarAction)
         self.viewMenu.addAction(self.toggleSideBarsAction)
         self.viewMenu.addAction(self.toggleColumnsAction)
