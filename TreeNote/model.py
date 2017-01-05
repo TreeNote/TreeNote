@@ -492,8 +492,6 @@ class TreeModel(QAbstractItemModel):
                     count = len(indexes)
                     old_child_number = item.child_number()
 
-                    self.model.layoutAboutToBeChanged.emit([QPersistentModelIndex(parent_index)])
-
                     index_first_moved_item = self.model.index(old_child_number, 0, parent_index)
                     index_last_moved_item = self.model.index(old_child_number + count - 1, 0, parent_index)
 
@@ -519,8 +517,6 @@ class TreeModel(QAbstractItemModel):
                     self.model.changePersistentIndex(index_first_moved_item, index_first_moved_item_new)
                     self.model.changePersistentIndex(index_last_moved_item, index_last_moved_item_new)
                     self.model.changePersistentIndex(index_moving_item, index_moving_item_new)
-
-                    self.model.layoutChanged.emit([QPersistentModelIndex(parent_index)])
 
                     self.model.main_window.select_from_to(index_first_moved_item_new, index_last_moved_item_new)
                     for row_index in self.model.main_window.focused_column().view.selectionModel().selectedRows():
