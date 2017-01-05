@@ -7,7 +7,6 @@ Therefore the development of TreeNote was influenced by powerful tools like Omni
 However, TreeNote is as intuitive to use as the light tools Wunderlist and Evernote.
 
 To run TreeNote simply type `treenote` in a Terminal.
-Python 3.5 is required.
 
 For more details, please go to the `home page`_.
 
@@ -37,7 +36,7 @@ setup(name='TreeNote',
       author='Jan Korte',
       author_email='j.korte@me.com',
       url='http://treenote.org',
-      install_requires=['SIP', 'PyQt5'],
+      install_requires=['PyQt5'],
       packages=['TreeNote', 'TreeNote.resources'],
       include_package_data=True,
       entry_points={
