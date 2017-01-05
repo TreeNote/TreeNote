@@ -1398,13 +1398,16 @@ class MainWindow(QMainWindow):
                     planned_indexes_to_select.append(self.planned_view.model().map_to_planned_index(new_item_index))
                 self.select(planned_indexes_to_select)
         else:
-            # paste from plain text
-            # builds a tree structure out of indented rows
-            # idea: insert new rows from top to bottom.
-            # depending on the indention, the parent will be the last inserted row with one lower indention
-            # we count the row position to know where to insert the next row
-            # \r ist for windows compatibility. strip is to remove the last linebreak
-            text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
+            if QApplication.clipboard().mimeData().hasUrls():
+                text = '\n'.join(url.url() for url in QApplication.clipboard().mimeData().urls())
+            else:
+                # paste from plain text
+                # builds a tree structure out of indented rows
+                # idea: insert new rows from top to bottom.
+                # depending on the indention, the parent will be the last inserted row with one lower indention
+                # we count the row position to know where to insert the next row
+                # \r ist for windows compatibility. strip is to remove the last linebreak
+                text = QApplication.clipboard().text().replace('\r\n', '\n').strip('\n')
             # which format style has the text?
             if re.search(r'(\n|^)([\t| ]*-)', text):  # each item starts with a dash
                 text = re.sub(r'\n([\t| ]*-)', r'\r\1', text)  # replaces \n which produce a new item with \r
