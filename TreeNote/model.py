@@ -1255,14 +1255,14 @@ CHAR_QCOLOR_DICT = {
 }
 PLANNED_COLOR = QColor('#44A6C7')
 NUMBER_PLAN_DICT = {
-    0: '0 Not planned',
-    1: '1 Now',
-    2: '2 Later today',
-    3: '3 Tomorrow',
-    4: '4 In two days',
-    5: '5 Urgent and important',
-    6: '6 Urgent and unimportant',
-    7: '7 Not Urgent and important',
+    0: '0 nichts',
+    1: '1 sofort',
+    2: '2 später',
+    3: '3 morgen',
+    4: '4 dringend und wichtig',
+    5: '5 dringend und egal',
+    6: '6 hat_Zeit und wichtig',
+    7: '7 hat_Zeit und egal',
 }
 TAG_DELIMITER = r':'
 INTERNAL_LINK_DELIMITER = r'#'
