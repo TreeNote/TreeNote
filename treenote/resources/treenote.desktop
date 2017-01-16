@@ -9,3 +9,4 @@ Exec=treenote %f
 Terminal=false
 StartupNotify=false
 Keywords=Outliner
+MimeType=application/x-treenote; 
