@@ -1792,7 +1792,7 @@ class MainWindow(QMainWindow):
 
     def save_json(self, path):
         def json_encoder(obj):
-            app.processEvents()
+            self.app.processEvents()
             dic = obj.__dict__.copy()
             del dic['parentItem']
             return dic
