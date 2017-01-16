@@ -27,6 +27,7 @@ For more details, please go to the `home page`_.
       url='http://treenote.org',
       license='GPL3',
       packages=['treenote', 'treenote.resources'],
+      include_package_data=True,
       data_files=[
           ("share/applications", ["treenote.desktop"]),
           ("share/pixmaps", ["treenote/resources/images/treenote.png"])
