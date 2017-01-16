@@ -31,7 +31,7 @@ For more details, please go to the `home page`_.
       data_files=[
           ("share/applications", ["treenote/resources/treenote_entry.desktop"]),
           ("share/pixmaps", ["treenote/resources/images/treenote.png"]),
-          ("share/mime/application", ["treenote/resources/x-treenote.xml"])
+          ("share/mime/packages", ["treenote/resources/x-treenote.xml"])
       ],
       entry_points={
           "gui_scripts": [
