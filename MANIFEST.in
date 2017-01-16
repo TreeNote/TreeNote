@@ -1,5 +1,6 @@
-# Include the license file
 include LICENSE
-
-# Include the data files
+include README.md
+include treenote.desktop
 recursive-include TreeNote/resources *
+
+
