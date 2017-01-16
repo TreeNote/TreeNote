@@ -29,12 +29,12 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtPrintSupport import *
 #
-import TreeNote.model as model
-import TreeNote.tag_model as tag_model
-import TreeNote.planned_model as planned_model
-import TreeNote.util as util
-from TreeNote import version_nr
-from TreeNote.resources import qrc_resources  # get's removed with 'optimize imports'!
+import treenote.model as model
+import treenote.tag_model as tag_model
+import treenote.planned_model as planned_model
+import treenote.util as util
+from treenote.version import __version__
+from treenote.resources import qrc_resources  # get's removed with 'optimize imports'!
 
 
 def resource_path(relative_path):
@@ -2133,7 +2133,7 @@ class AboutBox(FocusTreeAfterCloseDialog):
         headline.setFont(QFont(model.FONT, 25))
         label = QLabel(
             self.tr(
-                'Version ' + version_nr +
+                'Version ' + __version__ +
                 '<br><br>'
                 'TreeNote is an easy outliner for personal knowledge and task management. '
                 'More info at <a href="http://treenote.github.io">treenote.github.io</a>.<br>'
@@ -2522,7 +2522,7 @@ class Spoiler(QWidget):
         contentAnimation.setEndValue(contentHeight)
 
 
-def treenote_main():
+def main():
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
@@ -2543,4 +2543,4 @@ def treenote_main():
 
 
 if __name__ == '__main__':
-    treenote_main()
+    main()

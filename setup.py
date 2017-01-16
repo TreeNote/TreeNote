@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 
-long_description = '''\
+import sys
+from setuptools import setup
+
+from treenote.version import __version__
+
+if sys.version_info[0] < 3 or sys.version_info[1] < 5:
+    sys.exit('Error: Python 3.5 is required.')
+
+setup(name='TreeNote',
+      version=__version__,
+      description='An intuitive outliner for personal knowledge and task management',
+      long_description='''\
 The author has used many time management programs over the last four years.
 When the number of tasks grew, a neat system like Getting Things Done became essential.
 Therefore the development of TreeNote was influenced by powerful tools like Omnifocus (Mac only) and Org mode (too complex).
@@ -10,38 +21,27 @@ To run TreeNote simply type `treenote` in a Terminal.
 
 For more details, please go to the `home page`_.
 
-.. _`home page`: http://treenote.org'''
-
-import sys
-from distutils.core import setup
-from setuptools import setup
-
-from TreeNote import version_nr
-
-if sys.version_info[0] < 3 or sys.version_info[1] < 5:
-    sys.exit('Error: Python 3.5 is required.')
-
-classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Environment :: X11 Applications :: Qt',
-    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-    'Programming Language :: Python :: 3 :: Only',
-    'Topic :: Text Editors',
-]
-
-setup(name='TreeNote',
-      version=version_nr,
-      description='An intuitive outliner for personal knowledge and task management',
-      long_description=long_description,
+.. _`home page`: http://treenote.org''',
       author='Jan Korte',
       author_email='j.korte@me.com',
       url='http://treenote.org',
+      license='GPL3',
       install_requires=['PyQt5'],
-      packages=['TreeNote', 'TreeNote.resources'],
-      include_package_data=True,
+      packages=['treenote', 'treenote.resources'],
+      data_files=[
+          ("share/applications", ["treenote.desktop"]),
+          ("share/pixmaps", ["treenote/resources/images/treenote.png"])
+      ],
       entry_points={
-          'console_scripts': ['treenote=TreeNote:main'],
+          "gui_scripts": [
+              "treenote=treenote.treenote_main:main"
+          ],
       },
-      classifiers=classifiers,
-      license='GPL3'
+      classifiers=[
+          'Development Status :: 5 - Production/Stable',
+          'Environment :: X11 Applications :: Qt',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+          'Programming Language :: Python :: 3 :: Only',
+          'Topic :: Text Editors',
+      ]
       )
