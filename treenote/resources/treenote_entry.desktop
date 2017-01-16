@@ -2,11 +2,10 @@
 Name=TreeNote
 GenericName=Outliner
 Comment=Outliner for personal knowledge and task management
+Exec=treenote %f
 Icon=treenote
+StartupNotify=true
+Terminal=false
 Type=Application
 Categories=Office;
-Exec=treenote %f
-Terminal=false
-StartupNotify=false
-Keywords=Outliner
 MimeType=application/x-treenote; 
