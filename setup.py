@@ -26,7 +26,6 @@ For more details, please go to the `home page`_.
       author_email='j.korte@me.com',
       url='http://treenote.org',
       license='GPL3',
-      install_requires=['PyQt5'],
       packages=['treenote', 'treenote.resources'],
       data_files=[
           ("share/applications", ["treenote.desktop"]),
