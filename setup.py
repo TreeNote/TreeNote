@@ -30,8 +30,8 @@ For more details, please go to the `home page`_.
       include_package_data=True, # This tells setuptools to install any data files it finds in your packages. The data files must be specified via the distutils’ MANIFEST.in file.
       data_files=[
           ("share/applications", ["treenote/resources/treenote.desktop"]),
-          ("share/pixmaps", ["treenote/resources/images/treenote.png"])
-          ("share/mime", ["treenote/resources/x-treenote.xml"]),
+          ("share/pixmaps", ["treenote/resources/images/treenote.png"]),
+          ("share/mime", ["treenote/resources/x-treenote.xml"])
       ],
       entry_points={
           "gui_scripts": [
