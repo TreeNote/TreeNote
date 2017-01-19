@@ -4,7 +4,7 @@
 
 An intuitive outliner for personal knowledge and task management.
 
-![Screenshot](/resources/images/screenshot.png)
+![Screenshot](/treenote/resources/images/screenshot.png)
 
 A showcase of features, cross-platform downloads and developer documentation are available at [treenote.org](http://treenote.org)
 
