@@ -353,6 +353,9 @@ class MainWindow(QMainWindow):
         add_action('colorVioletAction',
                    QAction(self.tr('Violet'), self, shortcut='V', triggered=lambda: self.color_row('v')),
                    list=self.item_view_actions)
+        add_action('colorGreyAction',
+                   QAction(self.tr('Grey'), self, shortcut='E', triggered=lambda: self.color_row('e')),
+                   list=self.item_view_actions)
         add_action('colorNoColorAction',
                    QAction(self.tr('No color'), self, shortcut='N', triggered=lambda: self.color_row('n')),
                    list=self.item_view_actions)
@@ -374,7 +377,7 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Open URLs of selected rows in the web browser, or open file or open internal link'), self, shortcut='L',
                            triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('showInFolderAction',
-                   QAction(self.tr('Show in folder'), self, shortcut='E',
+                   QAction(self.tr('Show in folder'), self,
                            triggered=self.show_in_folder), list=self.item_view_actions)
         add_action('renameTagAction',
                    QAction(self.tr('Rename selected &tag'), self, triggered=lambda: RenameTagDialog(
@@ -510,6 +513,7 @@ class MainWindow(QMainWindow):
         self.colorMenu.addAction(self.colorRedAction)
         self.colorMenu.addAction(self.colorOrangeAction)
         self.colorMenu.addAction(self.colorVioletAction)
+        self.colorMenu.addAction(self.colorGreyAction)
         self.colorMenu.addAction(self.colorNoColorAction)
         self.estimateMenu = self.editRowMenu.addMenu(self.tr('Set &estimate of selected rows'))
         self.estimateMenu.addAction(self.noEstimateAction)
