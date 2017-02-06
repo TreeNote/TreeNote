@@ -374,7 +374,8 @@ class MainWindow(QMainWindow):
                    QAction(self.tr('Toggle: note, todo, done'), self, shortcut='Space', triggered=self.toggle_task),
                    list=self.item_view_actions)
         add_action('openLinkAction',
-                   QAction(self.tr('Open URLs of selected rows in the web browser, or open file or open internal link'), self, shortcut='L',
+                   QAction(self.tr('Open URLs of selected rows in the web browser, or open file or open internal link'),
+                           self, shortcut='L',
                            triggered=self.open_links_or_files), list=self.item_view_actions)
         add_action('showInFolderAction',
                    QAction(self.tr('Show in folder'), self,
@@ -2526,7 +2527,7 @@ class Spoiler(QWidget):
         contentAnimation.setEndValue(contentHeight)
 
 
-def main():
+def start():
     app = QApplication(sys.argv)
     app.setApplicationName('TreeNote')
     app.setOrganizationName('Jan Korte')
@@ -2547,4 +2548,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    start()
