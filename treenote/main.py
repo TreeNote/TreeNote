@@ -59,6 +59,7 @@ ESTIMATE_COLUMN_WIDTH = 85
 TOOLBAR_MARGIN = 6
 RESOURCE_FOLDER = resource_path('resources')
 PLAN_TAB = 'Plan'
+TREENOTE_FILE_NAME_FILTER = ".treenote (*.treenote)"
 HOME_TREENOTE_FOLDER = os.path.join(os.path.expanduser("~"), 'TreeNote')
 if not os.path.exists(HOME_TREENOTE_FOLDER):
     os.makedirs(HOME_TREENOTE_FOLDER)
@@ -457,7 +458,7 @@ class MainWindow(QMainWindow):
         add_action('newFileAction', act(self.tr('&New file...'), 'document-new', self.new_file, shct=QKeySequence.New))
         add_action('importHitListAction',
                    QAction(self.tr('from The Hit List (Mac)...'), self, triggered=lambda: ImportDialog(
-                       self, "*.thlbackup", "Import from The Hit List",
+                       self, "*.thlbackup (*.thlbackup)", "Import from The Hit List",
                        "Preparation in The Hit List: Move all tasks in a single list and there below a single"
                        "item called 'ROOT'.\n"
                        "Backup the database (this creates a .thlbackup file).\n"
@@ -465,7 +466,7 @@ class MainWindow(QMainWindow):
                        "Tags won't be converted. You may replace their '@' with ':' manually before exporting.").exec()))
         add_action('importJSONAction',
                    QAction(self.tr('from TreeNote JSON export...'), self, triggered=lambda: ImportDialog(
-                       self, "*.json", "Import from TreeNote Backup", None).exec()))
+                       self, "*.json (*.json)", "Import from TreeNote Backup", None).exec()))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.fileMenu.addAction(self.newFileAction)
@@ -1763,6 +1764,7 @@ class MainWindow(QMainWindow):
             padding-left: ' + space_left_of_arrow + 'px;}')
 
     def select_save_path(self, title, filename, filter: str) -> str:
+        """Creates a popup / file dialog which asks the user to select folder and enter a file name."""
         path = QFileDialog.getSaveFileName(self, title, os.path.join(self.save_folder(), filename), filter)[0]
         folder = QFileInfo(path).absolutePath()
         if len(folder) > 0 and not QFileInfo(folder).isWritable():
@@ -1771,7 +1773,7 @@ class MainWindow(QMainWindow):
         return path
 
     def new_file(self):
-        path = self.select_save_path("Save", 'new_tree.treenote', "*.treenote")
+        path = self.select_save_path("Save", 'new_tree.treenote', TREENOTE_FILE_NAME_FILTER)
         if len(path) > 0:
             self.save_path = path
             self.item_model = model.TreeModel(self, header_list=self.tree_header)
@@ -1791,14 +1793,14 @@ class MainWindow(QMainWindow):
         self.planned_view.model().refresh_model()
 
     def export_plain_text(self):
-        path = self.select_save_path("Export", 'treenote_export.txt', "*.txt")
+        path = self.select_save_path("Export", 'treenote_export.txt', "*.txt (*.txt)")
         if len(path) > 0:
             with open(path, 'w', encoding='utf-8') as file:
                 file.write(self.tree_as_string(self.item_model))
                 QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
 
     def export_json(self):
-        path = self.select_save_path("Export", 'treenote_export.json', "*.json")
+        path = self.select_save_path("Export", 'treenote_export.json', "*.json (*.json)")
         if len(path) > 0:
             self.save_json(path)
             QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
@@ -1819,7 +1821,7 @@ class MainWindow(QMainWindow):
         return QFileInfo(self.save_path).absolutePath()
 
     def start_open_file(self):
-        path = QFileDialog.getOpenFileName(self, "Open", self.save_folder(), filter="*.treenote")[0]
+        path = QFileDialog.getOpenFileName(self, "Open", self.save_folder(), filter=TREENOTE_FILE_NAME_FILTER)[0]
         if path and len(path) > 0:
             self.open_file(path)
 
@@ -2116,7 +2118,7 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         self.select_treenote_file_button = QPushButton(self.tr('Select folder...'))
         self.select_treenote_file_button.clicked.connect(
             lambda: self.treenote_file_edit.setText(
-                main_window.select_save_path('Save', 'imported_tree.treenote', '*.treenote')))
+                main_window.select_save_path('Save', 'imported_tree.treenote', TREENOTE_FILE_NAME_FILTER)))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
