@@ -1763,7 +1763,8 @@ class MainWindow(QMainWindow):
             padding-left: ' + space_left_of_arrow + 'px;}')
 
     def new_file(self):
-        path = QFileDialog.getSaveFileName(self, "Save", 'my_tree.treenote', "*.treenote")[0]
+        path = QFileDialog.getSaveFileName(self, "Save", os.path.join(self.save_folder(), 'new_tree.treenote'),
+                                           "*.treenote")[0]
         if len(path) > 0:
             self.save_path = path
             self.item_model = model.TreeModel(self, header_list=self.tree_header)
@@ -1783,14 +1784,16 @@ class MainWindow(QMainWindow):
         self.planned_view.model().refresh_model()
 
     def export_plain_text(self):
-        path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.txt', "*.txt")[0]
+        path = QFileDialog.getSaveFileName(self, "Export", os.path.join(self.save_folder(), 'treenote_export.txt'),
+                                           "*.txt")[0]
         if len(path) > 0:
             with open(path, 'w', encoding='utf-8') as file:
                 file.write(self.tree_as_string(self.item_model))
                 QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
 
     def export_json(self):
-        path = QFileDialog.getSaveFileName(self, "Export", 'treenote_export.json', "*.json")[0]
+        path = QFileDialog.getSaveFileName(self, "Export", os.path.join(self.save_folder(), 'treenote_export.json'),
+                                           "*.json")[0]
         if len(path) > 0:
             self.save_json(path)
             QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
@@ -1807,8 +1810,11 @@ class MainWindow(QMainWindow):
         except FileNotFoundError:
             self.popup_json_save_failed.emit()
 
+    def save_folder(self):
+        return QFileInfo(self.save_path).absolutePath()
+
     def start_open_file(self):
-        path = QFileDialog.getOpenFileName(self, "Open", filter="*.treenote")[0]
+        path = QFileDialog.getOpenFileName(self, "Open", self.save_folder(), filter="*.treenote")[0]
         if path and len(path) > 0:
             self.open_file(path)
 
@@ -2099,12 +2105,15 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         self.import_file_edit = QLineEdit()
         self.select_import_file_button = QPushButton(self.tr('Select file...'))
         self.select_import_file_button.clicked.connect(
-            lambda: self.import_file_edit.setText(QFileDialog.getOpenFileName(self, "Open", filter=open_filter)[0]))
+            lambda: self.import_file_edit.setText(
+                QFileDialog.getOpenFileName(self, "Open", main_window.save_folder(), filter=open_filter)[0]))
         self.treenote_file_edit = QLineEdit()
         self.select_treenote_file_button = QPushButton(self.tr('Select folder...'))
         self.select_treenote_file_button.clicked.connect(
             lambda: self.treenote_file_edit.setText(
-                QFileDialog.getSaveFileName(self, 'Save', 'imported_tree.treenote', '*.treenote')[0]))
+                QFileDialog.getSaveFileName(self, 'Save',
+                                            os.path.join(main_window.save_folder(), 'imported_tree.treenote'),
+                                            '*.treenote')[0]))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
@@ -2115,7 +2124,7 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         grid.addWidget(self.select_import_file_button, 1, 2)
         grid.addWidget(QLabel(self.tr(
             'A new, empty tree will be created in which the backup\nwill be imported. Path of the new .treenote file:')),
-                       2, 0)
+            2, 0)
         grid.addWidget(self.treenote_file_edit, 2, 1)
         grid.addWidget(self.select_treenote_file_button, 2, 2)
         grid.addWidget(buttonBox, 3, 0, 1, 3, Qt.AlignRight)
