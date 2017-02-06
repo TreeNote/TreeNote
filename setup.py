@@ -35,7 +35,7 @@ For more details, please go to the `home page`_.
       ],
       entry_points={
           "gui_scripts": [
-              "treenote=treenote.treenote_main:main"
+              "treenote=treenote.treenote:main"
           ],
       },
       classifiers=[
