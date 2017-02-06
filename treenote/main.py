@@ -1762,9 +1762,16 @@ class MainWindow(QMainWindow):
             padding-bottom: ' + padding_vertical + 'px;\
             padding-left: ' + space_left_of_arrow + 'px;}')
 
+    def select_save_path(self, title, filename, filter: str) -> str:
+        path = QFileDialog.getSaveFileName(self, title, os.path.join(self.save_folder(), filename), filter)[0]
+        folder = QFileInfo(path).absolutePath()
+        if len(folder) > 0 and not QFileInfo(folder).isWritable():
+            QMessageBox.warning(self, '', self.tr(
+                'TreeNote has no permission to write to that folder, select a different one!'), QMessageBox.Ok)
+        return path
+
     def new_file(self):
-        path = QFileDialog.getSaveFileName(self, "Save", os.path.join(self.save_folder(), 'new_tree.treenote'),
-                                           "*.treenote")[0]
+        path = self.select_save_path("Save", 'new_tree.treenote', "*.treenote")
         if len(path) > 0:
             self.save_path = path
             self.item_model = model.TreeModel(self, header_list=self.tree_header)
@@ -1784,16 +1791,14 @@ class MainWindow(QMainWindow):
         self.planned_view.model().refresh_model()
 
     def export_plain_text(self):
-        path = QFileDialog.getSaveFileName(self, "Export", os.path.join(self.save_folder(), 'treenote_export.txt'),
-                                           "*.txt")[0]
+        path = self.select_save_path("Export", 'treenote_export.txt', "*.txt")
         if len(path) > 0:
             with open(path, 'w', encoding='utf-8') as file:
                 file.write(self.tree_as_string(self.item_model))
                 QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
 
     def export_json(self):
-        path = QFileDialog.getSaveFileName(self, "Export", os.path.join(self.save_folder(), 'treenote_export.json'),
-                                           "*.json")[0]
+        path = self.select_save_path("Export", 'treenote_export.json', "*.json")
         if len(path) > 0:
             self.save_json(path)
             QMessageBox(QMessageBox.NoIcon, ' ', 'Export successful!').exec()
@@ -2111,9 +2116,7 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         self.select_treenote_file_button = QPushButton(self.tr('Select folder...'))
         self.select_treenote_file_button.clicked.connect(
             lambda: self.treenote_file_edit.setText(
-                QFileDialog.getSaveFileName(self, 'Save',
-                                            os.path.join(main_window.save_folder(), 'imported_tree.treenote'),
-                                            '*.treenote')[0]))
+                main_window.select_save_path('Save', 'imported_tree.treenote', '*.treenote')))
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
 
         grid = QGridLayout()
