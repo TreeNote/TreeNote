@@ -2095,13 +2095,13 @@ class ImportDialog(FocusTreeAfterCloseDialog):
     def __init__(self, main_window, open_filter, title, hint):
         super(ImportDialog, self).__init__(main_window)
         self.setWindowTitle(title)
-        self.setMinimumWidth(900)
+        self.setMinimumWidth(1200)
         self.import_file_edit = QLineEdit()
-        self.select_import_file_button = QPushButton('Select file...')
+        self.select_import_file_button = QPushButton(self.tr('Select file...'))
         self.select_import_file_button.clicked.connect(
             lambda: self.import_file_edit.setText(QFileDialog.getOpenFileName(self, "Open", filter=open_filter)[0]))
         self.treenote_file_edit = QLineEdit()
-        self.select_treenote_file_button = QPushButton('Select file...')
+        self.select_treenote_file_button = QPushButton(self.tr('Select folder...'))
         self.select_treenote_file_button.clicked.connect(
             lambda: self.treenote_file_edit.setText(
                 QFileDialog.getSaveFileName(self, 'Save', 'imported_tree.treenote', '*.treenote')[0]))
@@ -2110,10 +2110,12 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         grid = QGridLayout()
         if hint:
             grid.addWidget(QLabel(hint), 0, 0, 1, 3)  # fromRow, fromColumn, rowSpan, columnSpan
-        grid.addWidget(QLabel('The backup file to import:'), 1, 0)  # row, column
+        grid.addWidget(QLabel(self.tr('Path of a .json backup file:')), 1, 0)  # row, column
         grid.addWidget(self.import_file_edit, 1, 1)
         grid.addWidget(self.select_import_file_button, 1, 2)
-        grid.addWidget(QLabel('Destination for the new TreeNote file:'), 2, 0)
+        grid.addWidget(QLabel(self.tr(
+            'A new, empty tree will be created in which the backup\nwill be imported. Path of the new .treenote file:')),
+                       2, 0)
         grid.addWidget(self.treenote_file_edit, 2, 1)
         grid.addWidget(self.select_treenote_file_button, 2, 2)
         grid.addWidget(buttonBox, 3, 0, 1, 3, Qt.AlignRight)
@@ -2122,12 +2124,15 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
 
     def accept(self):
+        if self.treenote_file_edit.text() == '':
+            QMessageBox.information(self, '', self.tr('You need to fill both text fields.'), QMessageBox.Ok)
+            return
         try:
             self.main_window.import_backup(self.import_file_edit.text(), self.treenote_file_edit.text())
         except Exception as e:
-            QMessageBox.information(self, '', 'Import went wrong:\n{}'.format(e), QMessageBox.Ok)
+            QMessageBox.information(self, '', self.tr('Import went wrong:\n{}').format(e), QMessageBox.Ok)
         else:
-            QMessageBox.information(self, '', 'Import successful!', QMessageBox.Ok)
+            QMessageBox.information(self, '', self.tr('Import successful!'), QMessageBox.Ok)
             super(ImportDialog, self).accept()
 
 
