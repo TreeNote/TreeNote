@@ -280,9 +280,9 @@ class MainWindow(QMainWindow):
             if not isinstance(shct, QKeySequence):
                 shct = QKeySequence(shct)
             if icon_name:
-                action = QAction(QIcon.fromTheme(icon_name), name)
+                action = QAction(QIcon.fromTheme(icon_name), name, self)
             else:
-                action = QAction(name)
+                action = QAction(name, self)
             if trig:
                 action.triggered.connect(trig)
             elif trigbool:
