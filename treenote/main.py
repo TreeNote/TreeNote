@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#################################################################################
-# TreeNote
-# A collaboratively usable outliner for personal knowledge and task management.
-#
-# Copyright (C) 2015 Jan Korte (j.korte@me.com)
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3 of the License.
-#################################################################################
 
 import copy
 import json
@@ -24,7 +14,8 @@ from functools import partial
 from traceback import format_exception
 #
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
-from PyQt5.QtCore import *
+from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QPoint, QModelIndex, QMimeData, QObject, QLocale, QTranslator, \
+    QLibraryInfo, Qt, QSettings, QParallelAnimationGroup, QPropertyAnimation, QTimer, QItemSelectionModel, QItemSelection
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtPrintSupport import *
