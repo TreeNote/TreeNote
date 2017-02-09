@@ -9,3 +9,9 @@ An intuitive outliner for personal knowledge and task management.
 A showcase of features, cross-platform downloads and developer documentation are available at [treenote.org](http://treenote.org)
 
 This program is free software licensed under GPL v3.0
+
+## Contributors and participation
+
+* [Jan Korte](https://github.com/Tamriel)
+* [Florian Bruhin](https://github.com/The-Compiler)
+* [Markus Hackspacher](https://github.com/MarkusHackspacher)
