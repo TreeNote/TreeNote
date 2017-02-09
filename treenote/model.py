@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#################################################################################
-# TreeNote
-# A collaboratively usable outliner for personal knowledge and task management.
-##
-# Copyright (C) 2015-2017 Jan Korte (jan.korte@uni-oldenburg.de)
-##
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3 of the License.
-#################################################################################
 
 import time
 import re
 import sys
 from xml.sax.saxutils import escape
 
-from PyQt5.QtCore import (QAbstractItemModel, QModelIndex,
-                          QSortFilterProxyModel, QSize, Qt)
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSortFilterProxyModel, QSize, Qt, QEvent
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
