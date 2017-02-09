@@ -10,7 +10,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 3 of the License.
 
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QtQt
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
 
 import treenote.model as model
 
