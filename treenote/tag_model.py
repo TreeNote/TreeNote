@@ -1,4 +1,16 @@
-from PyQt5.QtCore import *
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# TreeNote
+# A collaboratively usable outliner for personal knowledge and task management.
+#
+# Copyright (C) 2015-2017 Jan Korte (j.korte@me.com)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QtQt
 
 import treenote.model as model
 
