@@ -70,6 +70,7 @@ sys.excepthook = exception_handler
 
 
 def time_stamp():
+    """save current data and time"""
     return QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
 
 
