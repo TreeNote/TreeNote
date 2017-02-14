@@ -69,8 +69,8 @@ def exception_handler(type_, text, traceback):
 sys.excepthook = exception_handler
 
 
-def time_stamp():
-    """save current data and time"""
+def get_current_date_time_string() -> str:
+    """Returns a timestamp like 2017-02-13-22-04-31-908. It's unique because the last number is the current milliseconds."""
     return QDate.currentDate().toString('yyyy-MM-dd') + '-' + QTime.currentTime().toString('hh-mm-ss-zzz')
 
 
@@ -78,7 +78,7 @@ class ExportThread(QThread):
     def run(self):
         splitted_path = os.path.split(self.main_window.save_path)
         path = os.path.join(self.main_window.backup_folder,
-                            splitted_path[-1].replace('.treenote', '') + '_' + time_stamp())
+                            splitted_path[-1].replace('.treenote', '') + '_' + get_current_date_time_string())
         self.main_window.save_json(path + '.json')
 
 
@@ -138,7 +138,8 @@ class MainWindow(QMainWindow):
                 if not os.path.exists(example_tree_path):
                     example_tree_path = os.path.join(RESOURCE_FOLDER, 'example_tree.json')
                 self.import_backup(example_tree_path,
-                                   os.path.join(HOME_TREENOTE_FOLDER, 'example_tree_{}.treenote'.format(time_stamp())))
+                                   os.path.join(HOME_TREENOTE_FOLDER,
+                                                'example_tree_{}.treenote'.format(get_current_date_time_string())))
 
         app.focusChanged.connect(self.update_actions)
 
