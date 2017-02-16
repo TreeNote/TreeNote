@@ -83,6 +83,11 @@ class Tree_item():
 
 class TreeModel(QAbstractItemModel):
     def __init__(self, main_window, header_list):
+        """tree model
+
+        :param main_window:
+        :param header_list: like ['Bookmarks']
+        """
         super(TreeModel, self).__init__()
         self.main_window = main_window
         self.changed = False
