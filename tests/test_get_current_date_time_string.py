@@ -5,7 +5,7 @@ from unittest import TestCase
 import treenote.main
 
 
-class TestGet_current_date_time_string(TestCase):
+class TestGetCurrentDateTimeString(TestCase):
     """Test of the Get_current_date_time_string function"""
 
     def test_get_current_date_time_string(self):
