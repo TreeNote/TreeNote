@@ -2104,12 +2104,14 @@ class ImportDialog(FocusTreeAfterCloseDialog):
         self.setWindowTitle(title)
         self.setMinimumWidth(1200)
         self.import_file_edit = QLineEdit()
-        self.select_import_file_button = QPushButton(self.tr('Select file...'))
+        self.import_file_edit.setReadOnly(True)
+        self.select_import_file_button = QPushButton(self.tr('Select import file...'))
         self.select_import_file_button.clicked.connect(
             lambda: self.import_file_edit.setText(
                 QFileDialog.getOpenFileName(self, "Open", main_window.save_folder(), filter=open_filter)[0]))
         self.treenote_file_edit = QLineEdit()
-        self.select_treenote_file_button = QPushButton(self.tr('Select folder...'))
+        self.treenote_file_edit.setReadOnly(True)
+        self.select_treenote_file_button = QPushButton(self.tr('Select save path...'))
         self.select_treenote_file_button.clicked.connect(
             lambda: self.treenote_file_edit.setText(
                 main_window.select_save_path('Save', 'imported_tree.treenote', TREENOTE_FILE_NAME_FILTER)))
@@ -2133,7 +2135,8 @@ class ImportDialog(FocusTreeAfterCloseDialog):
 
     def accept(self):
         if self.treenote_file_edit.text() == '':
-            QMessageBox.information(self, '', self.tr('You need to fill both text fields.'), QMessageBox.Ok)
+            QMessageBox.information(self, '', self.tr('You need to select where the tree shall be created.'),
+                                    QMessageBox.Ok)
             return
         try:
             self.main_window.import_backup(self.import_file_edit.text(), self.treenote_file_edit.text())
