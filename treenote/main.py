@@ -16,7 +16,7 @@ from traceback import format_exception
 import sip  # needed for pyinstaller, get's removed with 'optimize imports'!
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot, QPoint, QModelIndex, QMimeData, QObject, QLocale, QTranslator, \
     QLibraryInfo, Qt, QSettings, QParallelAnimationGroup, QPropertyAnimation, QTimer, QItemSelectionModel, \
-    QItemSelection, QDate, QSize, QTime, QFileInfo, QUrl
+    QItemSelection, QDate, QSize, QTime, QFileInfo, QUrl, QAbstractAnimation, QRectF
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtPrintSupport import *
