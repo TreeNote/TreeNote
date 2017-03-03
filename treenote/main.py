@@ -1605,6 +1605,9 @@ class MainWindow(QMainWindow):
             # open file
             if row_index.data().startswith('file:///'):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data().replace('file://', '')))
+            # open folder
+            elif row_index.data().startswith('/'):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data()))
             # open internal link
             elif match:
                 text_to_find = match.group(1)[1:].strip(model.INTERNAL_LINK_DELIMITER)
