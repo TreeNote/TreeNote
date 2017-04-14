@@ -7,7 +7,7 @@ import sys
 from xml.sax.saxutils import escape
 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSortFilterProxyModel, QSize, Qt, QEvent, \
-    QPersistentModelIndex
+    QPersistentModelIndex, QDate
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
