@@ -13,7 +13,8 @@ class TestGetCurrentDateTimeString(TestCase):
         and check is the string unique"""
         date_time_string = treenote.main.get_current_date_time_string()
         self.assertRegex(date_time_string, "2\d\d\d")  # \d = one digit 0-9
-        self.assertRegex(date_time_string, "2\d\d\d-\d\d-\d\d-\d\d-\d\d-\d\d-\d\d\d")
+        self.assertRegex(date_time_string,
+                         "2\d\d\d-\d\d-\d\d-\d\d-\d\d-\d\d-\d\d\d")
         time.sleep(.1)
         date_time_string_new = treenote.main.get_current_date_time_string()
         self.assertNotEqual(date_time_string, date_time_string_new)

@@ -2,6 +2,7 @@ from unittest import TestCase
 from PyQt5 import QtWidgets
 from treenote.main import MainWindow
 
+
 class TestMainWindow(TestCase):
     """test of the treenote.main.MainWindow class"""
 
