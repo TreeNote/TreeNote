@@ -600,6 +600,7 @@ class MainWindow(QMainWindow):
         self.item_views_splitter.widget(1).filter_proxy.filter = 'date<1d'
         self.item_views_splitter.widget(1).filter_proxy.invalidateFilter()
         self.item_views_splitter.widget(1).view.hideColumn(1)
+        self.item_views_splitter.widget(1).view.setHeaderHidden(True)
         self.item_views_splitter.setStretchFactor(0, 11)
         self.item_views_splitter.setStretchFactor(1, 3)
 
@@ -1727,7 +1728,10 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.search_holder)
+        if self.item_views_splitter.count() < 1:
+            layout.addWidget(self.search_holder)
+        else:
+            layout.addWidget(QLabel(self.tr('Reminders:')))
         layout.addWidget(new_column.stacked_widget)
         new_column.setLayout(layout)
 
