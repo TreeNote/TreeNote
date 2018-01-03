@@ -185,8 +185,8 @@ class MainWindow(QMainWindow):
         quicklinks_splitter.addWidget(self.quicklinks_view)
         quicklinks_splitter.addWidget(self.tag_view)
         quicklinks_splitter.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
-        quicklinks_splitter.setStretchFactor(0, 1)
-        quicklinks_splitter.setStretchFactor(1, 0)
+        quicklinks_splitter.setStretchFactor(0, 10)
+        quicklinks_splitter.setStretchFactor(1, 4)
 
         # second column
 
@@ -596,6 +596,12 @@ class MainWindow(QMainWindow):
         self.helpMenu.addAction(self.aboutAct)
 
         self.split_window()
+        self.split_window()
+        self.item_views_splitter.widget(1).filter_proxy.filter = 'date<1d'
+        self.item_views_splitter.widget(1).filter_proxy.invalidateFilter()
+        self.item_views_splitter.widget(1).view.hideColumn(1)
+        self.item_views_splitter.setStretchFactor(0, 11)
+        self.item_views_splitter.setStretchFactor(1, 3)
 
         # restore previous position
         size = settings.value('size')
