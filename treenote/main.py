@@ -169,11 +169,24 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.setAnimated(True)
         self.quicklinks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        quicklinks_view_holder = QWidget()  # needed to add space
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
-        layout.addWidget(self.quicklinks_view)
-        quicklinks_view_holder.setLayout(layout)
+        self.tag_view = QTreeView()
+        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
+        self.tag_view.setModel(tag_model.TagModel())
+        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+        self.tag_view.setUniformRowHeights(True)  # improves performance
+        self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
+            model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
+        self.tag_view.setAnimated(True)
+        self.tag_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+
+        quicklinks_splitter = QSplitter(Qt.Vertical)
+        quicklinks_splitter.setHandleWidth(0)
+        quicklinks_splitter.addWidget(self.quicklinks_view)
+        quicklinks_splitter.addWidget(self.tag_view)
+        quicklinks_splitter.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
+        quicklinks_splitter.setStretchFactor(0, 1)
+        quicklinks_splitter.setStretchFactor(1, 0)
 
         # second column
 
@@ -227,31 +240,18 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.setUniformRowHeights(True)  # improves performance
         self.bookmarks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        self.tag_view = QTreeView()
-        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
-        self.tag_view.setModel(tag_model.TagModel())
-        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
-        self.tag_view.setUniformRowHeights(True)  # improves performance
-        self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
-            model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
-        self.tag_view.setAnimated(True)
-        self.tag_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-
         self.third_column_splitter = QSplitter(Qt.Vertical)
         self.third_column_splitter.setHandleWidth(0)
         self.third_column_splitter.setChildrenCollapsible(False)
         self.third_column_splitter.addWidget(self.filter_spoiler)
         self.third_column_splitter.addWidget(self.bookmarks_view)
-        self.third_column_splitter.addWidget(self.tag_view)
         self.third_column_splitter.setContentsMargins(6, 0, 0, 0)  # left, top, right, bottom
         self.third_column_splitter.setStretchFactor(0, 0)
-        self.third_column_splitter.setStretchFactor(1, 0)
-        self.third_column_splitter.setStretchFactor(2, 1)  # when the window is resized, only tags shall grow
+        self.third_column_splitter.setStretchFactor(1, 1)
 
         # add columns to main
 
-        self.mainSplitter.addWidget(quicklinks_view_holder)
+        self.mainSplitter.addWidget(quicklinks_splitter)
         self.mainSplitter.addWidget(self.item_views_splitter)
         self.mainSplitter.addWidget(self.third_column_splitter)
         self.mainSplitter.setStretchFactor(0, 0)  # first column has a share of 2
