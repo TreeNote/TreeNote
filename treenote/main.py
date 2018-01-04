@@ -1687,11 +1687,11 @@ class MainWindow(QMainWindow):
 
         filter_proxy = model.FilterProxyModel()
         filter_proxy.setSourceModel(self.item_model)
-        filter_proxy.setDynamicSortFilter(True)
         filter_proxy.filter = 'date<1d'
         reminder_label = QLabel('')
 
         def update_reminder_label():
+            filter_proxy.invalidateFilter()
             count = filter_proxy.rowCount()
             if count == 0:
                 reminder_label.setText('')
