@@ -1696,7 +1696,7 @@ class MainWindow(QMainWindow):
             if count == 0:
                 reminder_label.setText('')
             else:
-                reminder_label.setText('<font color=red>' + str(count) + self.tr(' Reminders</font>'))
+                reminder_label.setText('<font color=red>' + self.tr('Check your reminders! </font>'))
 
         update_reminder_label()
         self.item_model.dataChanged.connect(update_reminder_label)
