@@ -1690,6 +1690,10 @@ class MainWindow(QMainWindow):
         filter_proxy.filter = 'date<1d'
         reminder_label = QLabel('')
 
+        def update_reminder_label_if_date(idx):
+            if idx is None or self.item_model.getItem(idx).date != '':
+                update_reminder_label()
+
         def update_reminder_label():
             filter_proxy.invalidateFilter()
             count = filter_proxy.rowCount()
@@ -1698,10 +1702,17 @@ class MainWindow(QMainWindow):
             else:
                 reminder_label.setText('<font color=red>' + self.tr('Check your reminders! </font>'))
 
+        def save_if_removed_has_date(idx, nr):
+            self.removed_has_date = self.item_model.getItem(idx).childItems[nr].date != ''
+
+        def update_if_removed_has_date():
+            if self.removed_has_date:
+                update_reminder_label()
+
         update_reminder_label()
-        self.item_model.dataChanged.connect(update_reminder_label)
-        self.item_model.rowsInserted.connect(update_reminder_label)
-        self.item_model.rowsRemoved.connect(update_reminder_label)
+        self.item_model.dataChanged.connect(update_reminder_label_if_date)
+        self.item_model.rowsAboutToBeRemoved.connect(save_if_removed_has_date)
+        self.item_model.rowsRemoved.connect(update_if_removed_has_date)
 
         layout.addWidget(reminder_label)
         layout.addWidget(new_column.search_bar)
