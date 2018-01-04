@@ -596,13 +596,6 @@ class MainWindow(QMainWindow):
         self.helpMenu.addAction(self.aboutAct)
 
         self.split_window()
-        self.split_window()
-        self.item_views_splitter.widget(1).filter_proxy.filter = 'date<1d'
-        self.item_views_splitter.widget(1).filter_proxy.invalidateFilter()
-        self.item_views_splitter.widget(1).view.hideColumn(1)
-        self.item_views_splitter.widget(1).view.setHeaderHidden(True)
-        self.item_views_splitter.setStretchFactor(0, 11)
-        self.item_views_splitter.setStretchFactor(1, 3)
 
         # restore previous position
         size = settings.value('size')
@@ -1691,6 +1684,26 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tab_bar)
         layout.addWidget(self.path_bar)
         layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding))
+
+        filter_proxy = model.FilterProxyModel()
+        filter_proxy.setSourceModel(self.item_model)
+        filter_proxy.setDynamicSortFilter(True)
+        filter_proxy.filter = 'date<1d'
+        reminder_label = QLabel('')
+
+        def update_reminder_label():
+            count = filter_proxy.rowCount()
+            if count == 0:
+                reminder_label.setText('')
+            else:
+                reminder_label.setText('<font color=red>' + str(count) + self.tr(' Reminders</font>'))
+
+        update_reminder_label()
+        self.item_model.dataChanged.connect(update_reminder_label)
+        self.item_model.rowsInserted.connect(update_reminder_label)
+        self.item_model.rowsRemoved.connect(update_reminder_label)
+
+        layout.addWidget(reminder_label)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.addWidget(new_column.toggle_sidebars_button)
