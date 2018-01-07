@@ -1700,7 +1700,7 @@ class MainWindow(QMainWindow):
             if count == 0:
                 reminder_label.setText('')
             else:
-                reminder_label.setText('<font color=red>' + self.tr('Check your reminders! </font>'))
+                reminder_label.setText('<b><font color=red>' + self.tr('‼‼‼‼‼‼‼‼‼‼‼‼‼‼ Check your reminders ‼‼‼‼‼‼‼‼‼‼‼‼‼‼</font><b>'))
 
         def save_if_removed_has_date(idx, nr):
             self.removed_has_date = self.item_model.getItem(idx).childItems[nr].date != ''
