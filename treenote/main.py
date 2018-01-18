@@ -649,6 +649,10 @@ class MainWindow(QMainWindow):
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 0))
 
+        self.refresh_reminder_label_timer = QTimer()
+        self.refresh_reminder_label_timer.timeout.connect(self.update_reminder_label)
+        self.refresh_reminder_label_timer.start(6 * 60 * 60 * 1000)  # every 6 hours, time specified in ms
+
         self.print_size = float(settings.value('print_size', 1))
         self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
         self.set_indentation_and_style_tree(settings.value('indentation', 40))
@@ -1627,6 +1631,14 @@ class MainWindow(QMainWindow):
                     text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                     QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
 
+    def update_reminder_label(self):
+        self.reminder_label.filter_proxy.invalidateFilter()
+        count = self.reminder_label.filter_proxy.rowCount()
+        if count == 0:
+            self.reminder_label.setText('')
+        else:
+            self.reminder_label.setText('<b><font color=red>' + self.tr('‼‼‼‼‼‼‼‼‼‼‼‼‼‼ Check your reminders ‼‼‼‼‼‼‼‼‼‼‼‼‼‼</font><b>'))
+
     def split_window(self):  # creates another item_view
         new_column = QWidget()
 
@@ -1685,36 +1697,28 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.path_bar)
         layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding))
 
-        filter_proxy = model.FilterProxyModel()
-        filter_proxy.setSourceModel(self.item_model)
-        filter_proxy.filter = 'date<1d'
-        reminder_label = QLabel('')
+        self.reminder_label = QLabel('')
+        self.reminder_label.filter_proxy = model.FilterProxyModel()
+        self.reminder_label.filter_proxy.setSourceModel(self.item_model)
+        self.reminder_label.filter_proxy.filter = 'date<1d'
 
         def update_reminder_label_if_date(idx):
             if idx is None or self.item_model.getItem(idx).date != '':
-                update_reminder_label()
-
-        def update_reminder_label():
-            filter_proxy.invalidateFilter()
-            count = filter_proxy.rowCount()
-            if count == 0:
-                reminder_label.setText('')
-            else:
-                reminder_label.setText('<b><font color=red>' + self.tr('‼‼‼‼‼‼‼‼‼‼‼‼‼‼ Check your reminders ‼‼‼‼‼‼‼‼‼‼‼‼‼‼</font><b>'))
+                self.update_reminder_label()
 
         def save_if_removed_has_date(idx, nr):
             self.removed_has_date = self.item_model.getItem(idx).childItems[nr].date != ''
 
         def update_if_removed_has_date():
             if self.removed_has_date:
-                update_reminder_label()
+                self.update_reminder_label()
 
-        update_reminder_label()
+        self.update_reminder_label()
         self.item_model.dataChanged.connect(update_reminder_label_if_date)
         self.item_model.rowsAboutToBeRemoved.connect(save_if_removed_has_date)
         self.item_model.rowsRemoved.connect(update_if_removed_has_date)
 
-        layout.addWidget(reminder_label)
+        layout.addWidget(self.reminder_label)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.addWidget(new_column.toggle_sidebars_button)
