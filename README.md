@@ -10,8 +10,8 @@ An intuitive outliner for personal knowledge and task management.
 - [Download](#download)
 - [Documentation](#documentation)
 - [Contribute](#contribute)
-- [Contributors and participation](#contributors-and-participation)
 - [Mobile app](#mobile-app)
+- [Contributors and participation](#contributors-and-participation)
 
 # About
 
