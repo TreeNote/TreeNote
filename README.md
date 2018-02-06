@@ -54,6 +54,9 @@ Me and couple of friends are using TreeNote on a daily basis since years. It is 
 ## Changelog
 Apart from the listed huge changes new versions often contain small improvements and bugfixes, look in the detailed [Git log](https://github.com/TreeNote/TreeNote/commits/master) if you are interested.
 
+#### Git Version (February, 2018)
+- Added a red label which appears and annoys you, if you have reminders (entries with a start date in the past).
+
 #### [Version 1.7.8](https://github.com/TreeNote/TreeNote/releases/tag/v1.7.8) (February 16, 2017)
 - New PyQt version finally fixes graphical glitches and crashes when using W and S (move item up or down)
 
