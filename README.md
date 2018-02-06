@@ -9,9 +9,9 @@ An intuitive outliner for personal knowledge and task management.
 - [About](#About)
 - [Download](#Download)
 - [Documentation](#Documentation)
-- [Contribute](# Contribute)
+- [Contribute](#Contribute)
 - [Contributors and participation](#Contributors and participation)
-- [Mobile app](# Mobile app)
+- [Mobile app](#Mobile-app)
 
 # About
 
