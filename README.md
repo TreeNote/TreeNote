@@ -6,12 +6,12 @@ An intuitive outliner for personal knowledge and task management.
 
 ##### Contents
 
-- [About](#About)
-- [Download](#Download)
-- [Documentation](#Documentation)
-- [Contribute](#Contribute)
-- [Contributors and participation](#Contributors and participation)
-- [Mobile app](#Mobile-app)
+- [About](#about)
+- [Download](#download)
+- [Documentation](#documentation)
+- [Contribute](#contribute)
+- [Contributors and participation](#contributors-and-participation)
+- [Mobile app](#mobile-app)
 
 # About
 
