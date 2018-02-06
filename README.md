@@ -310,10 +310,7 @@ Synchronisation with a JSON file in your OwnCloud is possible.
 However, Desktop TreeNote is not able to synchronize with a JSON file.
 When I finished my master thesis I will have a neat tree API, someone may implement it to the Android app to have fluent synchronisation.
 
-The code is [on GitHub](https://github.com/TreeNote/TreeNoteAndroid/).
-
-<img style="float: left; width: 30%; margin-right: 1%; margin-bottom: 0.5em;" src="http://raw.githubusercontent.com/TreeNote/TreeNoteAndroid/master/screenshot_1.png"><img style="float: left; width: 30%; margin-right: 1%; margin-bottom: 0.5em;" src="http://raw.githubusercontent.com/TreeNote/TreeNoteAndroid/master/screenshot_2.png"><img style="float: left; width: 30%; margin-right: 1%; margin-bottom: 0.5em;" src="http://raw.githubusercontent.com/TreeNote/TreeNoteAndroid/master/screenshot_3.png">
-
+The code and images are in this [repo](https://github.com/TreeNote/TreeNoteAndroid/).
 
 # Contributors and participation
 
