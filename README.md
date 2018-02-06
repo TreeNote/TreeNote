@@ -10,7 +10,7 @@ An intuitive outliner for personal knowledge and task management.
 - [Download](#download)
 - [Documentation](#documentation)
 - [Contribute](#contribute)
-- [Mobile app](#mobile-app)
+- [Android app](#android-app)
 - [Contributors and participation](#contributors-and-participation)
 
 # About
@@ -288,13 +288,7 @@ the desired items, for example the ones which match to a search string.
     
 
 
-# Mobile app
-
-The webapp which I will produce in my master thesis will be usable on a smartphone.
-It works offline, too.
-It won't have personal task management stuff like start dates, but when there is a demand, I could code it.
-
-## Android app
+# Android app
 
 This app was created by me and a fellow student at university.
 It is working nice, but I don't like its progamming language (Java is so cumbersome compared to Python).
@@ -308,7 +302,6 @@ If you have a Google Play Developer Account, feel free to publish the app.
 
 Synchronisation with a JSON file in your OwnCloud is possible.
 However, Desktop TreeNote is not able to synchronize with a JSON file.
-When I finished my master thesis I will have a neat tree API, someone may implement it to the Android app to have fluent synchronisation.
 
 The code and images are in this [repo](https://github.com/TreeNote/TreeNoteAndroid/).
 
