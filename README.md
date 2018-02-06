@@ -43,19 +43,7 @@ Me and couple of friends are using TreeNote on a daily basis since years. It is 
 
  For upgrading a version on Linux, run `sudo pip3 install pyqt5 treenote --upgrade`. 
  
-## Stay up to date
-I will implement auto-updates. Until then, register for my newsletter to get notified when a new version is ready:
-<form action="https://formspree.io/j.korte@me.com" method="POST">
-	<div class="form-group">
-	<input type="hidden" name="_next" value="/registered/"/>
-	    <input type="email" name="_replyto" class="form-control" placeholder="Your email adress">
-  	</div>
-	<div class="form-group">
-		<button type="submit" class="btn btn-default">Register</button>
-    </div>
-</form> 
-
-## Roadmap
+## Roadmap (not to be done by me)
 * Collaborative editing through connection to my master thesis outliner webapp
 * Auto-update for Windows and Mac, packages for more Linux distros
 * Drag'n'Drop
