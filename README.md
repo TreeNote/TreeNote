@@ -19,12 +19,13 @@ An intuitive outliner for personal knowledge and task management.
 This program is free and open source. It's easy to suggest and implement new features.
 
 ## It's science
-Half a year of research flowed into the development. I developed this application in my bachelor thesis in the year 2016, graded A+ and written at the University of Oldenburg.
+Half a year of research flowed into the development. I developed this application in my bachelor thesis in the year 2015, graded A+ and written at the University of Oldenburg. Have a look at it: [German PDF file](http://treenote.org/bachelorarbeit_gtd_jan_korte.pdf).
 
 ## It's mighty
 The author has used many time management programs over the last four years. When the number of tasks grew, a neat system like [Getting Things Done](http://www.amazon.com/Getting-Things-Done-Stress-Free-Productivity/dp/0142000280) became essential. Therefore the development of TreeNote was influenced by powerful tools like [Omnifocus](https://www.omnigroup.com/omnifocus) (Mac only) and [Org mode](http://orgmode.org/) (too complex). However, TreeNote is as intuitive to use as the light tools [Wunderlist](https://www.wunderlist.com) and [Evernote](https://evernote.com).
 
 When starting TreeNote for the first time, you will see a detailed manual which guides you through the features.
+The user interface and the manual are supplied in German and English.
 
 ## Project status (February 2018)
 Me and couple of friends are using TreeNote on a daily basis since years. It is a central and valuable piece for our self-management. TreeNote is well tested and bug-free. I have no time to add features, but will fix bugs if they appear and will explain the code to anyone interested.
