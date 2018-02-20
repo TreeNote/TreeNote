@@ -1683,6 +1683,8 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence('Ctrl+{}'.format(i + 1)), self)
             shortcut.setContext(Qt.ApplicationShortcut)
             shortcut.activated.connect(partial(self.tab_bar.setCurrentIndex, i))
+            if i == 1: # plan view
+                shortcut.activated.connect(partial(self.set_searchbar_text_and_search, ''))
 
         self.path_bar = QWidget()
         layout = QHBoxLayout()
