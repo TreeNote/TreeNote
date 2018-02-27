@@ -32,6 +32,8 @@ Me and couple of friends are using TreeNote on a daily basis since years. It is 
 
 When you have searched or filtered the tree you must not edit the tree's structure. If you do, TreeNote may crash and your tree may become corrupted (you cannot open it anymore). Editing of a single entry (text, color, date) is okay.
 
+It is a good thing to enable daily backups in the settings.
+
 I am doing a startup, which works on the successor of TreeNote. Therefore I won't develop TreeNote any further.
 
 An alternative to TreeNote is the collaborative online outliner [Dynalist](https://dynalist.io/). It has a desktop app, too.
