@@ -16,7 +16,7 @@ An intuitive outliner for personal knowledge and task management.
 # About
 
 ## It's freedom
-This program is free and open source. It's easy to suggest and implement new features.
+This program is free and open source. Therefore, you can trust it. Your data stays on your computer.
 
 ## It's science
 Half a year of research flowed into the development. I developed this application in my bachelor thesis in the year 2015, graded A+ and written at the University of Oldenburg. Have a look at it: [German PDF file](http://treenote.org/bachelorarbeit_gtd_jan_korte.pdf).
@@ -27,8 +27,14 @@ The author has used many time management programs over the last four years. When
 When starting TreeNote for the first time, you will see a detailed manual which guides you through the features.
 The user interface and the manual are supplied in German and English.
 
-## Project status (February 2018)
-Me and couple of friends are using TreeNote on a daily basis since years. It is a central and valuable piece for our self-management. TreeNote is well tested and bug-free. I have no time to add features, but will fix bugs if they appear and will explain the code to anyone interested.
+## Project status & Warning (February 2018)
+Me and couple of friends are using TreeNote on a daily basis since years. It is a central and valuable piece for our self-management. TreeNote is well tested and bug-free, apart from this one: 
+
+When you have searched or filtered the tree you must not edit the tree's structure. If you do, TreeNote may crash and your tree may become corrupted (you cannot open it anymore). Editing of a single entry (text, color, date) is okay.
+
+I am doing a startup, which works on the successor of TreeNote. Therefore I won't develop TreeNote any further.
+
+An alternative to TreeNote is the collaborative online outliner [Dynalist](https://dynalist.io/). It has a desktop app, too.
 
 ![Screenshot](/treenote/resources/images/screenshot.png)
 
