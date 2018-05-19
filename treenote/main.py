@@ -169,11 +169,24 @@ class MainWindow(QMainWindow):
         self.quicklinks_view.setAnimated(True)
         self.quicklinks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        quicklinks_view_holder = QWidget()  # needed to add space
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
-        layout.addWidget(self.quicklinks_view)
-        quicklinks_view_holder.setLayout(layout)
+        self.tag_view = QTreeView()
+        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
+        self.tag_view.setModel(tag_model.TagModel())
+        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
+        self.tag_view.setUniformRowHeights(True)  # improves performance
+        self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
+            model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
+        self.tag_view.setAnimated(True)
+        self.tag_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+
+        quicklinks_splitter = QSplitter(Qt.Vertical)
+        quicklinks_splitter.setHandleWidth(0)
+        quicklinks_splitter.addWidget(self.quicklinks_view)
+        quicklinks_splitter.addWidget(self.tag_view)
+        quicklinks_splitter.setContentsMargins(0, 0, 6, 0)  # left, top, right, bottom
+        quicklinks_splitter.setStretchFactor(0, 10)
+        quicklinks_splitter.setStretchFactor(1, 4)
 
         # second column
 
@@ -227,31 +240,18 @@ class MainWindow(QMainWindow):
         self.bookmarks_view.setUniformRowHeights(True)  # improves performance
         self.bookmarks_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
 
-        self.tag_view = QTreeView()
-        self.tag_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tag_view.customContextMenuRequested.connect(self.open_rename_tag_contextmenu)
-        self.tag_view.setModel(tag_model.TagModel())
-        self.tag_view.selectionModel().selectionChanged.connect(self.filter_tag)
-        self.tag_view.setUniformRowHeights(True)  # improves performance
-        self.tag_view.setStyleSheet('QTreeView:item { padding: ' + str(
-            model.SIDEBARS_PADDING + model.SIDEBARS_PADDING_EXTRA_SPACE) + 'px; }')
-        self.tag_view.setAnimated(True)
-        self.tag_view.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-
         self.third_column_splitter = QSplitter(Qt.Vertical)
         self.third_column_splitter.setHandleWidth(0)
         self.third_column_splitter.setChildrenCollapsible(False)
         self.third_column_splitter.addWidget(self.filter_spoiler)
         self.third_column_splitter.addWidget(self.bookmarks_view)
-        self.third_column_splitter.addWidget(self.tag_view)
         self.third_column_splitter.setContentsMargins(6, 0, 0, 0)  # left, top, right, bottom
         self.third_column_splitter.setStretchFactor(0, 0)
-        self.third_column_splitter.setStretchFactor(1, 0)
-        self.third_column_splitter.setStretchFactor(2, 1)  # when the window is resized, only tags shall grow
+        self.third_column_splitter.setStretchFactor(1, 1)
 
         # add columns to main
 
-        self.mainSplitter.addWidget(quicklinks_view_holder)
+        self.mainSplitter.addWidget(quicklinks_splitter)
         self.mainSplitter.addWidget(self.item_views_splitter)
         self.mainSplitter.addWidget(self.third_column_splitter)
         self.mainSplitter.setStretchFactor(0, 0)  # first column has a share of 2
@@ -648,6 +648,10 @@ class MainWindow(QMainWindow):
         self.backup_timer = QTimer()
         self.backup_timer.timeout.connect(self.backup_tree_if_changed)
         self.start_backup_service(settings.value('backup_interval', 0))
+
+        self.refresh_reminder_label_timer = QTimer()
+        self.refresh_reminder_label_timer.timeout.connect(self.update_reminder_label)
+        self.refresh_reminder_label_timer.start(6 * 60 * 60 * 1000)  # every 6 hours, time specified in ms
 
         self.print_size = float(settings.value('print_size', 1))
         self.new_rows_plan_item_creation_date = settings.value('new_rows_plan_item_creation_date')
@@ -1605,6 +1609,9 @@ class MainWindow(QMainWindow):
             # open file
             if row_index.data().startswith('file:///'):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data().replace('file://', '')))
+            # open folder
+            elif row_index.data().startswith('/'):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(row_index.data()))
             # open internal link
             elif match:
                 text_to_find = match.group(1)[1:].strip(model.INTERNAL_LINK_DELIMITER)
@@ -1623,6 +1630,14 @@ class MainWindow(QMainWindow):
                 else:  # no urls found: search the web for the selected entry
                     text_without_tags = re.sub(r':(\w|:)*', '', row_index.data())
                     QDesktopServices.openUrl(QUrl('https://www.google.de/search?q=' + text_without_tags))
+
+    def update_reminder_label(self):
+        self.reminder_label.filter_proxy.invalidateFilter()
+        count = self.reminder_label.filter_proxy.rowCount()
+        if count == 0:
+            self.reminder_label.setText('')
+        else:
+            self.reminder_label.setText('<b><font color=red>' + self.tr('‼‼‼‼‼‼‼‼‼‼‼‼‼‼ Check your reminders ‼‼‼‼‼‼‼‼‼‼‼‼‼‼</font><b>'))
 
     def split_window(self):  # creates another item_view
         new_column = QWidget()
@@ -1668,6 +1683,8 @@ class MainWindow(QMainWindow):
             shortcut = QShortcut(QKeySequence('Ctrl+{}'.format(i + 1)), self)
             shortcut.setContext(Qt.ApplicationShortcut)
             shortcut.activated.connect(partial(self.tab_bar.setCurrentIndex, i))
+            if i == 1: # plan view
+                shortcut.activated.connect(partial(self.set_searchbar_text_and_search, ''))
 
         self.path_bar = QWidget()
         layout = QHBoxLayout()
@@ -1681,6 +1698,29 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tab_bar)
         layout.addWidget(self.path_bar)
         layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding))
+
+        self.reminder_label = QLabel('')
+        self.reminder_label.filter_proxy = model.FilterProxyModel()
+        self.reminder_label.filter_proxy.setSourceModel(self.item_model)
+        self.reminder_label.filter_proxy.filter = 'date<1d'
+
+        def update_reminder_label_if_date(idx):
+            if idx is None or self.item_model.getItem(idx).date != '':
+                self.update_reminder_label()
+
+        def save_if_removed_has_date(idx, nr):
+            self.removed_has_date = self.item_model.getItem(idx).childItems[nr].date != ''
+
+        def update_if_removed_has_date():
+            if self.removed_has_date:
+                self.update_reminder_label()
+
+        self.update_reminder_label()
+        self.item_model.dataChanged.connect(update_reminder_label_if_date)
+        self.item_model.rowsAboutToBeRemoved.connect(save_if_removed_has_date)
+        self.item_model.rowsRemoved.connect(update_if_removed_has_date)
+
+        layout.addWidget(self.reminder_label)
         layout.addWidget(new_column.search_bar)
         layout.addWidget(new_column.bookmark_button)
         layout.addWidget(new_column.toggle_sidebars_button)
@@ -1718,7 +1758,10 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # left, top, right, bottom
-        layout.addWidget(self.search_holder)
+        if self.item_views_splitter.count() < 1:
+            layout.addWidget(self.search_holder)
+        else:
+            layout.addWidget(QLabel(self.tr('Reminders:')))
         layout.addWidget(new_column.stacked_widget)
         new_column.setLayout(layout)
 
