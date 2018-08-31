@@ -44,9 +44,9 @@ An alternative to TreeNote is the collaborative online outliner [Dynalist](https
 # Download
 * **Linux**: TreeNote requieres an installation of the programming language Python 3 and the GUI framework PyQt5, before it can be run from source. It is installed as follows:
 	* <i class="fl-archlinux"></i> **Arch Linux**: Search in the AUR for 'treenote' with e.g. Pamac or enter `yaourt -S treenote-git` in a Terminal.
-	* <i class="fl-ubuntu"></i> **Debian and Ubuntu**: Enter `sudo apt-get install python3-pip`, then `sudo pip3 install pyqt5 treenote` in a Terminal. Run by entering `nohup dbus-run-session treenote &`.
-	* <i class="fl-fedora"></i> **Fedora**: Enter `sudo yum install python3-pip`, then `sudo pip3 install pyqt5 treenote` in a Terminal. Run by entering  `nohup treenote &`.
-	* <i class="fl-tux"></i> **Other Linux distros**: Enter `sudo pip3 install pyqt5 treenote` in a Terminal. Run by entering  `nohup treenote &`.
+	* <i class="fl-ubuntu"></i> **Debian and Ubuntu**: Enter `sudo apt-get install python3-pip`, then `sudo pip3 install sip pyqt5 treenote` in a Terminal.
+	* <i class="fl-fedora"></i> **Fedora**: Enter `sudo yum install python3-pip`, then `sudo pip3 install pyqt5 treenote` in a Terminal.
+	* <i class="fl-tux"></i> **Other Linux distros**: Enter `sudo pip3 install pyqt5 treenote` in a Terminal.
 * <i class="fa fa-windows"></i> **Windows**: [Download <i class="fa fa-arrow-circle-o-down" aria-hidden="true"></i>](https://github.com/TreeNote/TreeNote/releases/download/v1.7.8/treenote_v1.7.8_windows.zip) and extract the archive, then doubleclick the `treenote.exe` file inside. 
 * <i class="fa fa-apple"></i> **Mac OS X**: [Download <i class="fa fa-arrow-circle-o-down" aria-hidden="true"></i>](https://github.com/TreeNote/TreeNote/releases/download/v1.7.8/treenote_v1.7.8_mac.zip)
 
