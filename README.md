@@ -27,16 +27,18 @@ The author has used many time management programs over the last four years. When
 When starting TreeNote for the first time, you will see a detailed manual which guides you through the features.
 The user interface and the manual are supplied in German and English.
 
-## Project status & Warning (February 2018)
+You find a complete list of features in the [wiki](https://github.com/TreeNote/TreeNote/wiki).
+
+## Project status & Warning (December 2018)
 Me and couple of friends are using TreeNote on a daily basis since years. It is a central and valuable piece for our self-management. TreeNote is well tested and bug-free, apart from this one: 
 
 When you have searched or filtered the tree you must not edit the tree's structure. If you do, TreeNote may crash and your tree may become corrupted (you cannot open it anymore). Editing of a single entry (text, color, date) is okay.
 
 It is a good thing to enable daily backups in the settings.
 
-I am doing a startup, which works on the successor of TreeNote. Therefore I won't develop TreeNote any further.
+I would like to do a complete rewrite of TreeNote in Scala. It shall be more robust, faster and collaboratively editable (while of course running offline and privacy-friendly). Therefore I won't develop TreeNote any further.
 
-An alternative to TreeNote is the collaborative online outliner [Dynalist](https://dynalist.io/). It has a desktop app, too.
+Alternatives to TreeNote are the collaborative online outliners [Dynalist](https://dynalist.io/), Workflowy and Moo.do. The have desktop apps, too.
 
 ![Screenshot](/treenote/resources/images/screenshot.png)
 
