@@ -38,7 +38,7 @@ It is a good thing to enable daily backups in the settings.
 
 I would like to do a complete rewrite of TreeNote in Scala. It shall be more robust, faster and collaboratively editable (while of course running offline and privacy-friendly). Therefore I won't develop TreeNote any further.
 
-Alternatives to TreeNote are the collaborative online outliners [Dynalist](https://dynalist.io/), Workflowy and Moo.do. The have desktop apps, too.
+Alternatives to TreeNote are the collaborative online outliners [Dynalist](https://dynalist.io/), Workflowy and Moo.do. They have desktop apps, too.
 
 ![Screenshot](/treenote/resources/images/screenshot.png)
 
