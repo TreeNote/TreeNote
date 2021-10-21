@@ -4,6 +4,8 @@
 
 An intuitive outliner for personal knowledge and task management.
 
+**Update 2021: I recommend moving to [Logseq](https://github.com/logseq/logseq), because it has a better performance with many notes, and the concept of having a network instead of a tree is easier to organize.**
+
 ##### Contents
 
 - [About](#about)
@@ -30,6 +32,7 @@ The user interface and the manual are supplied in German and English.
 You find a complete list of features in the [wiki](https://github.com/TreeNote/TreeNote/wiki).
 
 ## Project status & Warning (December 2018)
+
 Me and couple of friends are using TreeNote on a daily basis since years. It is a central and valuable piece for our self-management. TreeNote is well tested and bug-free, apart from this one: 
 
 When you have searched or filtered the tree you must not edit the tree's structure. If you do, TreeNote may crash and your tree may become corrupted (you cannot open it anymore). Editing of a single entry (text, color, date) is okay.
