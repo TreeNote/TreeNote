@@ -1295,15 +1295,22 @@ class MainWindow(QMainWindow):
 
     def copy(self):
         if len(self.selected_indexes()) == 1:
-            rows_string = self.selected_indexes()[0].data()
+            date = self.current_view().model().getItem(self.selected_indexes()[0]).date
+            if date != "":
+                date = " [[" + date + "]]"
+            rows_string = self.selected_indexes()[0].data() + date
         else:
             selected_source_indexes = [self.map_to_source(index) for index in self.selected_indexes()]
 
             def tree_as_string(index, rows_string=''):
                 indention_string = (model.indention_level(index) - 1) * '\t'
                 if index.data() is not None and index in selected_source_indexes:
+                    date = self.current_view().model().getItem(self.map_to_view(index)).date
+                    if date != "":
+                        date = " [[" + date + "]]"
                     rows_string += indention_string + '- ' + \
-                                   index.data().replace('\n', '\r\n' + indention_string + '\t') + '\r\n'
+                                   index.data().replace('\n', '\r\n' + indention_string + '  ') + \
+                                   date + '\r\n'
                 for child_nr in range(self.item_model.rowCount(index)):
                     child_index = self.item_model.index(child_nr, 0, index)
                     rows_string = tree_as_string(child_index, rows_string)
