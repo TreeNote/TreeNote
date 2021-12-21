@@ -4,7 +4,7 @@
 
 An intuitive outliner for personal knowledge and task management.
 
-**Update 2021: I recommend moving to [Logseq](https://github.com/logseq/logseq), because it has a better performance with many notes, and the concept of having a network instead of a tree is easier to organize.**
+**Update 2021: I recommend moving to [Logseq](https://github.com/logseq/logseq), because it has a better performance with many notes, and the concept of having a network instead of a tree is easier to organize. Update to the latest TreeNote git version if you want to migrate entries with dates or multi-line entries (otherwise the date is missing and multi-line entries have a bad indention).**
 
 ##### Contents
 
