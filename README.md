@@ -4,7 +4,10 @@
 
 An intuitive outliner for personal knowledge and task management.
 
-**Update 2021: I recommend moving to [Logseq](https://github.com/logseq/logseq), because it has a better performance with many notes, and the concept of having a network instead of a tree is easier to organize. Update to the latest TreeNote git version if you want to migrate entries with dates or multi-line entries (otherwise the date is missing and multi-line entries have a bad indention).**
+**Update 2021:** I recommend moving to [Logseq](https://github.com/logseq/logseq), because it has a better performance with many notes, and the concept of having a network instead of a tree is easier to organize.
+* Update to the latest TreeNote git version if you want to migrate entries with dates or multi-line entries (otherwise the date is missing and multi-line entries have a bad indention). 
+* Huge files are still slow. Therefore copy subtrees of at most 500 lines to a single page in Logseq and nest them with links.
+* For reminders I use a query which shows all TODOs whose date is older than today. For that I need to prepend the word TODO before all lines with a date. For that I opened Logseqs `pages` folder in MS Code and replaced in all files `- (.*\[\[\d)` with `- TODO $1` (check the button `regular expression`).
 
 ##### Contents
 
